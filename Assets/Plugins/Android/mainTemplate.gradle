@@ -1,0 +1,106 @@
+apply plugin: 'com.android.library'
+**APPLY_PLUGINS**
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+// Android Resolver Dependencies Start
+    implementation 'androidx.activity:activity:1.6.1' // Packages/com.senspark.extension/Editor/Dependencies.xml:4
+    implementation 'androidx.appcompat:appcompat:1.6.1' // Packages/com.senspark.extension/Plugins/com.senspark.cmd-receiver/Editor/Dependencies.xml:8
+    implementation 'androidx.appcompat:appcompat-resources:1.6.1' // Packages/com.senspark.extension/Plugins/com.senspark.cmd-receiver/Editor/Dependencies.xml:10
+    implementation 'androidx.core:core:1.10.0' // Packages/com.senspark.extension/Editor/Dependencies.xml:5
+    implementation 'androidx.databinding:viewbinding:8.0.2' // Packages/com.senspark.extension/Plugins/com.senspark.cmd-receiver/Editor/Dependencies.xml:12
+    implementation 'androidx.emoji2:emoji2:1.0.0' // Packages/com.senspark.notification/Editor/SensparkNotificationDependencies.xml:5
+    implementation 'androidx.emoji2:emoji2-views:1.0.0' // Packages/com.senspark.notification/Editor/SensparkNotificationDependencies.xml:6
+    implementation 'com.android.installreferrer:installreferrer:2.1' // Packages/appsflyer-unity-plugin/Editor/AppsFlyerDependencies.xml:10
+    implementation 'com.android.support:appcompat-v7:25.3.1' // Facebook.Unity.Editor.AndroidSupportLibraryResolver.addSupportLibraryDependency
+    implementation 'com.android.support:cardview-v7:25.3.1' // Facebook.Unity.Editor.AndroidSupportLibraryResolver.addSupportLibraryDependency
+    implementation 'com.android.support:customtabs:25.3.1' // Facebook.Unity.Editor.AndroidSupportLibraryResolver.addSupportLibraryDependency
+    implementation 'com.android.support:support-v4:25.3.1' // Facebook.Unity.Editor.AndroidSupportLibraryResolver.addSupportLibraryDependency
+    implementation 'com.appsflyer:adrevenue:6.9.1' // Packages/appsflyer-unity-plugin/Editor/AppsFlyerAdRevenueDependencies.xml:4
+    implementation 'com.appsflyer:af-android-sdk:6.12.2' // Packages/appsflyer-unity-plugin/Editor/AppsFlyerDependencies.xml:6
+    implementation 'com.appsflyer:af-purchaseconnector-unity:2.0.0' // Packages/appsflyer-unity-plugin/PurchaseConnector/Editor/AppsFlyerPurchaseConnectorDependencies.xml:5
+    implementation 'com.appsflyer:purchase-connector:2.0.0' // Packages/appsflyer-unity-plugin/PurchaseConnector/Editor/AppsFlyerPurchaseConnectorDependencies.xml:6
+    implementation 'com.appsflyer:unity-adrevenue-generic-wrapper:6.9.1' // Packages/appsflyer-unity-plugin/Editor/AppsFlyerAdRevenueDependencies.xml:5
+    implementation 'com.appsflyer:unity-wrapper:6.12.21' // Packages/appsflyer-unity-plugin/Editor/AppsFlyerDependencies.xml:8
+    implementation 'com.facebook.android:facebook-applinks:[14.1, 15)' // Assets/FacebookSDK/Plugins/Editor/Dependencies.xml:6
+    implementation 'com.facebook.android:facebook-core:[14.1, 15)' // Assets/FacebookSDK/Plugins/Editor/Dependencies.xml:5
+    implementation 'com.facebook.android:facebook-gamingservices:[14.1, 15)' // Assets/FacebookSDK/Plugins/Editor/Dependencies.xml:9
+    implementation 'com.facebook.android:facebook-login:[14.1, 15)' // Assets/FacebookSDK/Plugins/Editor/Dependencies.xml:7
+    implementation 'com.facebook.android:facebook-share:[14.1, 15)' // Assets/FacebookSDK/Plugins/Editor/Dependencies.xml:8
+    implementation 'com.google.ads.mediation:adcolony:4.8.0.2' // Packages/com.senspark.admob/GoogleMobileAds/Mediation/AdColony/Editor/AdColonyMediationDependencies.xml:24
+    implementation 'com.google.ads.mediation:applovin:11.11.3.0' // Packages/com.senspark.admob/GoogleMobileAds/Mediation/AppLovin/Editor/AppLovinMediationDependencies.xml:24
+    implementation 'com.google.ads.mediation:facebook:6.15.0.0' // Packages/com.senspark.admob/GoogleMobileAds/Mediation/MetaAudienceNetwork/Editor/MetaAudienceNetworkMediationDependencies.xml:24
+    implementation 'com.google.ads.mediation:inmobi:10.5.8.0' // Packages/com.senspark.admob/GoogleMobileAds/Mediation/InMobi/Editor/InMobiMediationDependencies.xml:24
+    implementation 'com.google.ads.mediation:ironsource:7.3.1.0' // Packages/com.senspark.admob/GoogleMobileAds/Mediation/IronSource/Editor/IronSourceMediationDependencies.xml:24
+    implementation 'com.google.ads.mediation:mintegral:16.4.61.0' // Packages/com.senspark.admob/GoogleMobileAds/Editor/MintegralMediationDependencies.xml:25
+    implementation 'com.google.ads.mediation:tapjoy:13.1.2.0' // Packages/com.senspark.admob/GoogleMobileAds/Mediation/Tapjoy/Editor/TapjoyMediationDependencies.xml:24
+    implementation 'com.google.ads.mediation:unity:4.8.0.0' // Packages/com.senspark.admob/GoogleMobileAds/Mediation/UnityAds/Editor/UnityMediationDependencies.xml:25
+    implementation 'com.google.ads.mediation:vungle:6.12.1.1' // Packages/com.senspark.admob/GoogleMobileAds/Mediation/LiftoffMonetize/Editor/LiftoffMonetizeMediationDependencies.xml:24
+    implementation 'com.google.android.gms:play-services-ads:22.3.0' // Packages/com.senspark.admob/GoogleMobileAds/Editor/GoogleMobileAdsDependencies.xml:7
+    implementation 'com.google.android.gms:play-services-base:18.5.0' // Packages/com.google.firebase.app/Firebase/Editor/AppDependencies.xml:17
+    implementation 'com.google.android.material:material:1.9.0' // Packages/com.senspark.extension/Plugins/com.senspark.cmd-receiver/Editor/Dependencies.xml:6
+    implementation 'com.google.android.ump:user-messaging-platform:2.1.0' // Packages/com.senspark.admob/GoogleMobileAds/Editor/GoogleUmpDependencies.xml:7
+    implementation 'com.google.firebase:firebase-analytics:22.0.2' // Packages/com.google.firebase.analytics/Firebase/Editor/AnalyticsDependencies.xml:13
+    implementation 'com.google.firebase:firebase-analytics-unity:12.1.0' // Packages/com.google.firebase.analytics/Firebase/Editor/AnalyticsDependencies.xml:18
+    implementation 'com.google.firebase:firebase-app-unity:12.1.0' // Packages/com.google.firebase.app/Firebase/Editor/AppDependencies.xml:22
+    implementation 'com.google.firebase:firebase-common:21.0.0' // Packages/com.google.firebase.app/Firebase/Editor/AppDependencies.xml:13
+    implementation 'com.google.firebase:firebase-config:22.0.0' // Packages/com.google.firebase.remote-config/Firebase/Editor/RemoteConfigDependencies.xml:13
+    implementation 'com.google.firebase:firebase-config-unity:12.1.0' // Packages/com.google.firebase.remote-config/Firebase/Editor/RemoteConfigDependencies.xml:20
+    implementation 'com.google.firebase:firebase-crashlytics-ndk:19.0.2' // Packages/com.google.firebase.crashlytics/Firebase/Editor/CrashlyticsDependencies.xml:13
+    implementation 'com.google.firebase:firebase-crashlytics-unity:12.1.0' // Packages/com.google.firebase.crashlytics/Firebase/Editor/CrashlyticsDependencies.xml:20
+    implementation 'com.google.firebase:firebase-iid:21.1.0' // Packages/com.google.firebase.messaging/Firebase/Editor/MessagingDependencies.xml:17
+    implementation 'com.google.firebase:firebase-messaging:24.0.0' // Packages/com.google.firebase.messaging/Firebase/Editor/MessagingDependencies.xml:13
+    implementation 'com.google.firebase:firebase-messaging-unity:12.1.0' // Packages/com.google.firebase.messaging/Firebase/Editor/MessagingDependencies.xml:24
+    implementation 'com.google.flatbuffers:flatbuffers-java:1.12.0' // Packages/com.google.firebase.messaging/Firebase/Editor/MessagingDependencies.xml:19
+    implementation 'com.parse.bolts:bolts-android:1.4.0' // Assets/FacebookSDK/Plugins/Editor/Dependencies.xml:4
+    implementation 'com.unity3d.ads:unity-ads:4.8.0' // Packages/com.senspark.admob/GoogleMobileAds/Mediation/UnityAds/Editor/UnityMediationDependencies.xml:33
+    implementation 'org.jetbrains.kotlin:kotlin-stdlib:1.8.10' // Packages/com.senspark.extension/Editor/Dependencies.xml:6
+    implementation 'org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.0' // Packages/com.senspark.extension/Editor/Dependencies.xml:7
+// Android Resolver Dependencies End
+**DEPS**}
+
+// Android Resolver Exclusions Start
+android {
+  packagingOptions {
+      exclude ('/lib/armeabi/*' + '*')
+      exclude ('/lib/mips/*' + '*')
+      exclude ('/lib/mips64/*' + '*')
+      exclude ('/lib/x86/*' + '*')
+      exclude ('/lib/x86_64/*' + '*')
+  }
+}
+// Android Resolver Exclusions End
+android {
+    ndkPath "**NDKPATH**"
+
+    compileSdkVersion **APIVERSION**
+    buildToolsVersion '**BUILDTOOLS**'
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
+    }
+
+    defaultConfig {
+        minSdkVersion **MINSDKVERSION**
+        targetSdkVersion **TARGETSDKVERSION**
+        ndk {
+            abiFilters **ABIFILTERS**
+        }
+        versionCode **VERSIONCODE**
+        versionName '**VERSIONNAME**'
+        consumerProguardFiles 'proguard-unity.txt'**USER_PROGUARD**
+    }
+
+    lintOptions {
+        abortOnError false
+    }
+
+    aaptOptions {
+        noCompress = **BUILTIN_NOCOMPRESS** + unityStreamingAssets.tokenize(', ')
+        ignoreAssetsPattern = "!.svn:!.git:!.ds_store:!*.scc:!CVS:!thumbs.db:!picasa.ini:!*~"
+    }**PACKAGING_OPTIONS**
+}
+**IL_CPP_BUILD_SETUP**
+**SOURCE_BUILD_SETUP**
+**EXTERNAL_SOURCES**

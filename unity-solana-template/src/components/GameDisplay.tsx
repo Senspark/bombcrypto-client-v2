@@ -1,0 +1,215 @@
+import React, { useContext, useEffect, useRef, useState, useCallback } from "react";
+import { Unity, useUnityContext } from "react-unity-webgl";
+import gameBorder from "@assets/game_border.png";
+import fullscreen_button from "@assets/fullscreen_button.png";
+import fullratio_button from "@assets/fullratio_button.png";
+import { EnvConfig } from "../configs/EnvConfig.ts";
+import { unityService } from "../hooks/GlobalServices.ts";
+import { UnityInstance } from "react-unity-webgl/declarations/unity-instance";
+import { StyleContext } from "./StyleContext.tsx";
+
+declare global {
+    interface Window {
+        unityInstance: UnityInstance | null;
+    }
+}
+const maxWidth = 1000;
+const maxHeight = 620;
+
+export default function GameDisplay() {
+    const [zoom, setZoom] = useState(1);
+    const styleContext = useContext(StyleContext);
+    const canAutoResize = useRef(false);
+
+    if (!styleContext) {
+        throw new Error("StyleContext must be used within a StyleProvider");
+    }
+
+    const { fullRatio, setFullRatio } = styleContext;
+    const unityFolder = EnvConfig.unityFolder();
+    const loaderUrlExtension = EnvConfig.loaderExtension();
+    const dataUrlExtension = EnvConfig.dataExtension();
+    const frameworkUrlExtension = EnvConfig.frameworkExtension();
+    const codeUrlExtension = EnvConfig.codeExtension();
+
+    const loaderUrl = `${unityFolder}${loaderUrlExtension}`;
+    const dataUrl = `${unityFolder}${dataUrlExtension}`;
+    const frameworkUrl = `${unityFolder}${frameworkUrlExtension}`;
+    const codeUrl = `${unityFolder}${codeUrlExtension}`;
+
+    const { unityProvider, UNSAFE__unityInstance } = useUnityContext({
+        loaderUrl,
+        dataUrl,
+        frameworkUrl,
+        codeUrl,
+        streamingAssetsUrl: `${unityFolder}/StreamingAssets`,
+    });
+
+    useEffect(() => {
+        if (UNSAFE__unityInstance) {
+            window.unityInstance = UNSAFE__unityInstance;
+            unityService.setUnityInstance(UNSAFE__unityInstance);
+        }
+    }, [UNSAFE__unityInstance]);
+
+    const handleResize = useCallback(() => {
+        if (canAutoResize.current) {
+            const containerWidth = maxWidth;
+            const containerHeight = maxHeight;
+            const windowWidth = window.outerWidth;
+            const windowHeight = window.innerHeight;
+
+            const zoomWidth = windowWidth / containerWidth;
+            const zoomHeight = windowHeight / containerHeight;
+            const zoomFactor = Math.min(zoomWidth, zoomHeight);
+            setZoom(zoomFactor);
+        }
+    }, [maxWidth, maxHeight]);
+
+
+
+    const debouncedHandleResize = debounce(handleResize, 100);
+
+    useEffect(() => {
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key === "Escape") {
+                resetZoom();
+            }
+        };
+
+        window.addEventListener("keydown", handleKeyDown);
+        return () => {
+            window.removeEventListener("keydown", handleKeyDown);
+        };
+    }, [debouncedHandleResize]);
+
+    const resetZoom = () => {
+        setZoom(1);
+        setFullRatio(false);
+        canAutoResize.current = false;
+        window.removeEventListener("resize", debouncedHandleResize);
+    };
+
+    const handleFullRatioClick = () => {
+        const containerWidth = maxWidth;
+        const containerHeight = maxHeight;
+        const windowWidth = window.outerWidth;
+        const windowHeight = window.innerHeight;
+
+        const zoomWidth = windowWidth / containerWidth;
+        const zoomHeight = windowHeight / containerHeight;
+        const zoomFactor = Math.min(zoomWidth, zoomHeight);
+        setZoom(zoomFactor);
+        setFullRatio(true);
+        canAutoResize.current = true;
+        window.addEventListener("resize", debouncedHandleResize);
+    };
+    
+    return (
+        <div style={fullRatio ? containerStyleFullRatio(zoom) : containerStyleDefault(zoom)}>
+            <div style={fullRatio ? iframeContainerStyleFullRatio : iframeContainerStyleDefault}>
+                <Unity
+                    devicePixelRatio={2}
+                    matchWebGLToCanvasSize={true}
+                    unityProvider={unityProvider}
+                    style={{ width: "100%", height: "100%" }}
+                />
+                <div style={{ ...wrapperImg, display: fullRatio ? "none" : "flex" }} />
+                <div
+                    style={{ ...FullRatioButton, display: fullRatio ? "none" : "flex" }}
+                    onClick={handleFullRatioClick}
+                />
+                <div
+                    style={{ ...FullScreenButton, display: fullRatio ? "none" : "flex" }}
+                    onClick={() => window.unityInstance?.SetFullscreen(1)}
+                />
+            </div>
+        </div>
+    );
+}
+
+const containerStyleDefault = (zoom: number): React.CSSProperties =>({
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    width: "100%",
+    height: undefined,
+    position: "relative",
+    transform: `scale(${zoom})`,
+    paddingTop: "50px",
+});
+
+const containerStyleFullRatio = (zoom: number): React.CSSProperties => ({
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    height: "100%",
+    position: "fixed",
+    top: "50%",
+    left: "50%",
+    transform: `translate(-50%, -50%) scale(${zoom})`,
+});
+
+const iframeContainerStyleDefault: React.CSSProperties = {
+    position: "relative",
+    width: maxWidth,
+    height: maxHeight,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: "15px",
+};
+
+const iframeContainerStyleFullRatio: React.CSSProperties = {
+    position: "relative",
+    width: maxWidth,
+    height: maxHeight,
+    justifyContent: "center",
+    alignItems: "center",
+};
+
+const wrapperImg: React.CSSProperties = {
+    backgroundImage: `url(${gameBorder})`,
+    backgroundRepeat: "no-repeat",
+    backgroundSize: "100% 100%",
+    backgroundPosition: "top",
+    pointerEvents: "none",
+    cursor: "pointer",
+    position: "absolute",
+    top: 0,
+    left: 0,
+    width: "100%",
+    height: "100%",
+    maxWidth: "1000px",
+    maxHeight: "629px",
+    zIndex: 1,
+    display: "flex",
+};
+
+const FullScreenButton: React.CSSProperties = {
+    width: "38px",
+    height: "38px",
+    backgroundImage: `url(${fullscreen_button})`,
+    cursor: "pointer",
+    position: "absolute",
+    top: "100%",
+    left: "93%",
+    backgroundRepeat: "no-repeat",
+    overflow: "visible",
+    display: "flex",
+    pointerEvents: "auto",
+};
+
+const FullRatioButton: React.CSSProperties = {
+    width: "38px",
+    height: "38px",
+    backgroundImage: `url(${fullratio_button})`,
+    cursor: "pointer",
+    position: "absolute",
+    top: "100%",
+    left: "88%",
+    backgroundRepeat: "no-repeat",
+    overflow: "visible",
+    display: "flex",
+    pointerEvents: "auto",
+    backgroundSize: "contain",
+};

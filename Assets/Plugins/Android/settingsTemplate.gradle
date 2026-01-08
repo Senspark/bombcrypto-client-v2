@@ -1,0 +1,48 @@
+pluginManagement {
+    repositories {
+        **ARTIFACTORYREPOSITORY**
+        gradlePluginPortal()
+        google()
+        mavenCentral()
+    }
+}
+
+include ':launcher', ':unityLibrary'
+**INCLUDES**
+
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
+    repositories {
+        **ARTIFACTORYREPOSITORY**
+        google()
+        mavenCentral()
+// Android Resolver Repos Start
+        def unityProjectPath = $/file:///**DIR_UNITYPROJECT**/$.replace("\\", "/")
+        maven {
+            url (unityProjectPath + "/Assets/GeneratedLocalRepo/Firebase/m2repository") // Packages/com.google.firebase.app/Firebase/Editor/AppDependencies.xml:22, Packages/com.google.firebase.messaging/Firebase/Editor/MessagingDependencies.xml:24, Packages/com.google.firebase.crashlytics/Firebase/Editor/CrashlyticsDependencies.xml:20, Packages/com.google.firebase.remote-config/Firebase/Editor/RemoteConfigDependencies.xml:20, Packages/com.google.firebase.analytics/Firebase/Editor/AnalyticsDependencies.xml:18
+        }
+        maven {
+            url "https://maven.google.com/" // Packages/com.senspark.admob/GoogleMobileAds/Editor/GoogleMobileAdsDependencies.xml:7, Packages/com.senspark.admob/GoogleMobileAds/Editor/GoogleUmpDependencies.xml:7
+        }
+        maven {
+            url "https://repo.maven.apache.org/maven2/" // Packages/com.senspark.admob/GoogleMobileAds/Editor/MintegralMediationDependencies.xml:25, Packages/com.senspark.admob/GoogleMobileAds/Mediation/AdColony/Editor/AdColonyMediationDependencies.xml:24, Packages/com.senspark.admob/GoogleMobileAds/Mediation/AppLovin/Editor/AppLovinMediationDependencies.xml:24, Packages/com.senspark.admob/GoogleMobileAds/Mediation/InMobi/Editor/InMobiMediationDependencies.xml:24, Packages/com.senspark.admob/GoogleMobileAds/Mediation/LiftoffMonetize/Editor/LiftoffMonetizeMediationDependencies.xml:24, Packages/com.senspark.admob/GoogleMobileAds/Mediation/MetaAudienceNetwork/Editor/MetaAudienceNetworkMediationDependencies.xml:24, Packages/com.senspark.admob/GoogleMobileAds/Mediation/UnityAds/Editor/UnityMediationDependencies.xml:25, Packages/com.senspark.admob/GoogleMobileAds/Mediation/UnityAds/Editor/UnityMediationDependencies.xml:33
+        }
+        maven {
+            url "https://android-sdk.is.com/" // Packages/com.senspark.admob/GoogleMobileAds/Mediation/IronSource/Editor/IronSourceMediationDependencies.xml:24
+        }
+        maven {
+            url "https://sdk.tapjoy.com/" // Packages/com.senspark.admob/GoogleMobileAds/Mediation/Tapjoy/Editor/TapjoyMediationDependencies.xml:24
+        }
+        maven {
+            url "https://dl.google.com/dl/android/maven2/" // Packages/com.senspark.admob/GoogleMobileAds/Editor/MintegralMediationDependencies.xml:25, Packages/com.senspark.admob/GoogleMobileAds/Mediation/AdColony/Editor/AdColonyMediationDependencies.xml:24, Packages/com.senspark.admob/GoogleMobileAds/Mediation/AppLovin/Editor/AppLovinMediationDependencies.xml:24, Packages/com.senspark.admob/GoogleMobileAds/Mediation/InMobi/Editor/InMobiMediationDependencies.xml:24, Packages/com.senspark.admob/GoogleMobileAds/Mediation/IronSource/Editor/IronSourceMediationDependencies.xml:24, Packages/com.senspark.admob/GoogleMobileAds/Mediation/LiftoffMonetize/Editor/LiftoffMonetizeMediationDependencies.xml:24, Packages/com.senspark.admob/GoogleMobileAds/Mediation/MetaAudienceNetwork/Editor/MetaAudienceNetworkMediationDependencies.xml:24, Packages/com.senspark.admob/GoogleMobileAds/Mediation/Tapjoy/Editor/TapjoyMediationDependencies.xml:24, Packages/com.senspark.admob/GoogleMobileAds/Mediation/UnityAds/Editor/UnityMediationDependencies.xml:25
+        }
+        maven {
+            url "https://dl-maven-android.mintegral.com/repository/mbridge_android_sdk_oversea" // Packages/com.senspark.admob/GoogleMobileAds/Editor/MintegralMediationDependencies.xml:25
+        }
+        mavenLocal()
+// Android Resolver Repos End
+        flatDir {
+            dirs "${project(':unityLibrary').projectDir}/libs"
+        }
+    }
+}

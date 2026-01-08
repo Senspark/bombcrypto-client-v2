@@ -1,0 +1,35 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+using Senspark;
+
+using UnityEngine;
+
+namespace BLPvpMode.UI {
+    public class MonoObserverManager<Observer> : MonoBehaviour, IObserverManager<Observer> {
+        private int _counter;
+        private readonly Dictionary<int, Observer> _observers;
+
+        public MonoObserverManager() {
+            _counter = 0;
+            _observers = new Dictionary<int, Observer>();
+        }
+
+        public int AddObserver(Observer observer) {
+            var id = _counter++;
+            _observers.Add(id, observer);
+            return id;
+        }
+
+        public bool RemoveObserver(int id) {
+            return _observers.Remove(id);
+        }
+
+        public void DispatchEvent(Action<Observer> dispatcher) {
+            foreach (var observer in _observers.Values.ToArray()) {
+                dispatcher(observer);
+            }
+        }
+    }
+}

@@ -1,0 +1,54 @@
+namespace Share.Scripts.Communicate.UnityReact {
+    public static class BlockChainCommand {
+        public const string GET_BALANCE = "GET_BALANCE";
+        public const string GET_COIN_BALANCE = "GET_COIN_BALANCE";
+        public const string GET_SENSPARK_BALANCE = "GET_SENSPARK_BALANCE";
+        public const string GET_USDT_BALANCE = "GET_USDT_BALANCE";
+        public const string GET_HERO_ID_COUNTER = "GET_HERO_ID_COUNTER";
+        public const string GET_HERO_LIMIT = "GET_HERO_LIMIT";
+        public const string GET_HERO_PRICE = "GET_HERO_PRICE";
+        public const string GET_HERO_UPGRADE_COST = "GET_HERO_UPGRADE_COST";
+        public const string GET_HERO_ABILITY_DESIGNS = "GET_HERO_ABILITY_DESIGNS";
+        public const string GET_CLAIMABLE_HERO = "GET_CLAIMABLE_HERO";
+        public const string GET_PENDING_HERO = "GET_PENDING_HERO";
+        public const string GET_PENDING_HERO_V2 = "GET_PENDING_HERO_V2";
+        public const string BUY_HERO = "BUY_HERO";
+        public const string UPGRADE_HERO = "UPGRADE_HERO";
+        public const string CLAIM_HERO = "CLAIM_HERO";
+        public const string PROCESS_TOKEN_REQUESTS = "PROCESS_TOKEN_REQUESTS";
+        public const string PROCESS_TOKEN_REQUESTS_V2 = "PROCESS_TOKEN_REQUESTS_V2";
+        public const string HAS_PENDING_HERO_RANDOMIZE = "HAS_PENDING_HERO_RANDOMIZE";
+        public const string RANDOMIZE_HERO_ABILITIES = "RANDOMIZE_HERO_ABILITIES";
+        public const string PROCESS_HERO_RANDOMIZE_AB = "PROCESS_HERO_RANDOMIZE_AB";
+        public const string IS_SUPER_BOX_ENABLED = "IS_SUPER_BOX_ENABLED";
+        public const string GET_HERO_S_PRICE = "GET_HERO_S_PRICE";
+        public const string BUY_HERO_S = "BUY_HERO_S";
+        public const string FUSION_HERO = "FUSION_HERO";
+        public const string FUSION = "FUSION";
+        public const string REPAIR_SHIELD = "REPAIR_SHIELD";
+        public const string GET_ROCK_AMOUNT = "GET_ROCK_AMOUNT";
+        public const string CREATE_ROCK = "CREATE_ROCK";
+        public const string REPAIR_SHIELD_WITH_ROCK = "REPAIR_SHIELD_WITH_ROCK";
+        public const string UPGRADE_SHIELD_LEVEL = "UPGRADE_SHIELD_LEVEL";
+        public const string UPGRADE_SHIELD_LEVEL_V2 = "UPGRADE_SHIELD_LEVEL_V2";
+        public const string CLAIM_GIVE_AWAY_HERO = "CLAIM_GIVE_AWAY_HERO";
+        public const string GET_GIVE_AWAY_HERO = "GET_GIVE_AWAY_HERO";
+        public const string GET_HOUSE_LIMIT = "GET_HOUSE_LIMIT";
+        public const string GET_HOUSE_PRICE = "GET_HOUSE_PRICE";
+        public const string GET_AVAILABLE_HOUSE = "GET_AVAILABLE_HOUSE";
+        public const string GET_HOUSE_MINT_LIMITS = "GET_HOUSE_MINT_LIMITS";
+        public const string GET_HOUSE_STATS = "GET_HOUSE_STATS";
+        public const string BUY_HOUSE = "BUY_HOUSE";
+        public const string GET_NFT = "GET_NFT";
+        public const string DEPOSIT_V2 = "DEPOSIT_V2";
+        public const string CLAIM_TOKEN = "CLAIM_TOKEN";
+        public const string CAN_USE_VOUCHER = "CAN_USE_VOUCHER";
+        public const string BUY_HERO_USE_VOUCHER = "BUY_HERO_USE_VOUCHER";
+        public const string EXCHANGE_BUY_BCOIN = "EXCHANGE_BUY_BCOIN";
+        public const string EXCHANGE_GET_INFO = "EXCHANGE_GET_INFO";
+        public const string WITHDRAW_FROM_HERO_ID_V2 = "WITHDRAW_FROM_HERO_ID_V2";
+        public const string STAKE_TO_HERO_V2 = "STAKE_TO_HERO_V2";
+        public const string GET_STAKE_FROM_HERO_ID_V2 = "GET_STAKE_FROM_HERO_ID_V2";
+        public const string GET_FEE_FROM_HERO_ID_V2 = "GET_FEE_FROM_HERO_ID_V2";
+    }
+}

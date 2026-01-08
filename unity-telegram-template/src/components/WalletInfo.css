@@ -1,0 +1,116 @@
+.wallet-info {
+    display: flex;
+    align-items: center;
+    background-color: #242424;
+    border-radius: 25px;
+    padding: 0 10px;
+    color: white;
+    font-size: 14px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    height: 45px;
+}
+
+.wallet-loading {
+    width: 100%;
+    text-align: center;
+    padding: 10px 0;
+}
+
+.wallet-data {
+    display: flex;
+    align-items: center;
+}
+
+.wallet-info-row {
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+}
+
+.wallet-address {
+    white-space: nowrap;
+    font-size: 15px;
+    font-weight: bold;
+    padding: 10px;
+    color: #5C5C5C;
+}
+
+.wallet-balance {
+    white-space: nowrap;
+    font-size: 15px;
+    font-weight: bold;
+    padding: 10px;
+}
+
+.wallet-copy-button {
+    display: flex;
+    align-items: center;
+    border: none;
+    background: none;
+    cursor: pointer;
+    padding: 0;
+    outline: none;
+    box-shadow: none;
+    user-select: none;
+}
+
+.wallet-copy-button:focus,
+.wallet-copy-button:active {
+  outline: none;
+  box-shadow: none;
+  background: none;
+}
+
+.connect-button {
+  background-color: #5773ff;
+  color: white;
+  border: none;
+  border-radius: 25px;
+  cursor: pointer;
+  font-size: 15px;
+  transition: background-color 0.2s ease;
+
+  height: 45px;
+  width: 150px;
+  font-weight: bold;
+}
+
+.connect-button:hover {
+  background-color: #3a5dca;
+}
+
+.disconnect-button {
+    background-color: #ff5252;
+    color: white;
+    border: none;
+    border-radius: 25px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: background-color 0.2s ease;
+
+    padding: 6px 12px;
+    margin-left: 10px;
+}
+
+.disconnect-button:hover {
+    background-color: #ff3232;
+}
+
+@media (max-width: 600px) {
+    .wallet-info {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .wallet-address, 
+    .wallet-balance {
+        width: 100%;
+        text-align: center;
+        margin-right: 0;
+    }
+    
+    .disconnect-button {
+        width: 100%;
+        padding: 8px;
+    }
+}

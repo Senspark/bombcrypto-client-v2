@@ -1,0 +1,28 @@
+.app-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100%;
+  position: relative;
+}
+
+.content-container {
+  height: calc(100vh - 50px); /* Subtract the height of bottom-bar */
+  width: 100%;
+  overflow: hidden;
+}
+
+.bottom-bar {
+  background-color: black;
+  height: 80px;
+  width: 100%;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding-left: 15px;
+  z-index: 10;
+}
+

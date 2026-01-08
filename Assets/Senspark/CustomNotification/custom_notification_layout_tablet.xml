@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/notification_layout"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@android:color/transparent">
+
+    <ImageView
+        android:id="@+id/notification_background"
+        android:layout_width="match_parent"
+        android:layout_height="100dp"
+        android:contentDescription="@string/background_image"
+        android:scaleType="centerCrop"
+        android:src="@drawable/notification_background_0" />
+
+    <ImageView
+        android:id="@+id/notification_launcher_icon"
+        android:layout_width="26dp"
+        android:layout_height="26dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="5dp"
+        android:contentDescription="@string/game_icon"
+        android:src="@drawable/ic_notification" />
+
+    <TextView
+        android:id="@+id/notification_title"
+        android:layout_width="200dp"
+        android:layout_height="24dp"
+        android:layout_alignParentEnd="true"
+        android:layout_marginStart="5dp"
+        android:layout_marginTop="5dp"
+        android:layout_marginEnd="150dp"
+        android:layout_toEndOf="@+id/notification_launcher_icon"
+        android:ellipsize="end"
+        android:gravity="start"
+        android:text="@string/notification_title"
+        android:textAppearance="@style/TextAppearance.Compat.Notification.Title"
+        android:textColor="@color/text_color"
+        android:textSize="18sp" />
+
+    <TextView
+        android:id="@+id/notification_body"
+        android:layout_width="1000dp"
+        android:layout_height="60dp"
+        android:layout_below="@+id/notification_title"
+        android:layout_alignParentEnd="true"
+        android:layout_marginStart="5dp"
+        android:layout_marginTop="5dp"
+        android:layout_marginEnd="150dp"
+        android:ellipsize="end"
+        android:gravity="start"
+        android:maxLines="3"
+        android:scrollHorizontally="true"
+        android:text="@string/notification_body"
+        android:textAppearance="@style/TextAppearance.Compat.Notification.Line2"
+        android:textColor="@color/text_color"
+        android:textSize="16sp" />
+</RelativeLayout>
