@@ -43,12 +43,13 @@ namespace Analytics.Modules {
         private readonly List<string> _tracked;
 
         public FirebaseAnalyticsModuleLogin(bool enableLog, ILogManager logManager) {
-            _analyticsBridge = Application.platform switch {
-                RuntimePlatform.WebGLPlayer => new WebGLFirebaseAnalyticsBridge(enableLog, AppConfig.FirebaseAppId,
-                    AppConfig.FirebaseMeasurementId),
+            var platform = Application.platform;
+            _analyticsBridge = platform switch {
+                RuntimePlatform.WebGLPlayer when AppConfig.FirebaseWebGLData != null => new WebGLFirebaseAnalyticsBridge(
+                    enableLog, AppConfig.FirebaseWebGLData),
                 RuntimePlatform.Android or RuntimePlatform.IPhonePlayer => new MobileFirebaseAnalyticsBridge(logManager,
                     enableLog),
-                _ => new NullAnalyticsBridge(logManager, nameof(FirebaseAnalyticsModuleLogin))
+                _ => new NullAnalyticsBridge(logManager, nameof(BaseFirebaseAnalytics))
             };
             _analyticsBridge.Initialize();
             _tracked = AnalyticsUtils.LoadTrackedEvent(_keyTrackedEvent);

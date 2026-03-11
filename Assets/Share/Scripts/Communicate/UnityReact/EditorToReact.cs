@@ -1,3 +1,5 @@
+using System;
+
 using App;
 using Communicate.Encrypt;
 using Cysharp.Threading.Tasks;
@@ -5,24 +7,23 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Share.Scripts.Communicate;
 using Share.Scripts.Communicate.UnityReact;
+using Share.Scripts.Utils;
 
 namespace Communicate {
     public class EditorToReact : IUnityToReact {
 
         private const string LocalHost = "http://localhost:8120";
         private JwtExtraData _extraData;
-        private IObfuscate _obfuscate;
-        private IPublicJwtSession _jwtSession;
-        private bool _loginWithWallet = false;
+        private readonly IObfuscate _obfuscate;
+        private readonly IPublicJwtSession _jwtSession;
+        private readonly RsaEncryption _initRsa = new();
+        private readonly string _sampleWalletAddress;
 
-        public EditorToReact(string sampleWalletAddress, IPublicJwtSession jwtSession) {
+        public EditorToReact(IPublicJwtSession jwtSession) {
             _jwtSession = jwtSession;
-            _sampleWalletAddress = sampleWalletAddress;
+            _sampleWalletAddress = GetWallet();
             _obfuscate = new AppendBytesObfuscate(Secret.ApiAppendBytes);
         }
-
-        private readonly Communicate.Encrypt.RsaEncryption _initRsa = new();
-        private readonly string _sampleWalletAddress;
 
         public async UniTask<bool> RequestConnection() {
             return true;
@@ -43,14 +44,14 @@ namespace Communicate {
                 JwtEditor result;
 
                 if(userAccount.loginType is LoginType.UsernamePassword) {
-                    url = $"{LocalHost}/login/mobile/check_proof";
+                    url = $"{LocalHost}/mobile/check_proof";
                     var data1 = new {
                         userAccount.userName,
                         userAccount.password
                     };
                     result = await HttpClientHelper.SendPost<JwtEditor>(url, data1);
                 } else {
-                    url = $"{LocalHost}/login/mobile/check_proof_guest";
+                    url = $"{LocalHost}/mobile/check_proof_guest";
                     var data2 = new {
                         userAccount.userName
                     };
@@ -69,7 +70,7 @@ namespace Communicate {
                 var isAccount = userAccount != null && userAccount.loginType is LoginType.UsernamePassword;
                 if (isAccount) {
                     var pathAccount =
-                        $"/login/web/{GetWebAirdropNetwork()}/editor_get_jwt_account?username={userAccount.userName}&password={userAccount.password}";
+                        $"/web{GetEthNetwork()}/editor_get_jwt_account?username={userAccount.userName}&password={userAccount.password}";
                     var url = $"{LocalHost}{pathAccount}";
                     var response = await HttpClientHelper.SendGet<JwtEditor>(url);
                     if (response == null)
@@ -82,7 +83,7 @@ namespace Communicate {
                         userAccount.password);
                     return new JwtData(response.EncryptedJwt, response.ServerPublicKey, _extraData);
                 } else {
-                    var pathWallet = $"/login/web{GetWebAirdropNetwork()}/editor_get_jwt?walletAddress={_sampleWalletAddress}";
+                    var pathWallet = $"/web{GetEthNetwork()}/editor_get_jwt?walletAddress={_sampleWalletAddress}";
                     var url = $"{LocalHost}{pathWallet}";
                     var response = await HttpClientHelper.SendGet<JwtEditor>(url);
                     if (response == null)
@@ -90,14 +91,15 @@ namespace Communicate {
             
                     _initRsa.GenerateKeyPair();
                     _initRsa.ImportPublicKeyBase64(response.ServerPublicKey);
-                    _extraData = new JwtExtraData(true, WalletAddress: _sampleWalletAddress, ChainId: "80002");
+                    var chainId = BlockChainNetwork.GetEthChainId(AppConfig.EthNetwork, AppConfig.IsProduction);
+                    _extraData = new JwtExtraData(true, WalletAddress: _sampleWalletAddress, ChainId: chainId);
                     return new JwtData(response.EncryptedJwt, response.ServerPublicKey, _extraData);
                 }
             }
             
             //Login telegram in editor
             if (AppConfig.IsTon()) {
-                var url = $"{LocalHost}/login/ton/editor_get_jwt?walletAddress=Editor{_sampleWalletAddress}";
+                var url = $"{LocalHost}/ton/editor_get_jwt?walletAddress=Editor{_sampleWalletAddress}";
                 var response = await HttpClientHelper.SendGet<JwtEditor>(url);
                 if (response == null)
                     return null;
@@ -108,38 +110,36 @@ namespace Communicate {
                 _extraData = new JwtExtraData(
                     true,
                     WalletAddress: _sampleWalletAddress,
-                    WalletHex: AppConfig.WalletTonHex
+                    WalletHex: AppConfig.TestWalletTonHex
                     );
                 return new JwtData(response.EncryptedJwt, response.ServerPublicKey, _extraData);
             }
                 
             //Login solana
             else {
-                var url = $"{LocalHost}/login/sol/editor_get_jwt?walletAddress={_sampleWalletAddress}";
+                var url = $"{LocalHost}/sol/editor_get_jwt?walletAddress={_sampleWalletAddress}";
                 var response = await HttpClientHelper.SendGet<JwtEditor>(url);
                 if (response == null)
                     return null;
             
                 _initRsa.GenerateKeyPair();
                 _initRsa.ImportPublicKeyBase64(response.ServerPublicKey);
-                _extraData = new JwtExtraData(true, WalletAddress: _sampleWalletAddress, ChainId: "80002");
+                var chainId = BlockChainNetwork.GetEthChainId(AppConfig.EthNetwork, AppConfig.IsProduction);
+                _extraData = new JwtExtraData(true, WalletAddress: _sampleWalletAddress, ChainId: chainId);
                 return new JwtData(response.EncryptedJwt, response.ServerPublicKey, _extraData);
             }
             
         }
         
-        private string GetWebAirdropNetwork() {
-            //DevHoang: Add new airdrop
-            if (AppConfig.IsRonin()) {
-                return "/ron";
-            }
-            if (AppConfig.IsBase()) {
-                return "/bas";
-            }
-            if (AppConfig.IsViction()) {
-                return "/vic";
-            }
-            return "";
+        private static string GetEthNetwork() {
+            var network = AppConfig.EthNetwork;
+            return network switch {
+                EthNetwork.Bsc => "/bsc",
+                EthNetwork.Polygon => "/pol",
+                EthNetwork.Ronin => "/ron",
+                EthNetwork.Base => "/bas",
+                _ => throw new ArgumentOutOfRangeException(nameof(GetEthNetwork), network, null)
+            };
         }
 
         public UniTask<string> SendToReact(string cmd, string data) {
@@ -175,10 +175,23 @@ namespace Communicate {
         }
 
         public string GetChainId() {
-            if(_extraData == null)
-                return "97"; //bsc testnet
-            
+            if (_extraData == null)
+                return BlockChainNetwork.GetEthChainId(EthNetwork.Bsc, false); //bsc testnet
+
             return _extraData.ChainId;
+        }
+        
+        private string GetWallet() {
+            if (AppConfig.IsSolana()) {
+                return AppConfig.TestWalletSolana;
+            }
+            if (AppConfig.IsWebGL()) {
+                return AppConfig.EditorAccount;
+            }
+            if (AppConfig.IsTon()) {
+                return AppConfig.WalletTon;
+            }
+            return AppConfig.EditorAccount;
         }
 
         private record JwtEditor(

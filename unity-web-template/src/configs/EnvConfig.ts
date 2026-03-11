@@ -57,7 +57,9 @@ export const EnvConfig = {
         return import.meta.env.VITE_LOCAL_IV;
     },
     permutationOrder32(): number[] {
-        return JSON.parse(import.meta.env.VITE_PERMUTATION_ORDER_32);
+        return import.meta.env.VITE_PERMUTATION_ORDER_32
+            ? JSON.parse(import.meta.env.VITE_PERMUTATION_ORDER_32)
+            : Array.from({ length: 32 }, (_, i) => i);
     },
     appendBytes(): number {
         return parseInt(import.meta.env.VITE_APPEND_BYTES);

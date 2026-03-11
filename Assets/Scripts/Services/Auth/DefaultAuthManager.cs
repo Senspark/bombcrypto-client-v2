@@ -53,9 +53,13 @@ namespace App {
             _signManager = signManager;
             _encoder = encoder;
             _unityCommunication = unityCommunication;
-            
-            _host = isProduction ? AppConfig.AuthApiHostProduction : AppConfig.AuthApiHostTest;
-            
+
+            if (AppConfig.ServerAddresses != null) {
+                _host = isProduction ? AppConfig.ServerAddresses.authApiHostProduction : AppConfig.ServerAddresses.authApiHostTest;    
+            } else {
+                _host = HOST_LOCAL;
+            }
+
             _processor = JavascriptProcessor.Instance;
             // _host = HOST_LOCAL;
         }

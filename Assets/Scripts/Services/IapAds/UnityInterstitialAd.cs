@@ -17,7 +17,7 @@ namespace Services.IapAds {
 #elif UNITY_IOS
         private string INTERSTITIAL_AD_ID_ADMOB => AppConfig.AdmobInterstitialAdIdIos;
 #else
-        private string INTERSTITIAL_AD_ID_ADMOB => AppConfig.AdmobInterstitialAdIdTest;
+        private string INTERSTITIAL_AD_ID_ADMOB => "ca-app-pub-3940256099942544/1033173712";
 #endif
         
         private readonly ILogManager _logManager;

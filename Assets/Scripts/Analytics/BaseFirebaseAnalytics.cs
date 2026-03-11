@@ -154,13 +154,12 @@ namespace Analytics {
             bool production,
             ILogManager logManager
         ) {
-            var enableLog = production;
             var platform = Application.platform;
             _bridge = platform switch {
-                RuntimePlatform.WebGLPlayer => new WebGLFirebaseAnalyticsBridge(enableLog, AppConfig.FirebaseAppId,
-                    AppConfig.FirebaseMeasurementId),
+                RuntimePlatform.WebGLPlayer when AppConfig.FirebaseWebGLData != null => new WebGLFirebaseAnalyticsBridge(
+                    production, AppConfig.FirebaseWebGLData),
                 RuntimePlatform.Android or RuntimePlatform.IPhonePlayer => new MobileFirebaseAnalyticsBridge(logManager,
-                    enableLog),
+                    production),
                 _ => new NullAnalyticsBridge(logManager, nameof(BaseFirebaseAnalytics))
             };
 

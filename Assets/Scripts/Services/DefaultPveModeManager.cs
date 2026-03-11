@@ -63,7 +63,6 @@ namespace Services {
                 NetworkType.Solana => GetSolanaPvePath(),
                 NetworkType.Ronin => GetSolanaPvePath(),
                 NetworkType.Base => GetSolanaPvePath(),
-                NetworkType.Viction => GetSolanaPvePath(),
                 _ => throw new ArgumentOutOfRangeException()
             };
         }

@@ -42,17 +42,22 @@ namespace App {
             _logManager = logManager;
             _isProduction = isProduction;
             _network = networkConfig.NetworkName;
-            if (AppConfig.IsTournament()) {
-                ApiHost = AppConfig.TournamentBaseApiHost;
-                ApiTestHost = Application.isEditor ? BASE_API_TEST_HOST_LOCAL : AppConfig.BaseApiTestHost;
-            } else {
-                if (networkConfig.NetworkType == NetworkType.Binance) {
-                    ApiHost = AppConfig.BaseApiHost;
-                    ApiTestHost = AppConfig.BaseApiTestHost;
+
+            if (AppConfig.ServerAddresses != null) {
+                if (AppConfig.IsTournament()) {
+                    ApiHost = AppConfig.ServerAddresses.tournamentBaseApiHost;
+                    ApiTestHost = Application.isEditor ? BASE_API_TEST_HOST_LOCAL : AppConfig.ServerAddresses.baseApiTestHost;
                 } else {
-                    ApiHost = $"{AppConfig.BaseApiHost}{networkConfig.NetworkName}/";
-                    ApiTestHost = $"{AppConfig.BaseApiTestHost}{networkConfig.NetworkName}/";
+                    if (networkConfig.NetworkType == NetworkType.Binance) {
+                        ApiHost = AppConfig.ServerAddresses.baseApiHost;
+                        ApiTestHost = AppConfig.ServerAddresses.baseApiTestHost;
+                    } else {
+                        ApiHost = $"{AppConfig.ServerAddresses.baseApiHost}{networkConfig.NetworkName}/";
+                        ApiTestHost = $"{AppConfig.ServerAddresses.baseApiTestHost}{networkConfig.NetworkName}/";
+                    }
                 }
+            } else {
+                ApiHost = ApiTestHost = BASE_API_TEST_HOST_LOCAL;
             }
         }
 

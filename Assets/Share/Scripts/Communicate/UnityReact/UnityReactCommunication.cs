@@ -23,7 +23,7 @@ namespace Share.Scripts.Communicate.UnityReact {
         public UnityReactCommunication(UnityEncryption encryption, ILogManager logManager, IMobileRequest mobileRequest, IPublicJwtSession jwtSession) {
             ReactToUnity = new ReactToUnity(encryption, logManager);
             UnityToReact = Application.isEditor && !AppConfig.IsMobile()
-                ? new EditorToReact(GetWallet(), jwtSession)
+                ? new EditorToReact(jwtSession)
                 : new UnityToReact(encryption, logManager, mobileRequest, jwtSession);
         }
 
@@ -39,19 +39,6 @@ namespace Share.Scripts.Communicate.UnityReact {
         
         public UniTask Handshake() {
             return UnityToReact.Handshake();
-        }
-        
-        private string GetWallet() {
-            if (AppConfig.IsSolana()) {
-                return AppConfig.NewTestWallet;
-            }
-            if (AppConfig.IsWebGL()) {
-                return AppConfig.GetTestWalletInfo().jwt;
-            }
-            if (AppConfig.IsTon()) {
-                return AppConfig.WalletTon;
-            }
-            return AppConfig.NewTestWallet;
         }
     }
     

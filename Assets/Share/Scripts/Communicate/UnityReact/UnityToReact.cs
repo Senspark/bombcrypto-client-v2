@@ -86,9 +86,6 @@ namespace Communicate {
             if (network == "base") {
                 return NetworkType.Base;
             }
-            if (network == "vic") {
-                return NetworkType.Viction;
-            }
             return NetworkType.Binance;
         }
         
