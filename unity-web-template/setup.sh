@@ -1,46 +1,29 @@
-# Chạy file này để build ra project webgl dùng cho telegram
+# Run this file to build the WebGL project
 
-# Tên thư mục của project webgl vừa build
+# Name of the WebGL build folder
 if [ -z "$1" ]; then
-  read -p "Nhập tên thư mục mới build từ unity: " FOLDER_NAME
+  read -p "Enter the folder name of the Unity build: " FOLDER_NAME
 else
   FOLDER_NAME="$1"
 fi
 
-# Kiểm tra loại build (test hoặc prod)
-echo "Chọn loại build:"
-options=("test" "prod" "Quit")
-select opt in "${options[@]}"
-do
-    case $opt in
-        "Quit")
-            exit 0
-            ;;
-        "test"|"prod")
-            BUILD_TYPE=$opt
-            break
-            ;;
-        *) echo "Lựa chọn không hợp lệ: $REPLY";;
-    esac
-done
-
-# Đường dẫn đến thư mục chứa các file build
+# Path to the build output directory
 ROOT_PATH="../Build/$FOLDER_NAME"
 
-# Đường dẫn đến thư mục cần copy
+# Destination directory for copied files
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 DEST_DIR="$SCRIPT_DIR/public/webgl"
 
-# Xoá các thư mục cũ
+# Remove old directories
 # shellcheck disable=SC2115
 rm -rf "$DEST_DIR"/*
 
-# Tạo 1 folder mới không trùng tên
+# Create a new uniquely-named folder
 TIMESTAMP=$(date +%s)
 NEW_FOLDER="$DEST_DIR/$TIMESTAMP"
 mkdir -p "$NEW_FOLDER"
 
-# Tạo các extensions tuỳ theo có nén brotli hay ko
+# Initialize file extension variables (varies by brotli compression)
 loaderUrlExtension=""
 dataUrlExtension=""
 dataMobileUrlExtension=""
@@ -50,10 +33,10 @@ codeUrlExtension=""
 # Copy the StreamingAssets folder
 cp -r "$ROOT_PATH/StreamingAssets" "$NEW_FOLDER/StreamingAssets"
 
-# Di chuyển đến thư mục cần copy
+# Navigate to the build output directory
 cd "$ROOT_PATH/Build" || { echo "Build folder not found"; exit 1; }
 
-# Copy và khai báo cho các extension phù hợp tuỳ theo build nén brotli hay ko
+# Copy files and assign extensions based on brotli compression
 for file in *; do
   if [ -f "$file" ]; then
     EXTENSION="${file#*.}"
@@ -90,7 +73,7 @@ done
 cd "../" || { echo "DTX Build folder not found"; }
 data_file_found=false
 
-# Tìm và sao chép file .data hoặc .data.br, sau đó đổi tên
+# Find and copy .data or .data.br files, then rename
 for file in *.data *.data.br; do
   if [ -f "$file" ]; then
     data_file_found=true
@@ -108,10 +91,10 @@ for file in *.data *.data.br; do
   fi
 done
 
-echo "Các file đã được copy thành công: $NEW_FOLDER"
+echo "Files copied successfully: $NEW_FOLDER"
 
 echo "Update environment file"
-# Cập nhật biến VITE_UNITY_FOLDER và các biến URL_EXTENSION trong các file .env
+# Update VITE_UNITY_FOLDER and URL_EXTENSION variables in .env files
 update_env_file() {
   local env_file="$1"
   if [ -f "$env_file" ]; then
@@ -132,29 +115,5 @@ update_env_file() {
 update_env_file "$SCRIPT_DIR/.env"
 update_env_file "$SCRIPT_DIR/.env.production"
 update_env_file "$SCRIPT_DIR/.env.test"
-
-# Di chuyển về lại thư mục script để build
-cd "$SCRIPT_DIR" || { echo "Script directory not found"; exit 1; }
-
-echo "Bắt đầu build project..."
-
-# Build unity project
-# Build unity project
-if [ "$BUILD_TYPE" == "prod" ]; then
-  npm run build-prod
-else
-  npm run build-test
-fi
-
-
-echo "Build project thành công"
-
-# Sao chép file brotli_setup.sh vào thư mục dist nếu tồn tại (để setup cho các config nén)
-if [ -f "$ROOT_PATH/brotli_setup.sh" ]; then
-  cp "$ROOT_PATH/brotli_setup.sh" "$SCRIPT_DIR/dist/brotli_setup.sh"
-  echo "brotli_setup.sh đã được sao chép vào thư mục dist"
-else
-  echo "ko tìm thấy file brotli_setup.sh trong thư mục $ROOT_PATH"
-fi
 
 echo "*************_______________COMPLETE_____________**************"
