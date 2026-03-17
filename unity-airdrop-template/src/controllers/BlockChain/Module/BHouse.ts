@@ -65,7 +65,7 @@ export default class BHouseToken extends NFTToken {
 
             const contract: Contract = await this.getContract();
             const estimateGas = await contract.mint.estimateGas(rarity);
-            const options = getDoubleGasFeeOption(estimateGas);
+            const options = await getDoubleGasFeeOption(estimateGas);
             const transaction = await contract.mint(rarity, options);
             await waitForReceipt(transaction);
             return true;

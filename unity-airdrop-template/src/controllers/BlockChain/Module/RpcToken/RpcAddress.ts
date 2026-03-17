@@ -31,10 +31,15 @@ export default function getAllRpc(chainId: number): string[] {
         case 137: // Polygon main net
             return [
                 'https://polygon-rpc.com/',
+                'https://polygon.llamarpc.com',
+                'https://rpc.ankr.com/polygon',
+                'https://polygon-mainnet.public.blastapi.io'
             ];
         case 80002: // Polygon test net
             return [
                 'https://rpc-amoy.polygon.technology/',
+                'https://polygon-amoy.drpc.org',
+                'https://polygon-amoy.g.alchemy.com/v2/demo'
             ];
         default:
             return [];

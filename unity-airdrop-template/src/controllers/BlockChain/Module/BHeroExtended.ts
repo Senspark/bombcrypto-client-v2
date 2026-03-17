@@ -13,7 +13,7 @@ export default class BHeroExtended extends GeneralContract {
         try {
             const contract: Contract = await this.getContract();
             const estimateGas: bigint = await contract.claim.estimateGas();
-            const options = getDoubleGasFeeOption(estimateGas);
+            const options = await getDoubleGasFeeOption(estimateGas);
             const transaction = await contract.claim(options);
             await waitForReceipt(transaction);
             return true;

@@ -46,7 +46,7 @@ export default class CoinExchange extends GeneralContract {
             const contract: Contract = await this.getContract();
             const tokenAddress: string = this.getTokenAddress(category);
             const estimateGas = await contract.buyTokensV2.estimateGas(amountBN, tokenAddress);
-            const options = NetworkUtils.getDoubleGasFeeOption(estimateGas);
+            const options = await NetworkUtils.getDoubleGasFeeOption(estimateGas);
             const transaction = await contract.buyTokensV2(amountBN, tokenAddress, options);
 
             await NetworkUtils.waitForReceipt(transaction);

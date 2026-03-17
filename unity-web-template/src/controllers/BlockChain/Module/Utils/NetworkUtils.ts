@@ -68,9 +68,32 @@ async function waitForBlock(block: number): Promise<void> {
     }
 }
 
-function getDoubleGasFeeOption(estimateGas: bigint): { gasLimit: bigint } {
+async function getDoubleGasFeeOption(estimateGas: bigint): Promise<{ gasLimit: bigint, maxFeePerGas?: bigint, maxPriorityFeePerGas?: bigint }> {
     const gasMultiplier = ethers.toBigInt(GAS_LIMIT_MULTIPLIER);
-    return { gasLimit: estimateGas * gasMultiplier};
+    const gasLimit = estimateGas * gasMultiplier;
+
+    try {
+        const provider = Storage.getBrowserProvider();
+        if (provider) {
+            const network = await provider.getNetwork();
+            const chainId = Number(network.chainId);
+
+            // Apply EIP-1559 30% premium strictly for Polygon
+            if (chainId === 137 || chainId === 80002) {
+                const feeData = await provider.getFeeData();
+                if (feeData.maxPriorityFeePerGas && feeData.maxFeePerGas) {
+                    const maxPriorityFeePerGas = (feeData.maxPriorityFeePerGas * 130n) / 100n;
+                    const baseFee = feeData.maxFeePerGas - feeData.maxPriorityFeePerGas;
+                    const maxFeePerGas = baseFee + maxPriorityFeePerGas;
+                    return { gasLimit, maxFeePerGas, maxPriorityFeePerGas };
+                }
+            }
+        }
+    } catch (e) {
+        console.error("Error fetching fee data for EIP-1559", e);
+    }
+
+    return { gasLimit };
 }
 
 async function waitForReceipt(transaction: TransactionResponse): Promise<TransactionReceipt | null> {
