@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { getDoubleGasFeeOption } from '../NetworkUtils';
 import * as Storage from '../Storage';
-import { ethers } from 'ethers';
 
 // Mock the entire Storage module to intercept getBrowserProvider
 vi.mock('../Storage', () => ({
