@@ -87,7 +87,7 @@ export default class BHeroSToken extends GeneralContract {
 
             const contract = await this.getContract();
             const estimateGas = await contract.mint.estimateGas(count);
-            const options = getDoubleGasFeeOption(estimateGas);
+            const options = await getDoubleGasFeeOption(estimateGas);
             const transaction = await contract.mint(count, options);
             await waitForReceipt(transaction);
             return true;
@@ -101,7 +101,7 @@ export default class BHeroSToken extends GeneralContract {
         try {
             const contract = await this.getContract();
             const estimateGas = await contract.burnListToken.estimateGas(heroIds);
-            const options = getDoubleGasFeeOption(estimateGas);
+            const options = await getDoubleGasFeeOption(estimateGas);
             const transaction = await contract.burnListToken(heroIds, options);
             await waitForReceipt(transaction);
             return true;
@@ -115,7 +115,7 @@ export default class BHeroSToken extends GeneralContract {
         try {
             const contract = await this.getContract();
             const estimateGas = await contract.fusion.estimateGas(mainMaterials, buffMaterials);
-            const options = getDoubleGasFeeOption(estimateGas);
+            const options = await getDoubleGasFeeOption(estimateGas);
             const transaction = await contract.fusion(mainMaterials, buffMaterials, options);
             await waitForReceipt(transaction);
             return true;
@@ -129,7 +129,7 @@ export default class BHeroSToken extends GeneralContract {
         try {
             const contract = await this.getContract();
             const estimateGas = await contract.burnResetShield.estimateGas(idHeroS, listHeroIds);
-            const options = getDoubleGasFeeOption(estimateGas);
+            const options = await getDoubleGasFeeOption(estimateGas);
             const transaction = await contract.burnResetShield(idHeroS, listHeroIds, options);
             await waitForReceipt(transaction);
             return true;
@@ -143,7 +143,7 @@ export default class BHeroSToken extends GeneralContract {
         try {
             const contract = await this.getContract();
             const estimateGas = await contract.createRock.estimateGas(listHeroIds);
-            const options = getDoubleGasFeeOption(estimateGas);
+            const options = await getDoubleGasFeeOption(estimateGas);
             const transaction = await contract.createRock(listHeroIds, options);
             const receipt = await waitForReceipt(transaction);
             if(!receipt) {
@@ -161,7 +161,7 @@ export default class BHeroSToken extends GeneralContract {
         try {
             const contract = await this.getContract();
             const estimateGas = await contract.resetShieldHeroS.estimateGas(idHero, amountRock);
-            const options = getDoubleGasFeeOption(estimateGas);
+            const options = await getDoubleGasFeeOption(estimateGas);
             const transaction = await contract.resetShieldHeroS(idHero, amountRock, options);
             await waitForReceipt(transaction);
             return true;
@@ -175,7 +175,7 @@ export default class BHeroSToken extends GeneralContract {
         try {
             const contract = await this.getContract();
             const estimateGas = await contract.upgradeShieldLevel.estimateGas(idHero, amountRock);
-            const options = getDoubleGasFeeOption(estimateGas);
+            const options = await getDoubleGasFeeOption(estimateGas);
             const transaction = await contract.upgradeShieldLevel(idHero, amountRock, options);
             await waitForReceipt(transaction);
             return true;
@@ -189,7 +189,7 @@ export default class BHeroSToken extends GeneralContract {
         try {
             const contract = await this.getContract();
             const estimateGas = await contract.upgradeShieldLevel.estimateGas(idHero, nonce, signature);
-            const options = getDoubleGasFeeOption(estimateGas);
+            const options = await getDoubleGasFeeOption(estimateGas);
             const transaction = await contract.upgradeShieldLevel(idHero, nonce, signature, options);
             await waitForReceipt(transaction);
             return true;

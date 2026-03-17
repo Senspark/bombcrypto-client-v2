@@ -19,7 +19,7 @@ export default class ClaimManager extends GeneralContract {
                 amountValue = parseEther(amount.toString()).toString();
             }
             const estimateGas = await contract.claimTokens.estimateGas(tokenType, amountValue, nonce, details, signature);
-            const options = getDoubleGasFeeOption(estimateGas);
+            const options = await getDoubleGasFeeOption(estimateGas);
             const transaction = await contract.claimTokens(tokenType, amountValue, nonce, details, signature, options);
             const receipt = await transaction.wait(waitConfirmations);
             return receipt?.hash.toString();
@@ -49,7 +49,7 @@ export default class ClaimManager extends GeneralContract {
     //         await token.checkAllowance(userAddress, this._address, amount);
     //         const contract: Contract = this.getContract();
     //         const estimateGas = await contract.estimateGas.buyHeroUseVoucher(tokenPay, voucherType, heroQuantity, amount, nonce, signature);
-    //         const options = getDoubleGasFeeOption(estimateGas);
+    //         const options = await getDoubleGasFeeOption(estimateGas);
     //         const transaction = await contract.buyHeroUseVoucher(tokenPay, voucherType, heroQuantity, amount, nonce, signature, options);
     //         await transaction.wait();
     //         return Message.Info();

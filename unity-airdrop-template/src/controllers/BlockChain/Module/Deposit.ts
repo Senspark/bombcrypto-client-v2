@@ -21,7 +21,7 @@ export default class Deposit extends GeneralContract {
 
             const contract: Contract = await this.getContract();
             const estimateGas = await contract.deposit.estimateGas(amountFormatted);
-            const options = NetworkUtils.getDoubleGasFeeOption(estimateGas);
+            const options = await NetworkUtils.getDoubleGasFeeOption(estimateGas);
             const transaction = await contract.deposit(amountFormatted, options);
             await NetworkUtils.waitForReceipt(transaction);
             return true;
@@ -49,7 +49,7 @@ export default class Deposit extends GeneralContract {
 
             const contract: Contract = await this.getContract();
             const estimateGas = await contract.depositV3.estimateGas(amountFormatted, tokenAddress);
-            const options = NetworkUtils.getDoubleGasFeeOption(estimateGas);
+            const options = await NetworkUtils.getDoubleGasFeeOption(estimateGas);
             const transaction = await contract.depositV3(amountFormatted, tokenAddress, options);
             await NetworkUtils.waitForReceipt(transaction);
             return true;

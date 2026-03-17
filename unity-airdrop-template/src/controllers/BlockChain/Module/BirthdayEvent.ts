@@ -46,7 +46,7 @@
 //
 //             const contract: Contract = await this.getContract();
 //             const estimateGas: BigNumber = await contract.estimateGas.buyHeroEvent(count, category);
-//             const options = getDoubleGasFeeOption(estimateGas);
+//             const options = await getDoubleGasFeeOption(estimateGas);
 //             const transaction = await contract.buyHeroEvent(count, category, options);
 //             await waitForReceipt(transaction);
 //             return Message.Info();
