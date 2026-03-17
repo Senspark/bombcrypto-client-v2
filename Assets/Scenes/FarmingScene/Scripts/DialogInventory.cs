@@ -179,6 +179,15 @@ namespace Scenes.FarmingScene.Scripts {
         private const int MaxNumForDynamic = 200;
         private readonly DynamicScroll<DynamicInventoryItem, DynamicObject> _verticalDynamicScroll = new();
 
+        [SerializeField]
+        protected Scripts.UI.InfiniteInventoryScroller infiniteScroller;
+
+        [SerializeField]
+        protected Toggle filterRarityToggle;
+
+        [SerializeField]
+        protected Toggle filterWorkRestToggle;
+
         private const int PageRow = 8;
         private int _itemsInPage = 50;
         private int _currentPage;
@@ -327,32 +336,39 @@ namespace Scenes.FarmingScene.Scripts {
             SortOrder2 order2 = SortOrder2.HighStatsFirst,
             HeroTypeFilter filter1 = HeroTypeFilter.AllHeroesType,
             ActiveFilter filterActive = ActiveFilter.All) {
-            // Tính số column của grid theo chiểu ngang của view port 
-            var gridLayoutGroup = scroller.content.GetComponent<GridLayoutGroup>();
-            var rect = scroller.viewport.rect;
-            var width = rect.width;
-            var itemWidth = gridLayoutGroup.cellSize.x + gridLayoutGroup.spacing.x;
-            var column = (int)(width / itemWidth);
-            _itemsInPage = column * PageRow;
+
+            if (infiniteScroller == null) {
+                infiniteScroller = scroller.gameObject.AddComponent<Scripts.UI.InfiniteInventoryScroller>();
+            }
+
+            var itemWidth = scroller.content.GetComponent<GridLayoutGroup>().cellSize.x + scroller.content.GetComponent<GridLayoutGroup>().spacing.x;
+            var column = (int)(scroller.viewport.rect.width / itemWidth);
+            if (column <= 0) column = 1;
+            _itemsInPage = column * PageRow * 2;
 
             List<PlayerData> players;
             if (_getPlayer == null) {
-                // Get sorted data có ExcludeHeroIds trước khi Phân trang 
                 players = await GetSortedPlayerData(rarity, _targetUpgradeRarity, order1, order2, filter1, filterActive);
             } else {
-                // Trường hợp _getPlayer != null là
-                // trường hợp hiển thị danh sách new heroes, hiển thị cho trường hợp mua bằng max option, có phân trang
-                // và không sort Active
                 players = SortPlayerData(_getPlayer(), rarity, _targetUpgradeRarity, order1, order2,
                     filter1, filterActive);
             }
             
+            // Check community filters locally
+            if (filterRarityToggle != null && filterRarityToggle.isOn) {
+                players = players.Where(p => p.rare >= 3).ToList();
+            }
+            if (filterWorkRestToggle != null && filterWorkRestToggle.isOn) {
+                players = players.Where(p => p.stage == HeroStage.Working).ToList();
+            }
+
             var num = players.Count;
             if (capacityText != null) {
                 var heroCount = _playerStore.GetTotalHeroesSize();
                 capacityText.text = $"{heroCount}/{_storeManager.HeroLimit}";
             }
-            _items = new List<DynamicInventoryItem>();
+            _items = new List<DynamicInventoryItem>(); // Only for reference to active items
+
             var inventoryItemCallback = new InventoryItem.InventoryItemCallback();
             if (_chooseMode == ChooseMode.InventoryBurn) {
                 inventoryItemCallback.OnClicked = OnItemClickedInventoryBurn;
@@ -363,10 +379,9 @@ namespace Scenes.FarmingScene.Scripts {
             }
             inventoryItemCallback.OnHover = OnItemHover;
 
-            var parent = scroller.content.transform;
-            if (num > MaxNumForDynamic) {
-                parent = container;
-            } else {
+            // Only destroy children if infiniteScroller is not managing its own active pool yet (e.g. initial setup)
+            if (infiniteScroller.GetActiveItems() == null || infiniteScroller.GetActiveItems().Count == 0) {
+                var parent = scroller.content.transform;
                 foreach (Transform child in parent) {
                     Destroy(child.gameObject);
                 }
@@ -385,6 +400,7 @@ namespace Scenes.FarmingScene.Scripts {
                     }
                 }
             }
+
             var curActiveFilter = ConvertFromValue(dropDownActiveFilter.value);
             var isIOSBrowser = await _webGlUtils.IsIOSBrowser();
             if (curActiveFilter == ActiveFilter.Locked && isIOSBrowser) {
@@ -395,44 +411,66 @@ namespace Scenes.FarmingScene.Scripts {
                 return;
             }
 
-            for (var i = 0; i < num; i++) {
-                if (players[i] != null) {
-                    scroller.content.gameObject.SetActive(true);
-                    if (notSupportedText != null) {
-                        notSupportedText.SetActive(false);
-                    }
-                    var item = Instantiate(inventoryItemPrefab, parent, false);
-                    _heroesIdBurn = await item.SetInfo(players[i], inventoryItemCallback, _chooseMode, _heroesIdBurn,
-                        _chooseMode == ChooseMode.PvpMode,
-                        _heroesIdBurn.Contains(players[i]), canvas: DialogCanvas, heroDescriptionPanel);
-                    item.UpdateLockedHeroes(curActiveFilter == ActiveFilter.Locked);
-                    if (_isShowLockHero) {
-                        item.UpdateUILockHero(players[i]);
-                    }
-                    _items.Add(item);
+            if (_chooseMode == ChooseMode.Upgrade) {
+                // Filter heroes suitable to upgrade directly on the list
+                var baseHero = players.FirstOrDefault(e => e.heroId == _baseHeroId);
+                if (baseHero != null) {
+                    players.Remove(baseHero);
+                }
+                if (_baseHeroLevel != 0) {
+                    players = players.Where(e => e.level == _baseHeroLevel).ToList();
                 }
             }
 
-            if (_chooseMode == ChooseMode.Upgrade) {
-                FilterHeroesSuitableToUpgrade();
+            infiniteScroller.Init(
+                scroller, scroller.content, inventoryItemPrefab, scroller.content.GetComponent<GridLayoutGroup>(), scroller.viewport,
+                OnScrollToBottom, _chooseMode, _heroesIdBurn, _heroesBurnIds, inventoryItemCallback, DialogCanvas, heroDescriptionPanel, _isShowLockHero, curActiveFilter);
+
+            infiniteScroller.SetData(players, _isFetchingNextPage);
+
+            _items = infiniteScroller.GetActiveItems();
+
+            if (players.Count > 0) {
+                // Tự chọn hero đầu tiên trong ds
+                SelectId = players[0].heroId;
+                heroDescriptionPanel.SetInfo(players[0], DialogCanvas, HideButtonsAndPanels);
+                ShowButtons(players[0], _chooseMode != ChooseMode.None);
             }
 
-            // ExcludeHeroes sẽ thực hiện trong phần GetSortedData
-            // (exclude trước khi phân trang)
-            //FilterExcludeHeroes();
-
-            if (num > MaxNumForDynamic) {
-                StartCoroutine(InitDynamicScroll());
+            if (notSupportedText != null) {
+                notSupportedText.SetActive(false);
             }
-            StartCoroutine(GetRowAndColumn());
+            scroller.content.gameObject.SetActive(true);
+
             StartCoroutine(ScrollToCoroutine(scroll));
+        }
 
-            // Tự chọn hero đầu tiên trong ds
-            if (_items.Count > 0) {
-                OnItemClicked(_items[0].Item);
-            }
-            foreach (var iter in _items) {
-                iter.Item.OnSelectAllItemClicked(_heroesBurnIds.Contains(iter.Item.playerData.heroId.Id));
+        private bool _isFetchingNextPage = false;
+        private void OnScrollToBottom(int totalLoaded) {
+            if (_getPlayer == null && !_isFetchingNextPage) {
+                // Determine the true un-filtered count of downloaded items
+                // Using total downloaded limit instead of `totalLoaded` since totalLoaded represents the locally filtered count
+                var realOffset = _playerStore.GetPlayerCount();
+                var totalHeroesCount = _playerStore.GetTotalHeroesSize();
+
+                if (realOffset >= totalHeroesCount || totalHeroesCount == 0) {
+                    return; // Everything loaded.
+                }
+
+                // Trigger pagination load
+                _isFetchingNextPage = true;
+                UniTask.Void(async () => {
+                    BeginWait();
+                    var limit = 100;
+                    await _serverManager.General.FetchMoreHeroes(realOffset, limit);
+
+                    var curActiveFilter = ConvertFromValue(dropDownActiveFilter.value);
+                    await InstantiateItems(false, _sortRarity, (SortOrder1)dropDown1.value, (SortOrder2)dropDown2.value,
+                        (HeroTypeFilter)dropDownHeroFilter.value, curActiveFilter);
+
+                    _isFetchingNextPage = false;
+                    EndWait();
+                });
             }
         }
 
@@ -441,24 +479,13 @@ namespace Scenes.FarmingScene.Scripts {
                 return;
             }
 
-            itemIndex = Mathf.Clamp(itemIndex, 0, _items.Count - 1);
+            itemIndex = Mathf.Clamp(itemIndex, 0, _playerStore.GetTotalHeroesSize() - 1);
             ScrollTo(itemIndex);
-            OnItemClicked(_items[itemIndex].Item);
         }
 
         public void ScrollTo(int itemIndex) {
-            var itemCount = _items.Count;
-            if (itemCount == 0 || ColumnRow.x == 0 || ColumnRow.y == 0) {
-                return;
-            }
-
-            if (_verticalDynamicScroll.Initiated) {
-                _verticalDynamicScroll.MoveToIndex(itemIndex); //, 2);
-            } else {
-                itemIndex = Mathf.Clamp(itemIndex, 0, itemCount - 1);
-                var row = (itemIndex) / ColumnRow.x;
-                var normal = (float)row / (ColumnRow.y - 1);
-                scroller.verticalNormalizedPosition = 1f - normal;
+            if (infiniteScroller != null) {
+                infiniteScroller.ScrollTo(itemIndex);
             }
         }
 
@@ -476,9 +503,6 @@ namespace Scenes.FarmingScene.Scripts {
         #region EVENT METHODS
 
         private void OnItemClicked(InventoryItem item) {
-            if (_verticalDynamicScroll.Initiated) {
-                _verticalDynamicScroll.SelectId = item.playerData.heroId.Id;
-            }
             UpdateItemInfo(item);
             if(_chooseMode != ChooseMode.InventoryFusion && _chooseMode != ChooseMode.InventoryBurn)
                 SetHighLight(item);
@@ -683,21 +707,13 @@ namespace Scenes.FarmingScene.Scripts {
             yield return null;
             yield return null;
 
-            var index = _items.FindIndex(e => e.Item.playerData.heroId == SelectId);
-            var validIndex = index >= 0 && index < _items.Count;
-
             if (scroll) {
                 if (ScrollValue >= 0) {
                     scroller.verticalNormalizedPosition = ScrollValue;
-                } else if (validIndex) {
-                    ScrollTo(index);
                 } else {
-                    ScrollTo(1);
+                    ScrollTo(0);
                 }
             }
-
-            // if (validIndex)
-            //     OnItemClicked(_items[index]);
         }
 
         private void BeginWait() {
@@ -712,27 +728,6 @@ namespace Scenes.FarmingScene.Scripts {
             }
             _waiting.End();
             _waiting = null;
-        }
-
-        private IEnumerator InitDynamicScroll() {
-            // Fix Me: để tạm 1 item prefab trong editor 1 frame trước khi xóa
-            // Mục đích đẩy anchoredPosition.y của content = 0 khi đang ở top.
-            // dễ dàng cho việc tính giới hạn top khi kéo xuống.
-            yield return null;
-
-            // xóa các items tạm trước khi tạo item thực
-            if (!_verticalDynamicScroll.Initiated) {
-                foreach (Transform child in scroller.content.transform) {
-                    Destroy(child.gameObject);
-                }
-            }
-            _verticalDynamicScroll.InitiateGrid(scroller, _items, 0, container);
-        }
-
-        private IEnumerator GetRowAndColumn() {
-            yield return null;
-            var grid = scroller.content.GetComponent<GridLayoutGroup>();
-            ColumnRow = GridLayoutGroupUtil.GetColumnAndRow(grid);
         }
 
         private void HideButtons() {
@@ -869,6 +864,9 @@ namespace Scenes.FarmingScene.Scripts {
             dropDown2.onValueChanged.AddListener(_ => SortInventory());
             dropDownHeroFilter.onValueChanged.AddListener(_ => SortInventory());
             dropDownActiveFilter.onValueChanged.AddListener(_ => SortInventory());
+
+            if (filterRarityToggle != null) filterRarityToggle.onValueChanged.AddListener(_ => SortInventory());
+            if (filterWorkRestToggle != null) filterWorkRestToggle.onValueChanged.AddListener(_ => SortInventory());
         }
 
         private async void SortInventory() {
@@ -1048,21 +1046,7 @@ namespace Scenes.FarmingScene.Scripts {
         }
 
         private void FilterHeroesSuitableToUpgrade() {
-            // Gỡ ra Hero đang được chọn
-            var baseHero = _items.FirstOrDefault(e => e.Item.playerData.heroId == _baseHeroId);
-            if (baseHero) {
-                _items.Remove(baseHero);
-                Destroy(baseHero.gameObject);
-            }
-
-            // Gỡ ra Hero khác level
-            if (_baseHeroLevel != 0) {
-                var diff = _items.Where(e => e.Item.playerData.level != _baseHeroLevel).ToList();
-                diff.ForEach(e => {
-                    _items.Remove(e);
-                    Destroy(e.gameObject);
-                });
-            }
+            // Replaced by virtualized local filtering during InstantiateItems if necessary
         }
 
         public void OnSelectAsMaterial() {
