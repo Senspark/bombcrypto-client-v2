@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 using Animation;
@@ -186,6 +186,7 @@ namespace Engine.Components {
                     if (mapManager.NumberOfBlock == 1) {
                         shouldFindTarget = false;
                     }
+                    targetLocation = currentLocation; // Force immediate retargeting after planting
                     return true;
                 }
             }
@@ -315,13 +316,6 @@ namespace Engine.Components {
         private int CompareDistance(Vector2Int v1, Vector2Int v2) {
             var dist1 = DistanceXY.DistancePower2(v1, currentLocation);
             var dist2 = DistanceXY.DistancePower2(v2, currentLocation);
-
-            if (dist1 < MIN_DISTANCE) {
-                dist1 += 1000000;
-            }
-            if (dist2 < MIN_DISTANCE) {
-                dist2 += 1000000;
-            }
 
             return (int) (dist1 - dist2);
         }

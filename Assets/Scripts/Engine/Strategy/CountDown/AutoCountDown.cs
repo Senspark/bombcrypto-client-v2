@@ -1,11 +1,11 @@
-﻿using System;
+using System;
 
 namespace Engine.Strategy.CountDown
 {
     public class AutoCountDown : ICountDown
     {
-        private float cooldown;
-        private float elapsed;
+        private CodeStage.AntiCheat.ObscuredTypes.ObscuredFloat cooldown;
+        private CodeStage.AntiCheat.ObscuredTypes.ObscuredFloat elapsed;
         private bool enable = true;
 
         public float Progress => Math.Min(elapsed / cooldown, 1);

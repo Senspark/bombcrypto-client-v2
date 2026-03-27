@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using DG.Tweening;
 
 using Engine.Entities;
@@ -164,11 +164,7 @@ namespace Engine.Components
                 }
                 else {
                     var isMaximum = botManager.notPathToLocationList.Add(end);
-                    if (isMaximum) {
-                        botManager.ChooseFarthestEmptyLocation();
-                    } else {
-                        botManager.ChooseNextTarget();
-                    }
+                    botManager.ChooseNextTarget();
                 }
             }
         }

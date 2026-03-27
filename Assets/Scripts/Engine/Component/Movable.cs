@@ -1,4 +1,4 @@
-﻿#define UsePhysic
+#define UsePhysic
 using System;
 
 using Engine.Entities;
@@ -49,7 +49,7 @@ namespace Engine.Components {
         
         private const float RadianPlayer = 0.4f;
         protected Vector2 velocity;
-        protected float speed;
+        protected CodeStage.AntiCheat.ObscuredTypes.ObscuredFloat speed;
 
         protected MovableCallback MovableCallback;
         protected IMapManager MapManager => MovableCallback.GetMapManager();

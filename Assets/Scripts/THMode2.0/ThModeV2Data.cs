@@ -6,9 +6,9 @@ using Sfs2X.Entities.Data;
 //Data gửi về cho user
 public class THModeV2RewardData {
     //Tổng phần thưởng của 1 lượt tính toán cho cả 3 đồng
-    public float Bcoin { get; set; }
-    public float Sen { get; set; }
-    public float Coin { get; set; }
+    public CodeStage.AntiCheat.ObscuredTypes.ObscuredFloat Bcoin { get; set; }
+    public CodeStage.AntiCheat.ObscuredTypes.ObscuredFloat Sen { get; set; }
+    public CodeStage.AntiCheat.ObscuredTypes.ObscuredFloat Coin { get; set; }
     
     public List<float[]> BcoinArray { get; set; }
     public List<float[]> SenArray { get; set; }
