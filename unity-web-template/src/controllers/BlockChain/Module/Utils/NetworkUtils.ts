@@ -1,11 +1,11 @@
 import * as Storage from "./Storage.js";
-import { ethers } from "ethers";
+import { parseUnits } from "ethers";
 import {sleep} from "../../../../utils/Time.ts";
 import {TransactionReceipt, TransactionResponse} from "ethers";
 import CoinToken from "../CoinToken.ts";
 
 const MIN_CONFIRMATIONS = 6;
-const GAS_LIMIT_MULTIPLIER = 2;
+const GAS_LIMIT_MULTIPLIER = 1.2;
 
 class NetworkData {
     chainId: string;
@@ -68,9 +68,9 @@ async function waitForBlock(block: number): Promise<void> {
     }
 }
 
-function getDoubleGasFeeOption(estimateGas: bigint): { gasLimit: bigint } {
-    const gasMultiplier = ethers.toBigInt(GAS_LIMIT_MULTIPLIER);
-    return { gasLimit: estimateGas * gasMultiplier};
+function getOptimizedGasOption(estimateGas: bigint): { gasLimit: bigint } {
+    const gasMultiplier = parseUnits(GAS_LIMIT_MULTIPLIER.toString(), 2); // 1.20 as BigInt representation with 2 decimals
+    return { gasLimit: (estimateGas * gasMultiplier) / 100n };
 }
 
 async function waitForReceipt(transaction: TransactionResponse): Promise<TransactionReceipt | null> {
@@ -98,7 +98,7 @@ function getCoinTokenByBuyHeroCategory(category: number): CoinToken {
 
 export {
     sign,
-    getDoubleGasFeeOption,
+    getOptimizedGasOption,
     waitForReceipt,
     getAllNetworkRpc,
     getCoinTokenByBuyHeroCategory,

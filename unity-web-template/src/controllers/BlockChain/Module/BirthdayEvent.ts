@@ -1,7 +1,7 @@
 //FIXME: Ko còn dùng trong game
 // import GeneralContract from "./Utils/GeneralContract.js";
 // import * as Message from "./Utils/Message.js";
-// import { getDoubleGasFeeOption, waitForReceipt } from "./Utils/NetworkUtils.js";
+// import { getOptimizedGasOption, waitForReceipt } from "./Utils/NetworkUtils.js";
 // import { getData } from "./Utils/Storage.js";
 // import { ethers, Contract } from "ethers";
 //
@@ -46,7 +46,7 @@
 //
 //             const contract: Contract = await this.getContract();
 //             const estimateGas: BigNumber = await contract.estimateGas.buyHeroEvent(count, category);
-//             const options = getDoubleGasFeeOption(estimateGas);
+//             const options = getOptimizedGasOption(estimateGas);
 //             const transaction = await contract.buyHeroEvent(count, category, options);
 //             await waitForReceipt(transaction);
 //             return Message.Info();

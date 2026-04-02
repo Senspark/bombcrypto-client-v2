@@ -1,8 +1,10 @@
 import GeneralContract from './Utils/GeneralContract.js';
-import {getDoubleGasFeeOption} from "./Utils/NetworkUtils.js";
-import {Contract, parseEther} from "ethers";
+import { getOptimizedGasOption } from "./Utils/NetworkUtils.js";
+import { Contract, parseEther } from "ethers";
 
 export default class ClaimManager extends GeneralContract {
+    private _isProcessing = false;
+
     async claimTokens(
         tokenType: string,
         amount: number,
@@ -12,20 +14,28 @@ export default class ClaimManager extends GeneralContract {
         formatType: string,
         waitConfirmations: number
     ): Promise<string> {
+        if (this._isProcessing) {
+            console.warn("Claim processing already in progress. Ignoring request.");
+            return "";
+        }
+
         try {
+            this._isProcessing = true;
             const contract: Contract = await this.getContract();
             let amountValue: string | number = amount;
             if (formatType) {
                 amountValue = parseEther(amount.toString()).toString();
             }
             const estimateGas = await contract.claimTokens.estimateGas(tokenType, amountValue, nonce, details, signature);
-            const options = getDoubleGasFeeOption(estimateGas);
+            const options = getOptimizedGasOption(estimateGas);
             const transaction = await contract.claimTokens(tokenType, amountValue, nonce, details, signature, options);
-            const receipt = await transaction.wait(waitConfirmations);
-            return receipt?.hash.toString();
+            await transaction.wait(waitConfirmations);
+            return transaction.hash.toString();
         } catch (ex) {
             console.error(`exception ${ex}`);
             return "";
+        } finally {
+            this._isProcessing = false;
         }
     }
 

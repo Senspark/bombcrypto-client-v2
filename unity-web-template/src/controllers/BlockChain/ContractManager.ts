@@ -291,23 +291,35 @@ export class ContractManager{
     }
 
     async claimToken(args: string): Promise<string> {
-        const data = JSON.parse(args) as {
-            tokenType: string,
-            amount: number,
-            nonce: number,
-            details: string,
-            signature: string,
-            formatType: string,
-            waitConfirmations: number};
-        return await this._claimManager.claimTokens(
-            data.tokenType,
-            data.amount,
-            data.nonce,
-            data.details,
-            data.signature,
-            data.formatType,
-            data.waitConfirmations
-        );
+        try {
+            const data = JSON.parse(args) as {
+                tokenType: string,
+                amount: number,
+                nonce: number,
+                details: string,
+                signature: string,
+                formatType: string,
+                waitConfirmations: number};
+
+            // Validation Layer
+            if (!data.tokenType || data.amount <= 0 || !data.signature || data.signature.length < 64) {
+                this._logger.log(`${TAG} Invalid claim parameters: amount=${data.amount}, tokenType=${data.tokenType}`);
+                return "";
+            }
+
+            return await this._claimManager.claimTokens(
+                data.tokenType,
+                data.amount,
+                data.nonce,
+                data.details,
+                data.signature,
+                data.formatType,
+                data.waitConfirmations
+            );
+        } catch (e) {
+            this._logger.log(`${TAG} Error parsing claim arguments: ${e}`);
+            return "";
+        }
     }
 
     async canUseVoucher(args: string): Promise<string> {
