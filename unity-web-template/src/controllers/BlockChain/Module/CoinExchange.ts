@@ -3,6 +3,7 @@ import * as NetworkUtils from './Utils/NetworkUtils.js';
 import * as Message from './Utils/Message.js';
 import CoinToken from "./CoinToken.js";
 import {Contract, parseUnits} from "ethers";
+import {getDoubleGasFeeOptionV2} from "./Utils/NetworkUtils.js";
 
 export default class CoinExchange extends GeneralContract {
     private _coinToken: CoinToken;
@@ -46,7 +47,7 @@ export default class CoinExchange extends GeneralContract {
             const contract: Contract = await this.getContract();
             const tokenAddress: string = this.getTokenAddress(category);
             const estimateGas = await contract.buyTokensV2.estimateGas(amountBN, tokenAddress);
-            const options = NetworkUtils.getDoubleGasFeeOption(estimateGas);
+            const options = await getDoubleGasFeeOptionV2(estimateGas);
             const transaction = await contract.buyTokensV2(amountBN, tokenAddress, options);
 
             await NetworkUtils.waitForReceipt(transaction);

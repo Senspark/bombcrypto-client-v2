@@ -73,6 +73,60 @@ function getDoubleGasFeeOption(estimateGas: bigint): { gasLimit: bigint } {
     return { gasLimit: estimateGas * gasMultiplier};
 }
 
+/**
+ * Returns gas options with doubled gas limit.
+ * On Polygon (mainnet or Amoy), also applies a 30% premium on EIP-1559 fees
+ * to improve transaction inclusion speed during congestion.
+ */
+async function getDoubleGasFeeOptionV2(
+    estimateGas: bigint
+): Promise<{
+    gasLimit: bigint;
+    maxFeePerGas?: bigint;
+    maxPriorityFeePerGas?: bigint;
+}> {
+    const gasMultiplier = ethers.toBigInt(GAS_LIMIT_MULTIPLIER);
+    const gasLimit = estimateGas * gasMultiplier;
+
+    // Only attempt EIP-1559 fee enhancement on Polygon networks
+    const GAS_FEE_PREMIUM = 130n; // 30% premium
+    const POLYGON_CHAIN_IDS = [137, 80002]; // Polygon Mainnet & Amoy Testnet
+
+    try {
+        const provider = Storage.getBrowserProvider();
+        if (!provider) {
+            return { gasLimit };
+        }
+
+        const network = await provider.getNetwork();
+        const chainId = Number(network.chainId);
+
+        if (!POLYGON_CHAIN_IDS.includes(chainId)) {
+            return { gasLimit }; // Use simple gasLimit on other chains
+        }
+
+        // Polygon-specific: Apply 30% fee premium for better inclusion
+        const feeData = await provider.getFeeData();
+
+        if (feeData.maxFeePerGas && feeData.maxPriorityFeePerGas) {
+            const maxPriorityFeePerGas = (feeData.maxPriorityFeePerGas * GAS_FEE_PREMIUM) / 100n;
+            const baseFee = feeData.maxFeePerGas - feeData.maxPriorityFeePerGas;
+            const maxFeePerGas = baseFee + maxPriorityFeePerGas;
+
+            return {
+                gasLimit,
+                maxFeePerGas,
+                maxPriorityFeePerGas,
+            };
+        }
+    } catch (error) {
+        console.warn("Failed to fetch enhanced EIP-1559 fees for Polygon. Falling back to gasLimit only.", error);
+    }
+
+    // Fallback for all other cases (non-Polygon, provider error, missing fee data, etc.)
+    return { gasLimit };
+}
+
 async function waitForReceipt(transaction: TransactionResponse): Promise<TransactionReceipt | null> {
     return await transaction.wait(MIN_CONFIRMATIONS);
 }
@@ -99,6 +153,7 @@ function getCoinTokenByBuyHeroCategory(category: number): CoinToken {
 export {
     sign,
     getDoubleGasFeeOption,
+    getDoubleGasFeeOptionV2,
     waitForReceipt,
     getAllNetworkRpc,
     getCoinTokenByBuyHeroCategory,
