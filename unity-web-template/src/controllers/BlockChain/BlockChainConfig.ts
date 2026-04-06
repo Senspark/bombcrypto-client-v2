@@ -2,6 +2,7 @@ import Logger from "../Logger.ts";
 import AesEncryptionHelper from "../encrypt/AesEncryptionHelper.ts";
 import {ContractManager} from "./ContractManager.ts";
 import BlockChainCommand from "../../consts/BlockChainCommand.ts";
+import {RpcService} from "./RpcService.ts";
 
 const TAG = "[BCG]";
 
@@ -12,9 +13,10 @@ export class BlockChainConfig{
     constructor(data: string,
                 isProd: boolean,
                 private readonly _logger: Logger,
-                private readonly _aesHelper: AesEncryptionHelper)
+                private readonly _aesHelper: AesEncryptionHelper,
+                private readonly _rpcService: RpcService)
     {
-        this._contractManager = new ContractManager(data, this._logger, isProd);
+        this._contractManager = new ContractManager(data, this._logger, isProd, this._rpcService);
         this.actions = new Map<string, (param: string) => Promise<string>>();
 
         this.actions.set(BlockChainCommand.GET_BALANCE, this._contractManager.getBalance.bind(this._contractManager));
