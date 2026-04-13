@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -199,7 +199,7 @@ namespace App {
             return Task.FromResult(true);
         }
 
-        public Task<bool> UpgradeHero(int baseId, int materialId) {
+        public Task<bool> UpgradeHero(int baseId, int[] materialIds) {
             return Task.FromResult(true);
         }
 

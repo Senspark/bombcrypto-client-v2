@@ -14,7 +14,7 @@ namespace App {
         Task<int> GetGiveAwayHero(string walletAddress);
         Task<ProcessToken> GetPendingHero(string walletAddress);
         Task<bool> BuyHero(string walletAddress, int count, BuyHeroCategory category, bool isHeroS);
-        Task<bool> UpgradeHero(string walletAddress, int baseId, int materialId);
+        Task<bool> UpgradeHero(string walletAddress, int baseId, int[] materialIds);
         Task<bool> ClaimHero(string walletAddress);
         Task<bool> ClaimGiveAwayHero();
         Task<HeroProcessTokenResult> ProcessTokenRequests(string walletAddress);

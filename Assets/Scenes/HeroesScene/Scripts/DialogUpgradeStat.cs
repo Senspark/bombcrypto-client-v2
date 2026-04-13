@@ -41,6 +41,9 @@ namespace Scenes.HeroesScene.Scripts {
         [SerializeField]
         private UpgradeStatFee[] fees;
 
+        [SerializeField]
+        private Button evolutionBtn;
+
         private IHeroStatsManager _heroStatsManager;
         private IChestRewardManager _chestRewardManager;
         private ISoundManager _soundManager;
@@ -59,6 +62,15 @@ namespace Scenes.HeroesScene.Scripts {
         
         public static UniTask<DialogUpgradeStat> Create() {
             return ServiceLocator.Instance.Resolve<IPrefabLoaderManager>().Instantiate<DialogUpgradeStat>();
+        }
+
+        public void OnLevelUpButtonClicked() {
+            _soundManager.PlaySound(Audio.Tap);
+            var dialogFusion = DialogFusion.Create();
+            dialogFusion.Init(DialogFusion.FusionMode.Level, _hero.PlayerData);
+            dialogFusion.Show(DialogCanvas);
+            _isClicked = false;
+            Hide();
         }
         
         protected override void Awake() {
@@ -108,6 +120,10 @@ namespace Scenes.HeroesScene.Scripts {
                 }
                 UpdateWithFees(iter.Fees, feeIndex);
                 break;
+            }
+
+            if (evolutionBtn != null) {
+                evolutionBtn.gameObject.SetActive(hero.PlayerData.level < 10);
             }
         }
 

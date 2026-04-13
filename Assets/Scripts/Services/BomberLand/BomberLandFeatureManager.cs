@@ -69,7 +69,7 @@ namespace App {
             IsUsingMetaMask = walletOnly;
             EnableControlMining = false;
             EnableDeposit = walletOnly || AppConfig.IsAirDrop();
-            EnableUpgrade = false;
+            EnableUpgrade = userFi;
             EnableRepairShield = walletOnly;
             EnableResetSkill = false;
             EnableCreateAccount = userFi;

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -125,7 +125,7 @@ namespace App {
         Task<int> GetGiveAwayHero();
         Task<ProcessToken> GetPendingHero();
         Task<bool> BuyHero(int count, BuyHeroCategory category, bool isHeroS);
-        Task<bool> UpgradeHero(int baseId, int materialId);
+        Task<bool> UpgradeHero(int baseId, int[] materialIds);
         Task<bool> ClaimHero();
         Task<bool> ClaimGiveAwayHero();
         Task<HeroProcessTokenResult> ProcessTokenRequests();
