@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Threading.Tasks;
 
 using Senspark;
@@ -104,8 +104,8 @@ namespace App {
             return _bridge.BuyHero(_accountManager.Account, count, category, isHeroS);
         }
 
-        public Task<bool> UpgradeHero(int baseId, int materialId) {
-            return _bridge.UpgradeHero(_accountManager.Account, baseId, materialId);
+        public Task<bool> UpgradeHero(int baseId, int[] materialIds) {
+            return _bridge.UpgradeHero(_accountManager.Account, baseId, materialIds);
         }
 
         public Task<bool> ClaimHero() {

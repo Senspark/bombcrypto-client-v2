@@ -35,7 +35,7 @@ namespace Scenes.FarmingScene.Scripts {
         void SetChooseHeroForResetRoi(HeroId[] excludeHeroIds, Action<HeroId> onSelectedCallback);
         void SetChooseHeroForInventoryBurnHero(HeroId[] excludeHeroIds, Action<PlayerData[]> callBackBurnHeroId);
         void SetChooseHeroForResetSkill(Action<HeroId> onSelectedCallback);
-        void SetChooseHeroForUpgrade(HeroId baseHeroId, int baseHeroLevel, Action<HeroId> onSelectAsMaterialCallback);
+        void SetChooseHeroForUpgrade(HeroId baseHeroId, int baseHeroLevel, Action<HeroId[]> onSelectAsMaterialsCallback);
     }
     
     public static class DialogInventoryCreator {
@@ -958,6 +958,7 @@ namespace Scenes.FarmingScene.Scripts {
 
         #region FOR UPGRADE
 
+        private Action<HeroId[]> _onSelectAsMaterialsCallback;
         private Action<HeroId> _onSelectAsMaterialCallback;
         private HeroId _baseHeroId;
         private int _baseHeroLevel;
@@ -967,12 +968,15 @@ namespace Scenes.FarmingScene.Scripts {
         /// <summary>
         /// Cho phép tận dụng Dialog Inventory để chọn Heroes Material phục vụ cho Dialog Upgrade
         /// </summary>
-        public void SetChooseHeroForUpgrade(HeroId baseHeroId, int baseHeroLevel,
-            Action<HeroId> onSelectAsMaterialCallback) {
+        public void SetChooseHeroForUpgrade(HeroId baseHeroId, int baseHeroLevel, 
+            Action<HeroId[]> onSelectAsMaterialsCallback) {
             _chooseMode = ChooseMode.Upgrade;
             _baseHeroId = baseHeroId;
             _baseHeroLevel = baseHeroLevel;
-            _onSelectAsMaterialCallback = onSelectAsMaterialCallback;
+            _onSelectAsMaterialsCallback = onSelectAsMaterialsCallback;
+            _maxSelectChooseHero = (baseHeroLevel < 5) ? 2 : 3;
+            _heroesBurnIds.Clear();
+            SortInventory();
             SelectId = default;
             ScrollValue = -1;
         }
@@ -1066,6 +1070,16 @@ namespace Scenes.FarmingScene.Scripts {
         }
 
         public void OnSelectAsMaterial() {
+            if (_chooseMode == ChooseMode.Upgrade) {
+                if (_heroesBurnIds.Count == 0) return;
+                
+                ServiceLocator.Instance.Resolve<ISoundManager>().PlaySound(Audio.Tap);
+                var selectedArray = _heroesBurnIds.Select(id => new HeroId { Id = id }).ToArray();
+                _onSelectAsMaterialsCallback?.Invoke(selectedArray);
+                Hide();
+                return;
+            }
+
             if (SelectId == default) {
                 return;
             }

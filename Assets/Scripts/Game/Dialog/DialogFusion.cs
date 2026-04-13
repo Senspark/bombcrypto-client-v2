@@ -21,6 +21,11 @@ using UnityEngine.UI;
 
 namespace Game.Dialog {
     public class DialogFusion : Dialog, IDialogFusion {
+        public enum FusionMode {
+            Rarity,
+            Level
+        }
+
         [SerializeField]
         private List<FusionItemDisplay> fusionItemDisplays;
 
@@ -48,10 +53,17 @@ namespace Game.Dialog {
         [SerializeField]
         private Button fusionBtn;
 
-        private const int NEED_HEROES_AMOUNT = 5;
+        [SerializeField]
+        private Text titleText;
+
+        private const int MAX_HEROES_AMOUNT = 5;
+        private int _neededHeroesAmount = 5;
         private const int PERCENT = 20;
         private PlayerData[] _selectedHeroes;
         private int _waitingItemIndex = -1;
+        
+        private FusionMode _mode = FusionMode.Rarity;
+        private PlayerData _baseHero;
         
         private ISoundManager _soundManager;
         private IPlayerStorageManager _playerStoreManager;
@@ -74,8 +86,53 @@ namespace Game.Dialog {
             _storageManager = ServiceLocator.Instance.Resolve<IStorageManager>(); 
             heroDetailsDisplay.Init(_featureManager.EnableRepairShield);
 
-            Init();
+            if (_selectedHeroes == null) {
+                Init(FusionMode.Rarity);
+            }
             RenderItemsPercents();
+        }
+
+        public void Init(FusionMode mode, PlayerData baseHero = null) {
+            _mode = mode;
+            _baseHero = baseHero;
+
+            if (_mode == FusionMode.Level && _baseHero != null) {
+                // Evolution rules:
+                // L1-L5 -> 2 material heroes (Total 3, so index 0 is base, 1-2 are mats)
+                // L6-L10 -> 3 material heroes (Total 4, so index 0 is base, 1-3 are mats)
+                _neededHeroesAmount = _baseHero.level < 5 ? 3 : 4;
+                if (titleText) titleText.text = "HERO EVOLUTION";
+            } else {
+                _neededHeroesAmount = 5;
+                if (titleText) titleText.text = "HERO FUSION";
+            }
+
+            _selectedHeroes = new PlayerData[MAX_HEROES_AMOUNT];
+            
+            for (var i = 0; i < MAX_HEROES_AMOUNT; i++) {
+                bool isSlotActive = i < _neededHeroesAmount;
+                fusionItemDisplays[i].gameObject.SetActive(isSlotActive);
+                fusionAvatars[i].gameObject.SetActive(isSlotActive);
+
+                if (isSlotActive) {
+                    fusionItemDisplays[i].Init(i, ChooseHero);
+                    fusionItemDisplays[i].SetData(null);
+                    fusionAvatars[i].Init(i, ChooseHero, null);
+                    fusionAvatars[i].SetData(null);
+                }
+            }
+
+            if (_mode == FusionMode.Level && _baseHero != null) {
+                // Pre-set base hero in the first slot
+                _selectedHeroes[0] = _baseHero;
+                fusionAvatars[0].SetData(_baseHero);
+                fusionItemDisplays[0].SetData(_baseHero);
+                // Disable clicking on the base hero slot in evolution mode? 
+                // Actually better to let them see it.
+            }
+
+            heroDetailsDisplay.Hide();
+            fusionBtn.interactable = false;
         }
 
         public void OnFusionBtnClicked() {
@@ -84,14 +141,23 @@ namespace Game.Dialog {
             }
             fusionBtn.interactable = false;
             _soundManager.PlaySound(Audio.Tap);
-            var heroIds = _selectedHeroes.Select(e => e.heroId.Id).ToArray();
+            
             var waiting = new WaitingUiManager(DialogCanvas);
             waiting.Begin();
             waiting.ChangeText("Processing...");
 
             UniTask.Void(async () => {
                 try {
-                    var result = await _blockchainManager.FusionHero(heroIds);
+                    bool result;
+                    if (_mode == FusionMode.Level) {
+                        int baseId = _selectedHeroes[0].heroId.Id;
+                        int[] materialIds = _selectedHeroes.Skip(1).Take(_neededHeroesAmount - 1).Select(e => e.heroId.Id).ToArray();
+                        result = await _blockchainManager.UpgradeHero(baseId, materialIds);
+                    } else {
+                        var heroIds = _selectedHeroes.Take(MAX_HEROES_AMOUNT).Select(e => e.heroId.Id).ToArray();
+                        result = await _blockchainManager.FusionHero(heroIds);
+                    }
+
                     if (result) {
                         waiting.ChangeText("Processing Token Request");
                         result = await ProcessTokenHelper.ProcessTokenRequest(DialogCanvas, _blockchainManager,
@@ -115,7 +181,12 @@ namespace Game.Dialog {
             _soundManager.PlaySound(Audio.Tap);
             heroDetailsDisplay.Hide();
             
-            if (_waitingItemIndex < 0 || _waitingItemIndex >= NEED_HEROES_AMOUNT) {
+            if (_waitingItemIndex < 0 || _waitingItemIndex >= _neededHeroesAmount) {
+                return;
+            }
+
+            // In Evolution mode, slot 0 is the base hero and cannot be removed
+            if (_mode == FusionMode.Level && _waitingItemIndex == 0) {
                 return;
             }
 
@@ -132,23 +203,10 @@ namespace Game.Dialog {
             fusionItemDisplays[index].SetData(null);
             RenderItemsPercents();
         }
-        
-        private void Init() {
-            for (var i = 0; i < NEED_HEROES_AMOUNT; i++) {
-                fusionItemDisplays[i].Init(i, ChooseHero);
-                fusionItemDisplays[i].SetData(null);
-                fusionAvatars[i].Init(i, ChooseHero, null);
-                fusionAvatars[i].SetData(null);
-            }
-            _selectedHeroes = new PlayerData[NEED_HEROES_AMOUNT];
-
-            heroDetailsDisplay.Hide();
-            fusionBtn.interactable = false;
-        }
 
         private void DisplayHeroWithId(HeroId heroId) {
             var playerData = _playerStoreManager.GetPlayerDataFromId(heroId);
-            if (_waitingItemIndex < 0 || _waitingItemIndex >= NEED_HEROES_AMOUNT || playerData == null) {
+            if (_waitingItemIndex < 0 || _waitingItemIndex >= _neededHeroesAmount || playerData == null) {
                 return;
             }
 
@@ -173,6 +231,14 @@ namespace Game.Dialog {
         }
 
         private async void ChooseHero(int itemIndex) {
+            // In Evolution mode, slot 0 is the base hero and cannot be changed
+            if (_mode == FusionMode.Level && itemIndex == 0) {
+                SelectItem(itemIndex);
+                heroDetailsDisplay.SetInfo(_selectedHeroes[0], DialogCanvas);
+                heroDetailsDisplay.Show();
+                return;
+            }
+
             _waitingItemIndex = itemIndex;
             var selectedHero = _selectedHeroes[itemIndex]; 
 
@@ -180,7 +246,13 @@ namespace Game.Dialog {
                 // Choose new hero
                 var inventory = await DialogInventoryCreator.Create();
                 var exclude = _selectedHeroes.Where(e => e != null).Select(e => e.heroId).ToArray();
-                inventory.SetChooseHeroForResetRoi(exclude, DisplayHeroWithId);
+                
+                if (_mode == FusionMode.Level) {
+                    // Selection for Evolution: must be same rarity and same level as base hero
+                    inventory.SetChooseHeroForUpgrade(_baseHero.heroId, _baseHero.level, heroIds => DisplayHeroesWithIds(heroIds));
+                } else {
+                    inventory.SetChooseHeroForResetRoi(exclude, DisplayHeroWithId);
+                }
                 inventory.Show(DialogCanvas);
             } else {
                 // display only
@@ -190,8 +262,30 @@ namespace Game.Dialog {
             }
         }
 
+        private void DisplayHeroesWithIds(HeroId[] heroIds) {
+            if (heroIds == null || heroIds.Length == 0) return;
+            
+            // Slots for materials start from index 1. 
+            // base hero is always at slot 0.
+            for (int i = 0; i < heroIds.Length; i++) {
+                int slotIndex = i + 1;
+                if (slotIndex >= _neededHeroesAmount) break;
+                
+                var playerData = _playerStoreManager.GetPlayerDataFromId(heroIds[i]);
+                if (playerData == null) continue;
+
+                _selectedHeroes[slotIndex] = playerData;
+                fusionAvatars[slotIndex].SetData(playerData);
+                fusionItemDisplays[slotIndex].SetData(playerData);
+            }
+            
+            SelectItem(0); // select base hero by default
+            fusionBtn.interactable = CanFusion();
+            RenderItemsPercents();
+        }
+
         private void SelectItem(int index) {
-            if (index < 0 || index >= NEED_HEROES_AMOUNT) {
+            if (index < 0 || index >= _neededHeroesAmount) {
                 return;
             }
             fusionItemDisplays.ForEach(e=>e.SetChoose(false));
@@ -202,6 +296,11 @@ namespace Game.Dialog {
             fusionPercentDisplays.ForEach(e => e.gameObject.SetActive(false));
             heroSObjects.ForEach(e => e.SetActive(false));
             fusionStars.ForEach(e=>e.color = defaultStarColor);
+
+            if (_mode == FusionMode.Level) {
+                // In evolution mode, we don't use standard percent displays
+                return;
+            }
 
             if (!CanFusion()) {
                 return;
@@ -223,7 +322,7 @@ namespace Game.Dialog {
         }
 
         private bool CanFusion() {
-            return _selectedHeroes.Count(e => e != null) == NEED_HEROES_AMOUNT;
+            return _selectedHeroes.Count(e => e != null) == _neededHeroesAmount;
         }
 
         public void Show(Canvas canvas) {

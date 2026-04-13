@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -89,8 +89,8 @@ namespace App {
             return _manager.BuyHero(count, category, isHeroS);
         }
         
-        public Task<bool> UpgradeHero(int baseId, int materialId) {
-            return _manager.UpgradeHero(baseId, materialId);
+        public Task<bool> UpgradeHero(int baseId, int[] materialIds) {
+            return _manager.UpgradeHero(baseId, materialIds);
         }
 
         public Task<bool> ClaimHero() {

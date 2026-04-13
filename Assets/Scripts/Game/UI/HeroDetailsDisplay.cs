@@ -68,6 +68,7 @@ public class HeroDetailsDisplay : MonoBehaviour {
     private float _remainingSecondsLock = 0;
     private Action _onLockEnd;
     private Coroutine _coroutine;
+    private Coroutine _godlikeCoroutine;
     
     private void Awake() {
         _repairShieldManager = ServiceLocator.Instance.Resolve<IRepairShieldManager>();
@@ -138,6 +139,49 @@ public class HeroDetailsDisplay : MonoBehaviour {
         if(groupButton != null) {
             groupButton.SetActive(_showGroupButton);
         }    
+
+        UpdateGodlikeEffects();
+    }
+
+    private void UpdateGodlikeEffects() {
+        if (_godlikeCoroutine != null) {
+            StopCoroutine(_godlikeCoroutine);
+            _godlikeCoroutine = null;
+        }
+
+        if (_playerData != null && _playerData.level >= 6) {
+            _godlikeCoroutine = StartCoroutine(PulseGodlikeEffect());
+        } else {
+            ResetTextColors();
+        }
+    }
+
+    private void ResetTextColors() {
+        if (charLv) {
+            charLv.color = Color.white;
+            if (_playerData != null) charLv.text = "Lv" + _playerData.level;
+        }
+        charName.color = Color.white;
+    }
+
+    private IEnumerator PulseGodlikeEffect() {
+        float timer = 0;
+        Color gold = new Color(1f, 0.84f, 0f); // Gold
+        Color orange = new Color(1f, 0.45f, 0f); // Orange-Red
+
+        while (true) {
+            timer += Time.deltaTime * 3f;
+            float lerp = (Mathf.Sin(timer) + 1f) / 2f;
+            Color currentColor = Color.Lerp(gold, orange, lerp);
+            
+            if (charLv) {
+                charLv.color = currentColor;
+                charLv.text = "GODLIKE Lv" + _playerData.level;
+            }
+            charName.color = currentColor;
+            
+            yield return null;
+        }
     }
     public void HideInfo() {
         if (charLv) {
@@ -157,6 +201,10 @@ public class HeroDetailsDisplay : MonoBehaviour {
         abilitiesGroup.Hide();
         rarityDisplay.Hide();
         avatar.gameObject.SetActive(false);
+        if (_godlikeCoroutine != null) {
+            StopCoroutine(_godlikeCoroutine);
+            _godlikeCoroutine = null;
+        }
     }
 
     public void Hide() {

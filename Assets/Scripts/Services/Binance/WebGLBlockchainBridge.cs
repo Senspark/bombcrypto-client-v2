@@ -247,13 +247,13 @@ namespace App {
             }
         }
 
-        public async Task<bool> UpgradeHero(string walletAddress, int baseId, int materialId) {
+        public async Task<bool> UpgradeHero(string walletAddress, int baseId, int[] materialIds) {
             try {
                 _logManager.Log();
                 var data = new JObject {
                     ["walletAddress"] = walletAddress,
                     ["baseId"] = baseId,
-                    ["materialId"] = materialId
+                    ["materialIds"] = new JArray(materialIds)
                 };
                 var response = await _unityCommunication.UnityToReact.CallBlockChain(BlockChainCommand.UPGRADE_HERO, data); 
                 var result = bool.Parse(response);

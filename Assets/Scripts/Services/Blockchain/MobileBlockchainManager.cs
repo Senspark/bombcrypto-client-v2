@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Threading.Tasks;
 
 using Senspark;
@@ -106,7 +106,7 @@ namespace App {
             return Task.FromResult(false);
         }
 
-        public Task<bool> UpgradeHero(int baseId, int materialId) {
+        public Task<bool> UpgradeHero(int baseId, int[] materialIds) {
             return Task.FromResult(false);
         }
 
