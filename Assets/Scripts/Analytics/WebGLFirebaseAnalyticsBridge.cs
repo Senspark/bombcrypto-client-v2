@@ -28,14 +28,12 @@ namespace Analytics {
 #endif
 
         private static bool _initialized;
-        private readonly string _appId;
-        private readonly string _measurementId;
+        private readonly AppConfig.FirebaseInfo _info;
         private readonly bool _enableLog;
 
-        public WebGLFirebaseAnalyticsBridge(bool enableLog, string appId, string measurementId) {
+        public WebGLFirebaseAnalyticsBridge(bool enableLog, AppConfig.FirebaseInfo info) {
             _enableLog = enableLog;
-            _appId = appId;
-            _measurementId = measurementId;
+            _info = info;
         }
 
         public Task<bool> Initialize() {
@@ -43,13 +41,13 @@ namespace Analytics {
             if (!_initialized) {
                 _initialized = true;
                 initialize(
-                    AppConfig.FirebaseApiKey,
-                    AppConfig.FirebaseAuthDomain,
-                    AppConfig.FirebaseProjectId,
-                    AppConfig.FirebaseStorageBucket,
-                    AppConfig.FirebaseMessagingSenderId,
-                    AppConfig.FirebaseAppId,
-                    AppConfig.FirebaseMeasurementId
+                    _info.apiKey,
+                    _info.authDomain,
+                    _info.projectId,
+                    _info.storageBucket,
+                    _info.messagingSenderId,
+                    _info.appId,
+                    _info.measurementId
                 );
             }
 #endif

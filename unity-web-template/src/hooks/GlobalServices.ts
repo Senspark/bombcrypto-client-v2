@@ -69,16 +69,14 @@ export const confirmationService = new ConfirmationService();
 export const sessionSetting = new sessionStorageSettings(isProd)
 const secret = new SECRET();
 export const customSessionStorage = new EncryptedStorageService(secret.LOCAL_SECRET, secret.LOCAL_IV, logger, StorageProviderBuilder.sessionStorage());
-const encryptedStorage = new EncryptedStorageService(secret.LOCAL_SECRET, secret.LOCAL_IV, logger, StorageProviderBuilder.localStorage());
 
 const unityReactObfuscate = new PermutationObfuscate(secret.PERMUTATION_ORDER_32);
 const reactApiObfuscate = new AppendBytesObfuscate(secret.APPEND_BYTES);
 const versionManager = new VersionManager(logger, notificationService)
 
-
 export const apiService = new ApiService(isProd, logger, apiHost, reactApiObfuscate, versionManager.getCurrentVersion());
 export const walletService = new WalletService(isProd, secret.SIGN_SECRET, secret.SIGN_PADDING, logger, notificationService);
-export const authService = new AuthService(isProd, encryptedStorage, walletService, logger, versionManager, apiService);
+export const authService = new AuthService(isProd, customSessionStorage, walletService, logger, versionManager, apiService);
 export const unityCommunicator = new UnityCommunicator(logger, authService, walletService, unityReactObfuscate, isProd, notificationService);
 export const serverService = new CheckServerService(apiHost, apiService, ignoreIpCheck);
 export const checkIpService = new CheckIpService(logger, checkIpHost);

@@ -6,10 +6,6 @@ namespace App {
         Binance, Polygon, Ton, Solana, Ronin, Base, Viction
     }
 
-    public enum GameVariant {
-        OldBomb, BomberLand
-    }
-
     [Service(nameof(INetworkConfig))]
     public interface INetworkConfig : IService {
         NetworkType NetworkType { get; }

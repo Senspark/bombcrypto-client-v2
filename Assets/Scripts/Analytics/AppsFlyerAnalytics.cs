@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 
 using App;
+
 using Senspark;
 
 using UnityEngine;
@@ -14,115 +15,123 @@ namespace Analytics {
         private static readonly string KeyActiveUserEvent = $"{nameof(AppsFlyerAnalytics)}_active_user";
 
         private readonly Dictionary<ConversionType, string> _tags = new() {
-            {ConversionType.ConnectWalletBnb, "conversion_connect_wallet_bnb"},
-            {ConversionType.ConnectWalletPolygon, "conversion_connect_wallet_polygon"},
-            {ConversionType.ConnectAccount, "conversion_connect_account"},
-            {ConversionType.ConnectAccountBnb, "conversion_connect_account_bnb"},
-            {ConversionType.ConnectAccountPolygon, "conversion_connect_account_polygon"},
-            {ConversionType.ConnectGuest, "conversion_guest"},
-            {ConversionType.ConnectFacebook, "conversion_connect_facebook"},
-            {ConversionType.ConnectApple, "conversion_connect_apple"},
-            {ConversionType.ConnectTelegram, "conversion_connect_telegram"},
-            {ConversionType.ConnectSolana, "conversion_connect_solana"},
-            {ConversionType.ChooseBnb, null},
-            {ConversionType.ChoosePolygon, null},
-            {ConversionType.NewUser, "conversion_nru"},
-            {ConversionType.FirstOpen, "conversion_first_open"},
-            {ConversionType.BuyHeroFi, "conversion_buy_hero"},
-            {ConversionType.BuyHeroFiFail, "conversion_buy_hero_fail"},
-            {ConversionType.BuyHouse, "conversion_buy_house"},
-            {ConversionType.BuyHouseFail, "conversion_buy_house_fail"},
-            {ConversionType.BuyIap, "conversion_iap"},
-            {ConversionType.BuyIapFail, null},
-            {ConversionType.BuySoftCurrency, "conversion_soft_currency"},
-            {ConversionType.BuySoftCurrencyFail, null},
-            {ConversionType.BuyGachaChest, "conversion_buy_gacha_chest"},
-            {ConversionType.BuyGachaChestFail, null},
-            {ConversionType.OpenChestUseGem, "conversion_open_chest_use_gem"},
-            {ConversionType.OpenChestUseGemFail, null},
-            {ConversionType.OpenChestWatchAds, "conversion_open_chest_watch_ads"},
-            {ConversionType.OpenChest, "conversion_open_chest"},
-            {ConversionType.BuyMarketHeroTr, "conversion_buy_hero"},
-            {ConversionType.BuyMarketHeroTrFail, "conversion_buy_hero_fail"},
-            {ConversionType.BuyMarketItem, "conversion_buy_item_market"},
-            {ConversionType.BuyMarketItemFail, null},
-            {ConversionType.BuyHeroTrFail, "conversion_buy_hero_fail"},
-            {ConversionType.GetHeroTrFree, "conversion_get_hero_free"},
-            {ConversionType.X2GoldPveWatchAds, "conversion_x2_gold_pve_watch_ads"},
-            {ConversionType.UsedBoosterBombPve, "conversion_bomb_pve"},
-            {ConversionType.UsedBoosterRangePve, "conversion_range_pve"},
-            {ConversionType.UsedBoosterSpeedPve, "conversion_speed_pve"},
-            {ConversionType.UsedBoosterShieldPve, "conversion_shield_pve"},
-            {ConversionType.X2GoldPvpWatchAds, "conversion_x2_gold_pvp_watch_ads"},
-            {ConversionType.UsedBoosterBombPvp, "conversion_bomb_pvp"},
-            {ConversionType.UsedBoosterRangePvp, "conversion_range_pvp"},
-            {ConversionType.UsedBoosterSpeedPvp, "conversion_speed_pvp"},
-            {ConversionType.UsedBoosterKeyPvp, "conversion_key_pvp"},
-            {ConversionType.UsedBoosterShieldPvp, "conversion_shield_pvp"},
-            {ConversionType.UsedBoosterFullConquestCardPvp, "conversion_full_cup_card_pvp"},
-            {ConversionType.UsedBoosterFullRankGuardianPvp, "conversion_full_rank_gua_pvp"},
-            {ConversionType.UsedBoosterConquestCardPvp, "conversion_cup_card_pvp"},
-            {ConversionType.UsedBoosterRankGuardianPvp, "conversion_rank_gua_pvp"},
-            {ConversionType.ClickSwapGem, "conversion_click_swap_gem"},
-            {ConversionType.SwapGem, "conversion_swap_gem"},
-            {ConversionType.UseAutoMine, null},
-            {ConversionType.UserFiClickMarket, null},
-            {ConversionType.UserTrClickMarket, null},
-            {ConversionType.PlayAdventure, null},
-            {ConversionType.UseUpBoosterPvp, null},
-            {ConversionType.UseUpBoosterAdventure, null},
-            {ConversionType.ClickActiveChest, null},
-            {ConversionType.WatchAds, null},
-            {ConversionType.RevivePveByAds, "conversion_revive_by_ads"},
-            {ConversionType.RevivePveByGem, "conversion_revive_by_gem"},
-            {ConversionType.LuckyWheelPveWatchAds, "conversion_lucky_wheel_pve_watch_ads"},
-            {ConversionType.LuckyWheelPvpWatchAds, "conversion_lucky_wheel_pvp_watch_ads"},
-            {ConversionType.OverwriteAccount, "conversion_overwrite_account"},
-            {ConversionType.VisitGemShop, "conversion_visit_gem_shop"},
-            {ConversionType.ShowStarterPack, "conversion_show_starter_pack"},
-            {ConversionType.TapBtnBuyStarterPack, "conversion_tap_button_in_starter_pack"},
-            {ConversionType.ShowPremiumPack, "conversion_show_premium_pack"},
-            {ConversionType.TapBtnBuyPremiumPack, "conversion_tap_button_in_premium_pack"},
-            {ConversionType.ShowHeroPack, "conversion_show_hero_pack"},
-            {ConversionType.TapBtnBuyHeroPack, "conversion_tap_button_in_hero_pack"},
+            { ConversionType.ConnectWalletBnb, "conversion_connect_wallet_bnb" },
+            { ConversionType.ConnectWalletPolygon, "conversion_connect_wallet_polygon" },
+            { ConversionType.ConnectAccount, "conversion_connect_account" },
+            { ConversionType.ConnectAccountBnb, "conversion_connect_account_bnb" },
+            { ConversionType.ConnectAccountPolygon, "conversion_connect_account_polygon" },
+            { ConversionType.ConnectGuest, "conversion_guest" },
+            { ConversionType.ConnectFacebook, "conversion_connect_facebook" },
+            { ConversionType.ConnectApple, "conversion_connect_apple" },
+            { ConversionType.ConnectTelegram, "conversion_connect_telegram" },
+            { ConversionType.ConnectSolana, "conversion_connect_solana" },
+            { ConversionType.ChooseBnb, null },
+            { ConversionType.ChoosePolygon, null },
+            { ConversionType.NewUser, "conversion_nru" },
+            { ConversionType.FirstOpen, "conversion_first_open" },
+            { ConversionType.BuyHeroFi, "conversion_buy_hero" },
+            { ConversionType.BuyHeroFiFail, "conversion_buy_hero_fail" },
+            { ConversionType.BuyHouse, "conversion_buy_house" },
+            { ConversionType.BuyHouseFail, "conversion_buy_house_fail" },
+            { ConversionType.BuyIap, "conversion_iap" },
+            { ConversionType.BuyIapFail, null },
+            { ConversionType.BuySoftCurrency, "conversion_soft_currency" },
+            { ConversionType.BuySoftCurrencyFail, null },
+            { ConversionType.BuyGachaChest, "conversion_buy_gacha_chest" },
+            { ConversionType.BuyGachaChestFail, null },
+            { ConversionType.OpenChestUseGem, "conversion_open_chest_use_gem" },
+            { ConversionType.OpenChestUseGemFail, null },
+            { ConversionType.OpenChestWatchAds, "conversion_open_chest_watch_ads" },
+            { ConversionType.OpenChest, "conversion_open_chest" },
+            { ConversionType.BuyMarketHeroTr, "conversion_buy_hero" },
+            { ConversionType.BuyMarketHeroTrFail, "conversion_buy_hero_fail" },
+            { ConversionType.BuyMarketItem, "conversion_buy_item_market" },
+            { ConversionType.BuyMarketItemFail, null },
+            { ConversionType.BuyHeroTrFail, "conversion_buy_hero_fail" },
+            { ConversionType.GetHeroTrFree, "conversion_get_hero_free" },
+            { ConversionType.X2GoldPveWatchAds, "conversion_x2_gold_pve_watch_ads" },
+            { ConversionType.UsedBoosterBombPve, "conversion_bomb_pve" },
+            { ConversionType.UsedBoosterRangePve, "conversion_range_pve" },
+            { ConversionType.UsedBoosterSpeedPve, "conversion_speed_pve" },
+            { ConversionType.UsedBoosterShieldPve, "conversion_shield_pve" },
+            { ConversionType.X2GoldPvpWatchAds, "conversion_x2_gold_pvp_watch_ads" },
+            { ConversionType.UsedBoosterBombPvp, "conversion_bomb_pvp" },
+            { ConversionType.UsedBoosterRangePvp, "conversion_range_pvp" },
+            { ConversionType.UsedBoosterSpeedPvp, "conversion_speed_pvp" },
+            { ConversionType.UsedBoosterKeyPvp, "conversion_key_pvp" },
+            { ConversionType.UsedBoosterShieldPvp, "conversion_shield_pvp" },
+            { ConversionType.UsedBoosterFullConquestCardPvp, "conversion_full_cup_card_pvp" },
+            { ConversionType.UsedBoosterFullRankGuardianPvp, "conversion_full_rank_gua_pvp" },
+            { ConversionType.UsedBoosterConquestCardPvp, "conversion_cup_card_pvp" },
+            { ConversionType.UsedBoosterRankGuardianPvp, "conversion_rank_gua_pvp" },
+            { ConversionType.ClickSwapGem, "conversion_click_swap_gem" },
+            { ConversionType.SwapGem, "conversion_swap_gem" },
+            { ConversionType.UseAutoMine, null },
+            { ConversionType.UserFiClickMarket, null },
+            { ConversionType.UserTrClickMarket, null },
+            { ConversionType.PlayAdventure, null },
+            { ConversionType.UseUpBoosterPvp, null },
+            { ConversionType.UseUpBoosterAdventure, null },
+            { ConversionType.ClickActiveChest, null },
+            { ConversionType.WatchAds, null },
+            { ConversionType.RevivePveByAds, "conversion_revive_by_ads" },
+            { ConversionType.RevivePveByGem, "conversion_revive_by_gem" },
+            { ConversionType.LuckyWheelPveWatchAds, "conversion_lucky_wheel_pve_watch_ads" },
+            { ConversionType.LuckyWheelPvpWatchAds, "conversion_lucky_wheel_pvp_watch_ads" },
+            { ConversionType.OverwriteAccount, "conversion_overwrite_account" },
+            { ConversionType.VisitGemShop, "conversion_visit_gem_shop" },
+            { ConversionType.ShowStarterPack, "conversion_show_starter_pack" },
+            { ConversionType.TapBtnBuyStarterPack, "conversion_tap_button_in_starter_pack" },
+            { ConversionType.ShowPremiumPack, "conversion_show_premium_pack" },
+            { ConversionType.TapBtnBuyPremiumPack, "conversion_tap_button_in_premium_pack" },
+            { ConversionType.ShowHeroPack, "conversion_show_hero_pack" },
+            { ConversionType.TapBtnBuyHeroPack, "conversion_tap_button_in_hero_pack" },
         };
-        
+
         private readonly Dictionary<int, string> _pvpMatchTags = new() {
-            {1, "conversion_play_1_matches"},
-            {2, "conversion_play_2_matches"},
-            {3, "conversion_play_3_matches"},
-            {4, "conversion_play_4_matches"},
-            {5, "conversion_play_5_matches_fix_230413"},
-            {10, "conversion_play_10_matches"},
-            {20, "conversion_play_20_matches"},
-            {30, "conversion_play_30_matches"},
+            { 1, "conversion_play_1_matches" },
+            { 2, "conversion_play_2_matches" },
+            { 3, "conversion_play_3_matches" },
+            { 4, "conversion_play_4_matches" },
+            { 5, "conversion_play_5_matches_fix_230413" },
+            { 10, "conversion_play_10_matches" },
+            { 20, "conversion_play_20_matches" },
+            { 30, "conversion_play_30_matches" },
         };
 
         private readonly Dictionary<int, string> _pvpWinMatchTags = new() {
-            {20, "conversion_win_20_matches"}
+            { 20, "conversion_win_20_matches" }
         };
-        
+
         private readonly Dictionary<(int level, int stage), string> _pveLevelStageTags = new() {
-            {(1, 1), "conversion_complete_pve_stage1_level_1"},
-            {(2, 1), "conversion_complete_pve_stage1_level_2"},
-            {(3, 1), "conversion_complete_pve_stage1_level_3"},
-            {(4, 1), "conversion_complete_pve_stage1_level_4"},
-            {(5, 1), "conversion_complete_stage_1_pve"},
-            {(5, 2), "conversion_complete_stage_2_pve"},
-            {(5, 3), "conversion_complete_stage_3_pve"},
+            { (1, 1), "conversion_complete_pve_stage1_level_1" },
+            { (2, 1), "conversion_complete_pve_stage1_level_2" },
+            { (3, 1), "conversion_complete_pve_stage1_level_3" },
+            { (4, 1), "conversion_complete_pve_stage1_level_4" },
+            { (5, 1), "conversion_complete_stage_1_pve" },
+            { (5, 2), "conversion_complete_stage_2_pve" },
+            { (5, 3), "conversion_complete_stage_3_pve" },
         };
-        
+
         private readonly List<string> _tracked;
 
         public AppsFlyerAnalytics(bool production, ILogManager logManager) {
             var platform = Application.platform;
             const bool enableDebug = false;
-            _bridge = (production, platform) switch {
-                (true, RuntimePlatform.WebGLPlayer) => new WebGLAppsFlyerAnalyticsBridge(logManager, AppConfig.AppsFlyerWebDevKey),
-                (true, RuntimePlatform.Android or RuntimePlatform.IPhonePlayer) => new MobileAppsFlyerAnalyticsBridge(
-                    logManager, AppConfig.AppsFlyerIosAppId, AppConfig.AppsFlyerAndroidDevKey, enableDebug),
-                _ => new NullAnalyticsBridge(logManager, nameof(AppsFlyerAnalytics))
-            };
+            if (production) {
+                _bridge = platform switch {
+                    RuntimePlatform.WebGLPlayer when AppConfig.AppsFlyerData != null =>
+                        new WebGLAppsFlyerAnalyticsBridge(logManager, AppConfig.AppsFlyerData.webDevKey),
+
+                    RuntimePlatform.Android or RuntimePlatform.IPhonePlayer when AppConfig.AppsFlyerData != null => new
+                        MobileAppsFlyerAnalyticsBridge(logManager, AppConfig.AppsFlyerData.iosAppId,
+                            AppConfig.AppsFlyerData.androidDevKey, enableDebug),
+                    
+                    _ => new NullAnalyticsBridge(logManager, nameof(AppsFlyerAnalytics))
+                };
+            } else {
+                _bridge = new NullAnalyticsBridge(logManager, nameof(AppsFlyerAnalytics));
+            }
 
             _tracked = AnalyticsUtils.LoadTrackedEvent(KeyTrackedEvent);
         }
@@ -133,7 +142,7 @@ namespace Analytics {
 
         public void Destroy() {
         }
-        
+
         public void SetDependencies(IAnalyticsDependency dependency) {
         }
 
@@ -158,7 +167,7 @@ namespace Analytics {
             if (_pvpMatchTags.ContainsKey(matchCount)) {
                 TrackConversion(_pvpMatchTags[matchCount]);
             }
-            
+
             // track conversion win match
             if (_pvpWinMatchTags.ContainsKey(winMatch)) {
                 TrackConversion(_pvpWinMatchTags[winMatch]);
@@ -171,7 +180,7 @@ namespace Analytics {
                 TrackConversion(_pveLevelStageTags[d]);
             }
         }
-        
+
         public void TrackConversionActiveUser() {
             if (!AnalyticsUtils.CanTrackActiveUserToday(KeyActiveUserEvent)) {
                 return;
@@ -218,7 +227,7 @@ namespace Analytics {
 
         public void TrackClaimRewardTutorial() {
         }
-        
+
         public void TrackGetHeroTrFree(string heroName, int heroId) {
         }
 
@@ -231,13 +240,15 @@ namespace Analytics {
         public void Iap_TrackBuyIap(string transactionId, string productId, int value, TrackResult result) {
         }
 
-        public void Iap_TrackBuyGold(int productId, int gemLockSpending, int gemSpending, int goldReceiving, TrackResult result) {
+        public void Iap_TrackBuyGold(int productId, int gemLockSpending, int gemSpending, int goldReceiving,
+            TrackResult result) {
         }
 
         public void Iap_TrackGetGoldFree(string transactionId, string productId, int value, TrackResult result) {
         }
 
-        public void Iap_TrackBuyGachaChest(int productId, string productName, string sinkType, float coinSpending, int chestReceiving,
+        public void Iap_TrackBuyGachaChest(int productId, string productName, string sinkType, float coinSpending,
+            int chestReceiving,
             string[] items, string[] values, TrackResult result) {
         }
 
@@ -263,7 +274,8 @@ namespace Analytics {
             TrackPvpLoseReason reason) {
         }
 
-        public void Pvp_TrackCollectItems(Dictionary<TrackPvpCollectItemType, int> collected, TrackPvpMatchResult result) {
+        public void Pvp_TrackCollectItems(Dictionary<TrackPvpCollectItemType, int> collected,
+            TrackPvpMatchResult result) {
         }
 
         public void Pvp_TrackFullInventory(Dictionary<TrackPvpRejectChest, int> rejected) {
@@ -274,7 +286,7 @@ namespace Analytics {
 
         public void Pvp_TrackInPrison(int amount) {
         }
-        
+
         public void Pvp_TrackSoftCurrencyByWin(float value) {
         }
 
@@ -319,7 +331,7 @@ namespace Analytics {
         public void Adventure_TrackCollectItems(int level, int stage,
             Dictionary<TrackPvpCollectItemType, int> collected, TrackPvpMatchResult result) {
         }
-        
+
         public void Adventure_TrackSoftCurrencyByWin(int level, int stage, float value) {
         }
 
@@ -329,9 +341,10 @@ namespace Analytics {
         public void Adventure_TrackSoftCurrencyReviveByAds(int level, int stage, int reviveTimes) {
         }
 
-        public void Adventure_TrackSoftCurrencyReviveByGem(int level, int stage, float valueLock, float valueUnlock, int reviveTimes) {
+        public void Adventure_TrackSoftCurrencyReviveByGem(int level, int stage, float valueLock, float valueUnlock,
+            int reviveTimes) {
         }
-        
+
         public void TrackAds(AdsCategory adsCategory, TrackAdsResult result) {
         }
 
@@ -341,7 +354,8 @@ namespace Analytics {
         public void TrackInterstitial(AdsCategory adsCategory, TrackAdsResult result) {
         }
 
-        public void TrackLuckyWheel(string type, string mode, string[] names, string[] values, string matchResult, int level,
+        public void TrackLuckyWheel(string type, string mode, string[] names, string[] values, string matchResult,
+            int level,
             int stage) {
         }
 
@@ -368,7 +382,7 @@ namespace Analytics {
             TrackResult result
         ) {
         }
-        
+
         #region UPRADE HERO
 
         public void TrackCreateCrystal(string heroName, int heroAmount,
@@ -397,16 +411,18 @@ namespace Analytics {
         public void PopGameLevel(bool winGame) {
         }
 
-        public void LogAdRevenue(AdNetwork mediationNetwork, string monetizationNetwork, double revenue, string currencyCode,
+        public void LogAdRevenue(AdNetwork mediationNetwork, string monetizationNetwork, double revenue,
+            string currencyCode,
             AdFormat format, string adUnit) {
             _bridge.LogAdRevenue(mediationNetwork, monetizationNetwork, revenue, currencyCode, format, adUnit, null);
         }
 
-        public void LogIapRevenue(string eventName, string packageName, string orderId, double priceValue, string currencyIso,
+        public void LogIapRevenue(string eventName, string packageName, string orderId, double priceValue,
+            string currencyIso,
             string receipt) {
             _bridge.LogIapRevenue(eventName, packageName, orderId, priceValue, currencyIso, receipt);
         }
 
-        #endregion        
+        #endregion
     }
 }

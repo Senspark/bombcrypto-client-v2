@@ -1,6 +1,8 @@
 using System;
 using System.Text;
 
+using App;
+
 using Org.BouncyCastle.Crypto;
 using Org.BouncyCastle.Crypto.Encodings;
 using Org.BouncyCastle.Crypto.Engines;
@@ -11,7 +13,7 @@ using Org.BouncyCastle.X509;
 
 namespace Communicate.Encrypt {
     public class RsaEncryption {
-        private const char Delimiter = '@';
+        private readonly char _delimiter = AppConfig.EncryptionData?.rsaDelimiter ?? '*';
         private const int PaddingOverhead = 42; // PCKS1 padding = 11, OAEP padding = 42
 
         private AsymmetricCipherKeyPair _keyPair;
@@ -59,7 +61,7 @@ namespace Communicate.Encrypt {
                 var length = Math.Min(_maxLength, data.Length - i);
                 var part = data.Substring(i, length);
                 sb.Append(EncryptPart(part));
-                sb.Append(Delimiter);
+                sb.Append(_delimiter);
             }
 
             return sb.ToString();
@@ -69,7 +71,7 @@ namespace Communicate.Encrypt {
             AssertKeyPair();
 
             var sb = new StringBuilder();
-            var parts = encryptedData.Split(Delimiter);
+            var parts = encryptedData.Split(_delimiter);
             foreach (var part in parts) {
                 if (string.IsNullOrEmpty(part)) {
                     continue;

@@ -1,6 +1,6 @@
 import NFTToken from './Utils/NFTToken.js';
 import {convertBN2DArrayToNumber2DArray, createTaskCompleteSource, sleep} from './Utils/Utils.js';
-import {getDoubleGasFeeOption, waitForReceipt} from './Utils/NetworkUtils.js';
+import {getDoubleGasFeeOptionV2, waitForReceipt} from './Utils/NetworkUtils';
 import {Contract, ethers, TransactionResponse} from "ethers";
 import CoinToken from "./CoinToken.ts";
 import {toNumberOrNull, toNumberOrZero} from "../../../utils/Number.ts";
@@ -112,7 +112,7 @@ export default class BHeroToken extends NFTToken {
         try {
             const contract = await this.getContract();
             const estimateGas = await contract.claim.estimateGas(userAddress);
-            const options = getDoubleGasFeeOption(estimateGas);
+            const options = await getDoubleGasFeeOptionV2(estimateGas);
             const transaction = await contract.claim(options);
 
             await waitForReceipt(transaction);
@@ -142,7 +142,7 @@ export default class BHeroToken extends NFTToken {
 
             const contract = await this.getContract();
             const estimateGas = await contract.mint.estimateGas(count, category);
-            const options = getDoubleGasFeeOption(estimateGas);
+            const options = await getDoubleGasFeeOptionV2(estimateGas);
             const transaction = await contract.mint(count, category, options);
 
             await waitForReceipt(transaction);
@@ -196,7 +196,7 @@ export default class BHeroToken extends NFTToken {
 
             const contract = await this.getContract();
             const estimateGas = await contract.processTokenRequests.estimateGas();
-            const options = getDoubleGasFeeOption(estimateGas);
+            const options = await getDoubleGasFeeOptionV2(estimateGas);
 
             const transaction = await contract.processTokenRequests(options);
             await waitForReceipt(transaction);
@@ -228,7 +228,7 @@ export default class BHeroToken extends NFTToken {
 
             const contract = await this.getContract();
             const estimateGas = await contract.processTokenRequests.estimateGas();
-            const options = getDoubleGasFeeOption(estimateGas);
+            const options = await getDoubleGasFeeOptionV2(estimateGas);
 
             const fusionTask = this.listenToFusionEvents(pendingHeroesFusion, contract, userAddress);
             const transaction = await contract.processTokenRequests(options);
@@ -302,7 +302,7 @@ export default class BHeroToken extends NFTToken {
 
             const contract = await this.getContract();
             const estimateGas = await contract.upgrade.estimateGas(baseId, materialId);
-            const options = getDoubleGasFeeOption(estimateGas);
+            const options = await getDoubleGasFeeOptionV2(estimateGas);
             const transaction = await contract.upgrade(baseId, materialId, options);
 
             await waitForReceipt(transaction);
@@ -327,7 +327,7 @@ export default class BHeroToken extends NFTToken {
 
             const contract = await this.getContract();
             const estimateGas = await contract.randomizeAbilities.estimateGas(heroId);
-            const options = getDoubleGasFeeOption(estimateGas);
+            const options = await getDoubleGasFeeOptionV2(estimateGas);
             const transaction = await contract.randomizeAbilities(heroId, options);
 
             await waitForReceipt(transaction);
@@ -342,7 +342,7 @@ export default class BHeroToken extends NFTToken {
         try {
             const contract = await this.getContract();
             const estimateGas = await contract.processRandomizeAbilities.estimateGas(heroId);
-            const options = getDoubleGasFeeOption(estimateGas);
+            const options = await getDoubleGasFeeOptionV2(estimateGas);
             const transaction = await contract.processRandomizeAbilities(heroId, options);
 
             await waitForReceipt(transaction);

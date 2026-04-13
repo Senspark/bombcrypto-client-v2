@@ -1,7 +1,6 @@
-
-import { shuffle } from "./Utils.js";
 import RpcToken from "../RpcToken/RpcToken.ts";
-import getAllRpc, {getCustomRpc} from "../RpcToken/RpcAddress.ts";
+import {getCustomRpc} from "../RpcToken/RpcAddress.ts";
+import {RpcService} from "../../RpcService.ts";
 
 type TokenData = {
     chainId: number;
@@ -16,8 +15,9 @@ const SupportTokens: { [key: number]: RpcToken } = {};
  *
  * @param tokensData - Array of token data objects
  * @param abi - The ABI of the token contract
+ * @param rpcService
  */
-function createRpcTokens(tokensData: TokenData[], abi: JSON): void {
+function createRpcTokens(tokensData: TokenData[], abi: JSON, rpcService: RpcService): void {
     for (let i = 0; i < tokensData.length; i++) {
         const d = tokensData[i];
 
@@ -29,13 +29,18 @@ function createRpcTokens(tokensData: TokenData[], abi: JSON): void {
             continue;
         }
 
-        let rpcUrls = getCustomRpc(chainId);
+        let rpcUrls: string[];
+
+        rpcUrls = getCustomRpc(chainId);
+
         if (rpcUrls.length === 0) {
-            rpcUrls = shuffle(getAllRpc(chainId));
+            rpcUrls = [rpcService.getRpc(chainId)];
+            //rpcUrls = shuffle(getAllRpc(chainId));
         }
         SupportTokens[category] = new RpcToken(address, abi, digit, rpcUrls);
     }
 }
+
 
 /**
  *
@@ -50,4 +55,4 @@ async function getBalance(category: number, userAddress: string): Promise<string
 }
 
 
-export { createRpcTokens, getBalance };
+export {createRpcTokens, getBalance};

@@ -162,41 +162,5 @@ namespace Utils {
         }
     }
 
-    public static class PostBuildProcessor {
-        [PostProcessBuild]
-        public static void OnPostprocessBuild(BuildTarget target, string pathToBuiltProject) {
-            if (target != BuildTarget.WebGL) {
-                return;
-            }
-            const string tag = "$MODULES_FOLDER$";
-            var buildTime = DateTime.Now.ToString("dd.MM.HH.mm.ss");
-            const string oldFolderName = "Modules";
-            var newFolderName = $"{oldFolderName}.{buildTime}";
-
-            // Xóa folder Modules cũ
-            var searchDirectories = new DirectoryInfo(pathToBuiltProject);
-            var files = searchDirectories.GetFileSystemInfos($"*{oldFolderName}*");
-            foreach (var f in files) {
-                if (f is not DirectoryInfo) {
-                    continue;
-                }
-                if (f.Name == oldFolderName) {
-                    continue;
-                }
-                Directory.Delete(f.FullName, true);
-            }
-
-            // Sửa src=Main.js trong index.html -> src='./Modules.dd.MM.HH.mm.ss/Main.js'
-            var indexHtmlFilePath = Path.Combine(pathToBuiltProject, "index.html");
-            var text = File.ReadAllText(indexHtmlFilePath);
-            text = text.Replace(tag, newFolderName);
-            File.WriteAllText(indexHtmlFilePath, text);
-
-            // Đổi tên thư mục Modules -> Modules.dd.MM.HH.mm.ss
-            var oldModulesFolderPath = Path.Combine(pathToBuiltProject, oldFolderName);
-            var newModulesFolderPath = Path.Combine(pathToBuiltProject, newFolderName);
-            Directory.Move(oldModulesFolderPath, newModulesFolderPath);
-        }
-    }
 #endif
 }

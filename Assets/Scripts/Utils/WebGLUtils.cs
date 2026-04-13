@@ -54,13 +54,7 @@ namespace App {
         }
 
         public static bool IsInvalidDomain() {
-#if !UNITY_EDITOR && UNITY_WEBGL
-            var domain = WebGLUtils_GetDomain();
-            if (string.IsNullOrWhiteSpace(domain)) {
-                return true;
-            }
-            return !CheckValidUrl(domain);
-#endif
+            // always return false for open-source project
             return false;
         }
 

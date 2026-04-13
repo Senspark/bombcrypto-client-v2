@@ -14,10 +14,11 @@ import {
 import unityBridge from "./UnityBridge.ts";
 import {IAuthService} from "../IAuthService.ts";
 import WalletService from "../WalletService.ts";
-import { appKitButtonAtom } from '../../components/AppKitButtonAtom.ts';
-import { getDefaultStore } from 'jotai';
+import {appKitButtonAtom} from '../../components/AppKitButtonAtom.ts';
+import {getDefaultStore} from 'jotai';
 import NotificationService from "../NotificationService.ts";
-import { getSupportedNetworkFromChainId, getRpc } from "../RpcNetworkUtils.ts";
+import {getSupportedNetworkFromChainId, getRpc} from "../RpcNetworkUtils.ts";
+import {RpcService} from "../BlockChain/RpcService.ts";
 
 const TAG = '[UC]';
 const K_TRANSFER_AIRDROP_PREFIX = 'DEP';
@@ -47,7 +48,7 @@ export default class UnityCommunicator {
 
     private _pendingConnectionPromise: Promise<string | null> | null = null;
     private _pendingConnectionResolve: ((value: string | null) => void) | null = null;
-    
+
     private _isContinue = false;
 
     async handShakeFromUnity(requestData: string): Promise<string | null> {
@@ -79,10 +80,10 @@ export default class UnityCommunicator {
         try {
             this._logger.log(`${TAG} getFirstDataConnection`);
             walletService.allowUpdateFooterByWallet(true);
-            
+
             // Kiểm tra trong session trước để biết được user này f5 lại tab cũ hay mở 1 tab mới và có dùng wallet hay ko
             const isUseWalletValue = await customSessionStorage.get(sessionSetting.getSessionKey().isUseWallet);
-            
+
             // value của key là false, user này f5 lại tab cũ và lần trước ko có connect wallet nên giờ sẽ show button connect app-kit
             if (isUseWalletValue === 'false') {
                 this._logger.log(`${TAG} isUseWallet is false, forcing connection to false`);
@@ -98,11 +99,11 @@ export default class UnityCommunicator {
                     ...prev,
                     showFakeConnect: result
                 }));
-                
+
                 // Chờ user chọn chơi account hay network
-               // return "false";
+                // return "false";
             }
-            
+
             // Value là true, user này f5 lại và lần trước có dùng wallet
             else if (isUseWalletValue === 'true') {
                 // Có lưu useWallet trong session rồi nên sẽ ko show nút connect fake nữa mà show cái của app-kit
@@ -118,7 +119,7 @@ export default class UnityCommunicator {
                 window.setUseAccount(!(connection === true));
 
                 // Chỉ khi còn đang connect ví mới cho vô luôn
-                if(connection) {
+                if (connection) {
                     window.showFooterContent?.(true);
                     // tắt video đi
                     if (typeof window.enableBgVideo === 'function') {
@@ -126,12 +127,12 @@ export default class UnityCommunicator {
                     }
                     return result;
                 }
-                
+
                 // Đã disconnect ví rồi, phải chờ user chọn lại ví hay account
             }
 
             // Ko có key này trong session, đây là user mở trên 1 tab mới, sẽ luôn hiện 2 nút connect account và wallet cho user
-            else{
+            else {
                 // Kiểm tra thử xem giờ user có connect wallet chưa
                 const connection = this._walletService.getConnection();
 
@@ -148,15 +149,15 @@ export default class UnityCommunicator {
             }
 
             // Show the footer content, hiding the loading UI
-            window.showFooterContent?.(true); 
-            
+            window.showFooterContent?.(true);
+
             // đợi cho user chọn connect wallet hay connect account
             if (!this._pendingConnectionPromise) {
                 this._pendingConnectionPromise = new Promise<string | null>((resolve) => {
                     this._pendingConnectionResolve = resolve;
                 });
             }
-            
+
             const result = await this._pendingConnectionPromise;
             // tắt video đi
             if (typeof window.enableBgVideo === 'function') {
@@ -168,30 +169,29 @@ export default class UnityCommunicator {
             return null;
         }
     }
-    
+
     allowContinueConnection(allow: boolean): void {
         this._isContinue = !allow;
     }
-    
+
     // Method to be called when user clicks Connect Wallet button
     async continueConnection(useWallet: boolean = false): Promise<void> {
         try {
-            if(this._isContinue)
-            {
+            if (this._isContinue) {
                 this._logger.log(`${TAG} already continueConnection, return`);
                 return;
             }
             this._logger.log(`${TAG} continueConnection called`);
-            
+
             // Set isUseWallet to true in sessionStorage
             await customSessionStorage.set(sessionSetting.getSessionKey().isUseWallet, useWallet ? 'true' : 'false');
-            
+
             // Set showFakeConnect to false
-            getDefaultStore().set(appKitButtonAtom, prev => ({ 
-                ...prev, 
-                showFakeConnect: !useWallet 
+            getDefaultStore().set(appKitButtonAtom, prev => ({
+                ...prev,
+                showFakeConnect: !useWallet
             }));
-            
+
             // Resolve the pending promise if it exists
             if (this._pendingConnectionResolve) {
                 const result = useWallet ? "true" : "false";
@@ -206,7 +206,7 @@ export default class UnityCommunicator {
             this._logger.error(`${TAG} Error in continueConnection: ${e}`);
         }
     }
-    
+
     //React sẽ tự bật tắt video, ko cần unity gọi nữa
     async enableVideoThumbnail(data: string): Promise<string | null> {
         const state = data.toLowerCase() === 'true';
@@ -260,7 +260,7 @@ export default class UnityCommunicator {
             }
 
             this._serverRsa.importPublicKey(serverPublicKey);
-            
+
             const chainId = this._walletService.getChainId();
             const data: CmdDataGetJwt = {
                 walletAddress: jwtData.walletAddress,
@@ -290,7 +290,7 @@ export default class UnityCommunicator {
                 this._logger.error(`${TAG} Cannot parse account data`);
                 return null;
             }
-            
+
             const jwtData = await this._authService.getJwtForAccount(account);
             if (!jwtData || !jwtData.jwt) {
                 this._logger.error(`${TAG} JWT is null`);
@@ -329,9 +329,19 @@ export default class UnityCommunicator {
 
             if (dataAccount.isUserFi && accountData.network) {
                 const network = getRpc(accountData.network, this._isProd);
-                getDefaultStore().set(appKitButtonAtom, { showCustomUI: true, network: network?.chainName, address: account.userName, showFakeConnect: false });
+                getDefaultStore().set(appKitButtonAtom, {
+                    showCustomUI: true,
+                    network: network?.chainName,
+                    address: account.userName,
+                    showFakeConnect: false
+                });
             } else {
-                getDefaultStore().set(appKitButtonAtom, { showCustomUI: true, network: "", address: account.userName, showFakeConnect: false });
+                getDefaultStore().set(appKitButtonAtom, {
+                    showCustomUI: true,
+                    network: "",
+                    address: account.userName,
+                    showFakeConnect: false
+                });
             }
 
             // user đã chọn login account rồi, cần lưu lại để có f5 cũng biết là user này muốn chơi account
@@ -344,7 +354,7 @@ export default class UnityCommunicator {
             return null;
         }
     }
-    
+
     private parseAccountData(data: string): Account | null {
         const decrypted = this._aesHelper.decrypt(data);
         if (decrypted == null) {
@@ -353,14 +363,17 @@ export default class UnityCommunicator {
         }
         return JSON.parse(decrypted) as Account;
     }
-    
+
     async initBlockChain(): Promise<string | null> {
         const chainId = this._walletService.getChainId();
         if (!chainId) {
             this._logger.error(`${TAG} ChainId is null, can't init blockchain`);
             return null;
         }
-        this._blockChainConfig = new BlockChainConfig(chainId.dec.toString(), this._isProd, this._logger, this._aesHelper);
+        const rpcService = new RpcService(this._logger);
+        await rpcService.initialize();
+        this._blockChainConfig = new BlockChainConfig(chainId.dec.toString(), this._isProd, this._logger, this._aesHelper, rpcService);
+
         return null;
     }
 
@@ -388,7 +401,7 @@ export default class UnityCommunicator {
                 this._logger.log(`${TAG} User changed wallet address, switching wallet...`);
                 return null;
             }
-            
+
             //DevHoang: Nếu user đã thay đổi chainId thì sẽ gọi forceSwapChain để về lại chainId ban đầu
             if (userChangeChainId && chainId && userChangeChainId.dec !== chainId.dec) {
                 this._logger.log(`${TAG} User changed chain ID, switching chain...`);
@@ -415,8 +428,8 @@ export default class UnityCommunicator {
                 this._logger.error(`${TAG} Cannot decrypt account data`);
                 return this._aesHelper.encrypt(JSON.stringify(false));
             }
-            
-            
+
+
             const {userName, newNickName} = JSON.parse(decrypted) as { userName: string, newNickName: string };
             const result = await this._authService.changeNickName(userName, newNickName);
             return this._aesHelper.encrypt(JSON.stringify(result));

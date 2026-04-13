@@ -29,7 +29,7 @@ namespace App {
         public async Task<ThirdPartyLoginResult> GetAccessToken() {
 #if UNITY_EDITOR
             var id = string.Empty;
-            string accessToken = AppConfig.AppleEditorAccessToken;
+            string accessToken = AppConfig.AppleData?.editorAccessToken;
             return new ThirdPartyLoginResult(accessToken, id);
 #elif UNITY_IOS
             if (_task == null) {

@@ -29,7 +29,6 @@ namespace Scenes.ConnectScene.Scripts.Connectors {
 
         private readonly IUserAccountManager _userAccountManager;
         private readonly ILogManager _logManager;
-        private readonly IAuthManager _authManager;
         private readonly IExtResponseEncoder _encoder;
         private readonly IMasterUnityCommunication _unityCommunication;
         private readonly IAnalyticsModuleLogin _analytics;
@@ -63,7 +62,6 @@ namespace Scenes.ConnectScene.Scripts.Connectors {
             _analytics = analytics;
             _taskDelay = taskDelay;
             _canvasDialog = canvasDialog;
-            _authManager = new DefaultAuthManager(logManager, new NullSignManager(), encoder, unityCommunication, isProduction);
             _stackStates = new Stack<StateType>();
         }
 

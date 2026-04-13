@@ -19,7 +19,6 @@ namespace App {
                 NetworkType.Solana => new SolanaNetworkConfig(production),
                 NetworkType.Ronin => new RoninNetworkConfig(production),
                 NetworkType.Base => new BaseNetworkConfig(production),
-                NetworkType.Viction => new VictionNetworkConfig(production),
                 _ => throw new ArgumentOutOfRangeException(nameof(chainName), chainName, null)
             };
         }

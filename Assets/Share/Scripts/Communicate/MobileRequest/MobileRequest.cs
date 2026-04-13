@@ -15,16 +15,16 @@ namespace Share.Scripts.Communicate {
     public class MobileRequest: IMobileRequest {
         private const string LocalHost = "http://localhost:8120";
         
-        private const string CheckProofPost = "/login/mobile/check_proof";
-        private const string CheckProofGuestPost = "/login/mobile/check_proof_guest";
+        private const string CheckProofPost = "/mobile/check_proof";
+        private const string CheckProofGuestPost = "/mobile/check_proof_guest";
         
-        private const string CreateAccountSenspark = "/login/mobile/create_senspark_account";
+        private const string CreateAccountSenspark = "/mobile/create_senspark_account";
         
-        private const string CheckServerGet = "/login/mobile/check_server";
-        private const string ChangeNickNameGet = "/login/mobile/change_nick_name";
-        private const string CreateGuestAccountGet = "/login/mobile/create_guest_account";
+        private const string CheckServerGet = "/mobile/check_server";
+        private const string ChangeNickNameGet = "/mobile/change_nick_name";
+        private const string CreateGuestAccountGet = "/mobile/create_guest_account";
         
-        private const string RefreshJwtUrl = "/login/mobile/refresh";
+        private const string RefreshJwtUrl = "/mobile/refresh";
         
         private readonly string _host;
         private readonly IPublicJwtSession _jwtSession;
@@ -37,10 +37,10 @@ namespace Share.Scripts.Communicate {
                 _host = LocalHost;
             }
             else if (!AppConfig.IsProduction) {
-                _host = AppConfig.BaseApiTestHost;
+                _host = AppConfig.ServerAddresses.baseApiTestHost;
             }
             else {
-                _host = AppConfig.BaseApiHost;
+                _host = AppConfig.ServerAddresses.baseApiHost;
             }
             CreateObjectAutoRefreshJwt(jwtSession, logManager);
             CreateObjectAutoCheckServer(logManager);

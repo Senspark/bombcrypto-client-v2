@@ -138,17 +138,18 @@ namespace Scenes.ConnectScene.Scripts {
 
         private void FakeSign() {
 #if UNITY_EDITOR
-            var walletInfo = AppConfig.GetTestWalletInfo();
-            var acc = new UserAccount {
-                userName = walletInfo.address,
-                id = 1,
-                jwtToken = walletInfo.jwt,
-                walletAddress = walletInfo.address,
-                isUserFi = true,
-                walletType = _chosen,
-                hasPasscode = false,
-            };
-            OnCompleted(acc);
+            throw new NotImplementedException("Not used anymore");
+            // var walletInfo = AppConfig.GetTestWalletInfo();
+            // var acc = new UserAccount {
+            //     userName = walletInfo.address,
+            //     id = 1,
+            //     jwtToken = walletInfo.jwt,
+            //     walletAddress = walletInfo.address,
+            //     isUserFi = true,
+            //     walletType = _chosen,
+            //     hasPasscode = false,
+            // };
+            // OnCompleted(acc);
 #endif
         }
     }

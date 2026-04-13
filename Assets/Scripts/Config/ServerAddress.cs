@@ -7,16 +7,16 @@ using UnityEngine;
 
 namespace App {
     public static class ServerAddress {
-        private static string SvTestV1 => AppConfig.SvTestV1;
-        private static string SvTestV1Tcp => AppConfig.SvTestV1Tcp;
-        private static string SvTestV2 => AppConfig.SvTestV2;
+        private static string SvTestV1 => AppConfig.ServerAddresses?.svTestV1;
+        private static string SvTestV1Tcp => AppConfig.ServerAddresses?.svTestV1Tcp;
+        private static string SvTestV2 => AppConfig.ServerAddresses?.svTestV2;
 
-        private static string SvProd => AppConfig.SvProd;
-        private static string SvProdTcp => AppConfig.SvProdTcp;
-        private static string SvTournamentProd => AppConfig.SvTournamentProd;
-        private static string SvProdTelegram => AppConfig.SvProdTelegram;
-        private static string SvProdSolana => AppConfig.SvProdSolana;
-        private static string SvProdWebAirdrop => AppConfig.SvProdWebAirdrop;
+        private static string SvProd => AppConfig.ServerAddresses?.svProd;
+        private static string SvProdTcp => AppConfig.ServerAddresses?.svProdTcp;
+        private static string SvTournamentProd => AppConfig.ServerAddresses?.svTournamentProd;
+        private static string SvProdTelegram => AppConfig.ServerAddresses?.svProdTelegram;
+        private static string SvProdSolana => AppConfig.ServerAddresses?.svProdSolana;
+        private static string SvProdWebAirdrop => AppConfig.ServerAddresses?.svProdWebAirdrop;
 
         private const string PingMain = "127.0.0.1";
         private const string SvLocal = "127.0.0.1";
@@ -26,18 +26,18 @@ namespace App {
         public const int TcpPort = 9933;
 
         private static readonly List<Info> ServerTestForWebBuild = new() {
-            new Info("Production", SvProd, WssPort, true, PingMain),
-            new Info("Test", SvTestV1, WssPort, false, PingMain),
-            new Info("Test 2", SvTestV2, WssPort, false, PingMain),
+            // new Info("Production", SvProd, WssPort, true, PingMain),
+            // new Info("Test", SvTestV1, WssPort, false, PingMain),
+            // new Info("Test 2", SvTestV2, WssPort, false, PingMain),
             new Info("___ ws", SvLocal, WsPort, false, PingMain),
-            new Info("___ tcp", SvLocal, TcpPort, false, PingMain),
+            // new Info("___ tcp", SvLocal, TcpPort, false, PingMain),
         };
 
         private static readonly List<Info> ServerTestForWebEditor = new() {
-            new Info("Production", SvProdTcp, TcpPort, true, PingMain),
-            new Info("Test", SvTestV1, WssPort, false, PingMain),
-            new Info("Test 2", SvTestV2, WssPort, false, PingMain),
-            new Info("___ ws", SvLocal, WsPort, false, PingMain),
+            // new Info("Production", SvProdTcp, TcpPort, true, PingMain),
+            // new Info("Test", SvTestV1, WssPort, false, PingMain),
+            // new Info("Test 2", SvTestV2, WssPort, false, PingMain),
+            // new Info("___ ws", SvLocal, WsPort, false, PingMain),
             new Info("___ tcp", SvLocal, TcpPort, false, PingMain),
         };
 

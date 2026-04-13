@@ -1,3 +1,5 @@
+using System;
+
 using App;
 
 namespace Share.Scripts.Utils {
@@ -29,6 +31,25 @@ namespace Share.Scripts.Utils {
                 default:
                     return NetworkType.Binance;
             }
+        }
+
+        public static string GetEthChainId(EthNetwork type, bool isProduction) {
+            if (isProduction) {
+                return type switch {
+                    EthNetwork.Bsc => "56",
+                    EthNetwork.Polygon => "137",
+                    EthNetwork.Ronin => "2020",
+                    EthNetwork.Base => "8453",
+                    _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
+                };
+            }
+            return type switch {
+                EthNetwork.Bsc => "97",
+                EthNetwork.Polygon => "80002",
+                EthNetwork.Ronin => "2021",
+                EthNetwork.Base => "84532",
+                _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
+            };
         }
     }
 }

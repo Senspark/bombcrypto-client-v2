@@ -1,6 +1,6 @@
 import NFTToken from "./Utils/NFTToken.js";
 import { convertBN2DArrayToNumber2DArray, convertBNArrayToNumberArray } from "./Utils/Utils.js";
-import { getDoubleGasFeeOption, waitForReceipt } from "./Utils/NetworkUtils.js";
+import { getDoubleGasFeeOptionV2, waitForReceipt} from "./Utils/NetworkUtils.js";
 import { Contract } from "ethers";
 import CoinToken from "./CoinToken.ts";
 
@@ -65,7 +65,7 @@ export default class BHouseToken extends NFTToken {
 
             const contract: Contract = await this.getContract();
             const estimateGas = await contract.mint.estimateGas(rarity);
-            const options = getDoubleGasFeeOption(estimateGas);
+            const options = await getDoubleGasFeeOptionV2(estimateGas);
             const transaction = await contract.mint(rarity, options);
             await waitForReceipt(transaction);
             return true;

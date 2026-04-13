@@ -1,6 +1,7 @@
 import GeneralContract from './Utils/GeneralContract.js';
 import * as NetworkUtils from "./Utils/NetworkUtils.js";
 import {Contract, parseUnits} from "ethers";
+import {getDoubleGasFeeOptionV2} from "./Utils/NetworkUtils.js";
 
 export default class Deposit extends GeneralContract {
     /**
@@ -21,7 +22,7 @@ export default class Deposit extends GeneralContract {
 
             const contract: Contract = await this.getContract();
             const estimateGas = await contract.deposit.estimateGas(amountFormatted);
-            const options = NetworkUtils.getDoubleGasFeeOption(estimateGas);
+            const options = await getDoubleGasFeeOptionV2(estimateGas);
             const transaction = await contract.deposit(amountFormatted, options);
             await NetworkUtils.waitForReceipt(transaction);
             return true;
@@ -49,7 +50,7 @@ export default class Deposit extends GeneralContract {
 
             const contract: Contract = await this.getContract();
             const estimateGas = await contract.depositV3.estimateGas(amountFormatted, tokenAddress);
-            const options = NetworkUtils.getDoubleGasFeeOption(estimateGas);
+            const options = await getDoubleGasFeeOptionV2(estimateGas);
             const transaction = await contract.depositV3(amountFormatted, tokenAddress, options);
             await NetworkUtils.waitForReceipt(transaction);
             return true;

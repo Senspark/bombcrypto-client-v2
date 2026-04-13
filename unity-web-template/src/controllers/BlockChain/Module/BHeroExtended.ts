@@ -1,5 +1,5 @@
 import GeneralContract from './Utils/GeneralContract.js';
-import { getDoubleGasFeeOption, waitForReceipt } from "./Utils/NetworkUtils.js";
+import { getDoubleGasFeeOptionV2, waitForReceipt } from "./Utils/NetworkUtils";
 import { Contract } from "ethers";
 
 export default class BHeroExtended extends GeneralContract {
@@ -13,7 +13,7 @@ export default class BHeroExtended extends GeneralContract {
         try {
             const contract: Contract = await this.getContract();
             const estimateGas: bigint = await contract.claim.estimateGas();
-            const options = getDoubleGasFeeOption(estimateGas);
+            const options = await getDoubleGasFeeOptionV2(estimateGas);
             const transaction = await contract.claim(options);
             await waitForReceipt(transaction);
             return true;

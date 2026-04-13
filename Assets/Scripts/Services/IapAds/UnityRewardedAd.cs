@@ -19,7 +19,7 @@ namespace Services.IapAds {
 #elif UNITY_IOS
         private string REWARDED_AD_ID_ADMOB => AppConfig.AdmobRewardedAdIdIos;
 #else
-        private string REWARDED_AD_ID_ADMOB => AppConfig.AdmobRewardedAdIdTest;
+        private string REWARDED_AD_ID_ADMOB => "ca-app-pub-3940256099942544/5224354917";
 #endif
 
         private readonly ILogManager _logManager;
