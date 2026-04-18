@@ -10,7 +10,9 @@ using Senspark;
 
 using Share.Scripts.Communicate.UnityReact;
 
+#if !UNITY_WEBGL
 using System.IdentityModel.Tokens.Jwt;
+#endif
 using System.Linq;
 
 using Castle.Core.Internal;
@@ -50,6 +52,7 @@ namespace Share.Scripts.Communicate.UnitySmartFox.LoginType {
                     result = await _mobileRequest.CheckProofGuest(userAccount.userName);
                 }
             } else {
+#if !UNITY_WEBGL
                 var jwtValidator = new JwtValidator();
                 var r = jwtValidator.ValidateJwt(_jwtSession.RawJwt, userAccount?.userName);
                 if (r == JwtValidation.Valid) {
@@ -78,6 +81,10 @@ namespace Share.Scripts.Communicate.UnitySmartFox.LoginType {
                     _logger.Log("Jwt is invalid, get new jwt");
                     throw new InvalidJwtException(InvalidJwt);
                 }
+#else
+                _logger.Log("Jwt validation not supported on this platform");
+                throw new InvalidJwtException(InvalidJwt);
+#endif
             }
             _logger.Log($"Received JWT for account mobile: {result}");
 
@@ -88,6 +95,7 @@ namespace Share.Scripts.Communicate.UnitySmartFox.LoginType {
     }
 }
 
+#if !UNITY_WEBGL
 // Use for mobile only
 public class JwtValidator {
     public JwtValidation ValidateJwt(string jwt, string savedWalletAddress) {
@@ -129,3 +137,4 @@ public enum JwtValidation {
     NoAddress,
     Valid
 }
+#endif

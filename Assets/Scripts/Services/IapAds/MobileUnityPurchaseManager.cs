@@ -223,6 +223,7 @@ namespace Services.IapAds {
         private PurchaseResult GetPurchaseTokenFromReceipt(string receipt) {
             _logManager.Log("devv receipt:");
             _logManager.Log(receipt);
+#if !UNITY_WEBGL
             var validator =
                 new CrossPlatformValidator(GooglePlayTangle.Data(), AppleTangle.Data(), Application.identifier);
             var results = validator.Validate(receipt);
@@ -241,12 +242,14 @@ namespace Services.IapAds {
             purchaseToken = rawReceipt.Payload;
 #else
             throw new Exception("Not supported");
-            return null;
 #endif
             if (string.IsNullOrWhiteSpace(purchaseToken)) {
                 throw new Exception("Receipt Invalid");
             }
             return new PurchaseResult(PurchaseState.Done, result.transactionID, purchaseToken, orderId, result.productID, receipt);
+#else
+            throw new Exception("Not supported");
+#endif
         }
         
         private class AppleReceipt {
