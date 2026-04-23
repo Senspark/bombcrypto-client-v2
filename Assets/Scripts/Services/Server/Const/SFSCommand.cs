@@ -59,6 +59,8 @@ public static partial class SFSDefine {
         public const string GET_BONUS_REWARD_ADVENTURE_V3 = "GET_BONUS_REWARD_ADVENTURE_V3";
         public const string GET_HERO_UPGRADE_POWER_V2 = "GET_HERO_UPGRADE_POWER_V2";
         public const string SYNC_BOMBERMAN_V3 = "SYNC_BOMBERMAN_V3";
+        public const string SYNC_MORE_BOMBERMAN = "sync_more_bomberman";
+        public const string SYNC_MORE_HOUSE = "sync_more_house";
         public const string GET_REWARD_V2 = "GET_REWARD_V2";
         public const string APPROVE_CLAIM_V2 = "APPROVE_CLAIM_V2";
         public const string CONFIRM_CLAIM_REWARD_SUCCESS_V2 = "CONFIRM_CLAIM_REWARD_SUCCESS_V2";

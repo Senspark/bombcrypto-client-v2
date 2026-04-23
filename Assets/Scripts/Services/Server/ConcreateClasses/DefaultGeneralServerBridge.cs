@@ -72,6 +72,15 @@ namespace App.BomberLand {
             UnityEngine.Debug.Log($"!@#DevHoang SyncHero old");
             return OnSyncHero(response, notifyNewIds, isBuyHero);
         }
+
+        public async Task<ISyncHeroResponse> FetchMoreHeroes(int offset, int limit) {
+            var data = new SFSObject();
+            data.PutInt("offset", offset);
+            data.PutInt("limit", limit);
+
+            var response = await _serverDispatcher.SendCmd(new CmdSyncMoreBomberMan(data));
+            return OnSyncHero(response, false, false);
+        }
         
         public ISyncHeroResponse SyncHero(ISFSObject data) {
             UnityEngine.Debug.Log($"!@#DevHoang SyncHero new");
@@ -86,6 +95,15 @@ namespace App.BomberLand {
             return OnSyncHouseServer(response);
         }
         
+        public async Task<ISyncHouseResponse> FetchMoreHouses(int offset, int limit) {
+            var data = new SFSObject();
+            data.PutInt("offset", offset);
+            data.PutInt("limit", limit);
+
+            var response = await _serverDispatcher.SendCmd(new CmdSyncMoreHouse(data));
+            return OnSyncHouseServer(response);
+        }
+
         public ISyncHouseResponse SyncHouse(ISFSObject data) {
             UnityEngine.Debug.Log($"!@#DevHoang SyncHouse new");
             return OnSyncHouseServer(data);
