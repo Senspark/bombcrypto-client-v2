@@ -47,6 +47,11 @@ namespace Scenes.FarmingScene.Scripts {
         private double _bcoinPrice;
         private bool _isHeroS;
         private bool _isClicked;
+        private static DateTime _lastMintTime = DateTime.MinValue;
+        private float _cooldownTimer = 0f;
+
+        private int CurrentLevel => GetAccountLevel(_playerStoreManager.GetPlayerCount());
+        private int CurrentBulkLimit => GetBulkLimit(CurrentLevel);
 
 
         public static UniTask<DialogShopHero> Create() {
@@ -71,8 +76,49 @@ namespace Scenes.FarmingScene.Scripts {
         public void Init(bool isHeroS) {
             _isHeroS = isHeroS;
             heroSObjects.ForEach(e => e.SetActive(isHeroS));
+            
+            // Adjust initial index if current limit is lower
+            while (_buyHeroIndex > 0 && _buyHeroAmount[_buyHeroIndex] > CurrentBulkLimit) {
+                _buyHeroIndex--;
+            }
+
             buttonXs[_buyHeroIndex].SetActive(true);
             RenderPrice(_buyHeroIndex);
+            UpdateLevelDisplay();
+        }
+
+        private void Update() {
+            if (_lastMintTime == DateTime.MinValue) return;
+            
+            var elapsed = (DateTime.Now - _lastMintTime).TotalSeconds;
+            if (elapsed < 60) {
+                _cooldownTimer = 60f - (float)elapsed;
+                heroTotalSaleLbl.text = $"Cooldown: {_cooldownTimer:F0}s";
+            } else {
+                UpdateLevelDisplay();
+            }
+        }
+
+        private void UpdateLevelDisplay()
+        {
+            var totalMinted = _playerStoreManager.GetPlayerCount();
+            var level = AccountLevelHelper.GetAccountLevel(totalMinted);
+            var bulkLimit = AccountLevelHelper.GetBulkLimit(level);
+
+            // Prepend Level to the Total Sale label or use a dedicated format
+            var totalSale = _storeManager.HeroTotalSale;
+            heroTotalSaleLbl.text = $"Level {level} | Global: {totalSale:N0}";
+
+            // Update bulk buttons
+            buy5Btn.interactable = bulkLimit >= 5;
+            buy10Btn.interactable = bulkLimit >= 10;
+            buy15Btn.interactable = bulkLimit >= 15;
+            
+            // Add visual lock if disabled
+            if (buy15Btn.transform.Find("LockIcon") == null && bulkLimit < 15) {
+                // Potential to add a lock icon or change color
+                // For now, we'll just keep it interactable = false
+            }
         }
 
         public void OnXButtonClicked() {
@@ -96,8 +142,16 @@ namespace Scenes.FarmingScene.Scripts {
         
         private void RenderPrice(int index) {
             var buyAmount = _buyHeroAmount[index];
+            var limit = CurrentBulkLimit;
+            
             amountTitle.text = $"+{buyAmount} {_languageManager.GetValue(LocalizeKey.ui_hero)}";
-            heroBcoinPrice.text = App.Utils.FormatBcoinValue(_storeManager.HeroPrice.Coin * buyAmount);
+            
+            if (buyAmount > limit) {
+                amountTitle.text += $" (Req LVL {buyAmount})";
+                heroBcoinPrice.text = "LOCKED";
+            } else {
+                heroBcoinPrice.text = App.Utils.FormatBcoinValue(_storeManager.HeroPrice.Coin * buyAmount);
+            }
         }
 
         public void OnBuyWithBcoinBtnClicked() {
@@ -115,6 +169,19 @@ namespace Scenes.FarmingScene.Scripts {
             }
             if (!CheckLimit(buyAmount)) {
                 TrackBuyHeroFail();
+                return;
+            }
+            
+            // Check level limit
+            if (buyAmount > CurrentBulkLimit) {
+                DialogOK.ShowError(DialogCanvas, "Level Restricted", $"Your level {CurrentLevel} only allows buying up to {CurrentBulkLimit} heroes at once.");
+                return;
+            }
+
+            // Check cooldown
+            var elapsed = (DateTime.Now - _lastMintTime).TotalSeconds;
+            if (elapsed < 60) {
+                DialogOK.ShowError(DialogCanvas, "Cooldown", $"Please wait {60 - elapsed:F0} seconds before next mint.");
                 return;
             }
 
@@ -146,6 +213,7 @@ namespace Scenes.FarmingScene.Scripts {
                             _serverManager, true, true);
 
                         if (result) {
+                            _lastMintTime = DateTime.Now;
                             Hide();
                         } else {
                             throw new Exception("Claim Failed");
@@ -205,6 +273,33 @@ namespace Scenes.FarmingScene.Scripts {
                 return;
             _isClicked = true;
             OnBuyWithBcoinBtnClicked();
+        }
+
+        private int GetAccountLevel(int totalMinted) {
+            if (totalMinted < 150) return 1;
+            if (totalMinted < 330) return 2;
+            if (totalMinted < 546) return 3;
+            if (totalMinted < 805) return 4;
+            if (totalMinted < 1116) return 5;
+            if (totalMinted < 1489) return 6;
+            if (totalMinted < 1936) return 7;
+            if (totalMinted < 2473) return 8;
+            if (totalMinted < 3115) return 9;
+            if (totalMinted < 3885) return 10;
+            if (totalMinted < 4809) return 11;
+            if (totalMinted < 5918) return 12;
+            if (totalMinted < 7249) return 13;
+            if (totalMinted < 8846) return 14;
+            if (totalMinted < 10762) return 15;
+            if (totalMinted < 14700) return 16;
+            if (totalMinted < 20840) return 17;
+            if (totalMinted < 30420) return 18;
+            if (totalMinted < 45360) return 19;
+            return 20;
+        }
+
+        private int GetBulkLimit(int level) {
+            return level >= 15 ? 15 : level;
         }
     }
 }
