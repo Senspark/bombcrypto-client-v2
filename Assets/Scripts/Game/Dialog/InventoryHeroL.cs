@@ -40,6 +40,10 @@ public class InventoryHeroL : MonoBehaviour {
     private PlayerData _hero;
     private Canvas _canvas;
     private bool _isClicked = false;
+    
+    [Header("NFT Shield")]
+    [SerializeField]
+    private GameObject lockBadge;
 
 
     public void Show(PlayerData hero, Canvas canvas, bool enableOpenStake = true) {
@@ -72,6 +76,11 @@ public class InventoryHeroL : MonoBehaviour {
         var amountBcoin = Math.Floor(_hero.stakeBcoin * 1e6) / 1e6;
         bcoinFullText.text = amountBcoin.ToString("0.##########");
         bcoinText.text = $"<color=#ff0e0e>{amountBcoin}</color>/{minStake}";
+
+        if (lockBadge != null) {
+            bool hasStake = amountBcoin > 0 || _hero.stakeSen > 0;
+            lockBadge.SetActive(_featureManager.EnableNftShield && hasStake);
+        }
     }
 
 

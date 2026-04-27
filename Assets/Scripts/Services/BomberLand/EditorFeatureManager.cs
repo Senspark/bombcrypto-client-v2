@@ -53,5 +53,6 @@ namespace App {
         public bool EnablePvE => true;
         public bool EnablePvP => true;
         public bool ShowHeroSIcon => true;
+        public bool EnableNftShield => true;
     }
 }

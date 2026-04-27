@@ -44,6 +44,10 @@ namespace Controller {
         public List<InventoryItemData> Items { get; set; }
         public List<InventorySellingItemData> SellingItems { get; set;}
 
+        [Header("NFT Shield")]
+        [SerializeField]
+        private UnityEngine.UI.Button btnBulkLock;
+
         private bool _isUpdate;
 
         private void Awake() {
@@ -52,6 +56,26 @@ namespace Controller {
             _marketplace = ServiceLocator.Instance.Resolve<IServerManager>().Marketplace;
             _analytics = ServiceLocator.Instance.Resolve<IAnalytics>();
             _productItemManager = ServiceLocator.Instance.Resolve<IProductItemManager>();
+
+            if (btnBulkLock != null) {
+                btnBulkLock.onClick.AddListener(OnBtnBulkLockClicked);
+            }
+        }
+
+        private async void OnBtnBulkLockClicked() {
+            var securityManager = ServiceLocator.Instance.Resolve<ISecurityManager>();
+            if (securityManager != null && securityManager.IsShieldEnabled) {
+                var waiting = new WaitingUiManager(GetComponentInParent<Canvas>());
+                waiting.Begin();
+                try {
+                    await securityManager.LockAllTokens();
+                    DialogOK.ShowSuccess(GetComponentInParent<Canvas>(), "All NFTs locked successfully.");
+                } catch (Exception e) {
+                    DialogError.ShowError(GetComponentInParent<Canvas>(), e.Message);
+                } finally {
+                    waiting.End();
+                }
+            }
         }
 
         public void ClearCacheData() {

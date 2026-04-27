@@ -1,4 +1,4 @@
-﻿using System.Threading.Tasks;
+using System.Threading.Tasks;
 
 using Senspark;
 
@@ -46,5 +46,6 @@ namespace App {
         bool EnableInventoryListingItem { get; }
         bool EnableTreasureHunt { get; }
         bool ShowHeroSIcon { get; }
+        bool EnableNftShield { get; }
     }
 }
