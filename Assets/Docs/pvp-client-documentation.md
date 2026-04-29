@@ -19,5 +19,14 @@ Documentation for the PvP Wagered System client-side implementation in Unity (C#
 - **Manual Audit**: Verified event-driven UI updates (`OnModeSelected`, `OnWagerModeChanged`).
 - **Integration**: Validated SFS2X extension request flow for chat and matchmaking.
 
+## 🛡️ Security & Network Isolation
+As of Version 2.1, the system enforces **Strict Network Isolation**:
+- **Rule**: A player can only join a PvP match using a token that belongs to their account's native network (BSC or Polygon).
+- **Validation**:
+    - Backend (`LegacyUserController`) validates the `wagerToken.network` against `userInfo.dataType`.
+    - Matchmaker matches players ONLY with others on the same `network`.
+    - **No Swaps**: The system does NOT support cross-chain matching or token swapping.
+- **Anti-Cheat**: Real-time position and speed validation is active. Hero speed is capped at `10.0` units/sec unless buffed by specific map items.
+
 ---
-*Last Updated: 2026-04-28 by AI (Antigravity)*
+*Last Updated: 2026-04-29 by AI (Antigravity)*
