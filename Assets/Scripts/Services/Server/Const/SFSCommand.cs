@@ -151,6 +151,8 @@ public static partial class SFSDefine {
         public const string PVP_OBSERVER_USE_EMOJI = "PVP_OBSERVER_USE_EMOJI";
         public const string PVP_OBSERVER_CHANGE_STATE = "PVP_OBSERVER_CHANGE_STATE";
         public const string PVP_OBSERVER_FALLING_BLOCK = "PVP_OBSERVER_FALLING_BLOCK";
+        public const string PVP_CHAT_MESSAGE = "PVP_CHAT_MESSAGE";
+        public const string PVP_LOBBY_STATS = "PVP_LOBBY_STATS";
         
         public const string GET_GACHA_CHESTS_V2 = "GET_GACHA_CHESTS_V2";
         public const string START_OPENING_GACHA_CHEST_V2 = "START_OPENING_GACHA_CHEST_V2";

@@ -171,5 +171,7 @@ namespace Data {
         DialogRememberLogin,
         DialogRequestNewGuestAccount,
         DialogTermsService,
+        BLDialogPvpWager,
+        BLDialogPvpDisclaimer,
     }
 }

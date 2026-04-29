@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using Constant;
 using Data;
@@ -432,7 +432,7 @@ namespace App {
     }
 
     public enum GameModeType {
-        TreasureHunt, StoryMode, TreasureHuntV2, PvpMode, UnKnown
+        TreasureHunt, StoryMode, TreasureHuntV2, PvpMode, BattleRoyale, UnKnown
     }
 
     public enum VipRewardType {

@@ -1,3 +1,4 @@
+using System.Linq;
 using App;
 
 using BLPvpMode.Engine.Info;
@@ -87,6 +88,7 @@ namespace Scenes.PvpModeScene.Scripts {
         private IChestRewardManager _chestRewardManager;
         private ILanguageManager _languageManager;
         private IInputManager _inputManager;
+        private IStorageManager _storageManager;
         private string _pvpRewardId;
         private bool _isSpinLuckyWheel;
 
@@ -99,6 +101,7 @@ namespace Scenes.PvpModeScene.Scripts {
             _languageManager = ServiceLocator.Instance.Resolve<ILanguageManager>();
             _chestRewardManager = ServiceLocator.Instance.Resolve<IChestRewardManager>();
             _inputManager = ServiceLocator.Instance.Resolve<IInputManager>();
+            _storageManager = ServiceLocator.Instance.Resolve<IStorageManager>();
 
             var blGold = _chestRewardManager.GetChestReward(BlockRewardType.BLGold);
             buttonLuckyWheelGold.SetGrey(blGold < 100);
@@ -129,13 +132,21 @@ namespace Scenes.PvpModeScene.Scripts {
 
         public void SetRewards(
             LevelResult levelResult,
-            IPvpResultUserInfo userInfo,
+            IPvpResultInfo info,
+            int slot,
             string rewardId,
             bool isOutOfChest,
             System.Action callback
         ) {
+            var userInfo = info.Info[slot];
             loseInfo.SetActive(true);
-            score.SetActive(false);
+            score.SetActive(info.Mode == PvpMode.BATTLE_ROYALE);
+            if (info.Mode == PvpMode.BATTLE_ROYALE) {
+                var rank = userInfo.Ranking;
+                scoreText.text = $"RANK: {rank}/{info.Info.Length}";
+            } else {
+                score.SetActive(false);
+            }
 
             if (levelResult == LevelResult.Draw) {
                 drawContent.SetActive(true);
@@ -150,7 +161,7 @@ namespace Scenes.PvpModeScene.Scripts {
             CreateRewardItem(RewardSourceType.Rank, userInfo.DeltaPoint, false);
             foreach (var iter in userInfo.Rewards.Keys) {
                 CreateRewardItem(RewardResource.ConvertIdToEnum(iter),
-                    (int)userInfo.Rewards[iter],
+                    userInfo.Rewards[iter],
                     isOutOfChest);
             }
 
@@ -200,7 +211,6 @@ namespace Scenes.PvpModeScene.Scripts {
             int slot,
             System.Action callback
         ) {
-            Assert.IsTrue(info.Scores.Length == 2);
             loseInfo.SetActive(false);
             score.SetActive(true);
             itemLoot.SetActive(false);
@@ -215,12 +225,21 @@ namespace Scenes.PvpModeScene.Scripts {
 
             _onClaimCallback = callback;
 
-            scoreText.text = $"{info.Scores[slot]}-{info.Scores[1 - slot]}";
+            if (info.Mode == PvpMode.BATTLE_ROYALE) {
+                var userResult = info.Info.FirstOrDefault(u => u.UserId == _storageManager.UserId);
+                var rank = userResult?.Ranking ?? 0;
+                scoreText.text = $"RANK: {rank}/{info.Info.Length}";
+            } else {
+                scoreText.text = info.Scores.Length >= 2 
+                    ? $"{info.Scores[slot]}-{info.Scores[1 - slot]}" 
+                    : "RESULT";
+            }
+            
             nextButton.gameObject.SetActive(true);
             adsButtons.SetActive(false);
         }
 
-        private void CreateRewardItem(RewardSourceType type, int value, bool outOfSlot) {
+        private void CreateRewardItem(RewardSourceType type, float value, bool outOfSlot) {
             var item = Instantiate(rewardPrefab, rewardContainer, false);
             var fullSlot = RewardIsChest(type) && outOfSlot;
             item.SetInfo(type, value, fullSlot);

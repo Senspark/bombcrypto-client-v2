@@ -18,7 +18,7 @@ namespace BLPvpMode.Engine.Info {
         int MatchCount { get; }
 
         int WinMatchCount { get; }
-
+        int Ranking { get; }
         [NotNull]
         int[] Boosters { get; }
 

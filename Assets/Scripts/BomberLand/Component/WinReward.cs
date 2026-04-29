@@ -15,9 +15,9 @@ namespace BomberLand.Component {
         [SerializeField]
         private RewardResource resource;
 
-        public int Value { get; private set; }
+        public float Value { get; private set; }
 
-        public void SetInfo(RewardSourceType type, int value, bool fullSlot) {
+        public void SetInfo(RewardSourceType type, float value, bool fullSlot) {
             icon.sprite = resource.GetSprite(type);
             iconGray.sprite = resource.GetSprite(type);
             if (fullSlot) {
@@ -27,17 +27,17 @@ namespace BomberLand.Component {
             }
             iconGray.gameObject.SetActive(false);
             Value = value;
-            valueText.text = $"{Value}";
+            valueText.text = Value % 1 == 0 ? $"{Value:0}" : $"{Value:0.##}";
         }
 
-        public void AddValue(int value) {
+        public void AddValue(float value) {
             Value += value;
-            valueText.text = $"{Value}";
+            valueText.text = Value % 1 == 0 ? $"{Value:0}" : $"{Value:0.##}";
         }
         
-        public void SetInfo(RewardSourceType type, int value) {
+        public void SetInfo(RewardSourceType type, float value) {
             icon.sprite = resource.GetSprite(type);
-            valueText.text = $"{value}";
+            valueText.text = value % 1 == 0 ? $"{value:0}" : $"{value:0.##}";
         }
     }
 }

@@ -72,9 +72,13 @@ namespace PvpMode.Services {
             string matchId,
             int heroId,
             int[] boosters,
-            IPingInfo[] pingInfo,
+            [NotNull] IPingInfo[] pingInfo,
             int avatarId,
-            bool test = false
+            bool test = false,
+            int gameMode = 1,
+            int wagerMode = 0,
+            int wagerTier = 0,
+            int wagerToken = 0
         ) {
             var data = new SFSObject().Apply(it => {
                 var sfsPings = new SFSArray();
@@ -92,6 +96,10 @@ namespace PvpMode.Services {
                 it.PutBool("test", test);
                 it.PutSFSArray("pings", sfsPings);
                 it.PutInt("avatar", avatarId);
+                it.PutInt("game_mode", gameMode);
+                it.PutInt("wager_mode", wagerMode);
+                it.PutInt("wager_tier", wagerTier);
+                it.PutInt("wager_token", wagerToken);
                 
                 //Dùng để test vào 1 server mong muốn
                 if (!AppConfig.IsProduction) {

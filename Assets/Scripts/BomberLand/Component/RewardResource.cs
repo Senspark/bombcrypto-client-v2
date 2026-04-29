@@ -8,7 +8,9 @@ namespace BomberLand.Component {
         SilverChest,
         GoldChest,
         PlatinumChest,
-        Rank
+        Rank,
+        Bcoin,
+        Sen
     }
 
     public class RewardResource : MonoBehaviour {
@@ -28,6 +30,10 @@ namespace BomberLand.Component {
                 21 => RewardSourceType.SilverChest,
                 22 => RewardSourceType.GoldChest,
                 19 => RewardSourceType.PlatinumChest,
+                23 => RewardSourceType.Bcoin,
+                24 => RewardSourceType.Bcoin,
+                25 => RewardSourceType.Sen,
+                26 => RewardSourceType.Sen,
                 _ => throw new Exception($"Invalid reward id: {id}"),
             };
         }

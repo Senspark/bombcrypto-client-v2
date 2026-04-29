@@ -165,7 +165,11 @@ namespace PvpMode.Services {
             [NotNull] int[] boosters,
             [NotNull] IPingInfo[] pingInfo,
             int avatarId,
-            bool test = false
+            bool test = false,
+            int gameMode = 1,
+            int wagerMode = 0,
+            int wagerTier = 0,
+            int wagerToken = 0
         );
 
         [MustUseReturnValue]

@@ -736,6 +736,9 @@ namespace Scenes.MainMenuScene.Scripts {
                     case GameModeType.PvpMode:
                         PlayPvpMode();
                         break;
+                    case GameModeType.BattleRoyale:
+                        PlayBattleRoyale();
+                        break;
                 }
             }
         }
@@ -763,10 +766,43 @@ namespace Scenes.MainMenuScene.Scripts {
         #region Find Match PVP
 
         private void PlayPvpMode() {
-            _currentStage = CurrentStageInMainMenu.FindMatch;
             _mainMenuController.PlaySoundTap();
-            ShowFinding();
-            _findMatchController.StartFindMatch();
+            ShowPvpDisclaimer(global::BLPvpMode.Engine.Info.PvpMode.FFA_2).Forget();
+        }
+
+        private void PlayBattleRoyale() {
+            _mainMenuController.PlaySoundTap();
+            ShowPvpDisclaimer(global::BLPvpMode.Engine.Info.PvpMode.BATTLE_ROYALE).Forget();
+        }
+
+        private async UniTask ShowPvpDisclaimer(global::BLPvpMode.Engine.Info.PvpMode mode) {
+            bool skip = PlayerPrefs.GetInt("PvpWagerDisclaimerSkip", 0) == 1;
+            if (skip) {
+                ShowWagerSelection(mode).Forget();
+                return;
+            }
+
+            var dialog = await BLDialogPvpDisclaimer.Create();
+            dialog.Initialize(
+                () => ShowWagerSelection(mode).Forget(),
+                () => { },
+                () => {
+                    dialog.Hide();
+                    ShowWagerSelection(mode).Forget();
+                }
+            );
+            dialog.Show(canvasDialog);
+        }
+
+        private async UniTask ShowWagerSelection(global::BLPvpMode.Engine.Info.PvpMode mode) {
+            var dialog = await BLDialogPvpWager.Create();
+            dialog.Initialize((token, tier) => {
+                _currentStage = CurrentStageInMainMenu.FindMatch;
+                _findMatchController.SetWager(PvpWagerMode.WAGER, tier, token);
+                ShowFinding();
+                _findMatchController.StartFindMatch(mode);
+            });
+            dialog.Show(canvasDialog);
         }
 
         private void UpdateLatency(int lag) {

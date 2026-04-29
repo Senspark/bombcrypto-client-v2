@@ -23,6 +23,10 @@ namespace Scenes.MainMenuScene.Scripts.Controller {
         private ILogManager _logManager;
         private IPingManager _pingManager;
         private IInventoryManager _inventoryManager;
+        
+        private PvpWagerMode _wagerMode;
+        private PvpWagerTier _wagerTier;
+        private PvpWagerToken _wagerToken;
 
         private ObserverHandle _handleMain;
 
@@ -88,10 +92,16 @@ namespace Scenes.MainMenuScene.Scripts.Controller {
             }
         }
 
-        public void StartFindMatch() {
+        public void SetWager(PvpWagerMode mode, PvpWagerTier tier, PvpWagerToken token) {
+            _wagerMode = mode;
+            _wagerTier = tier;
+            _wagerToken = token;
+        }
+
+        public void StartFindMatch(global::BLPvpMode.Engine.Info.PvpMode mode = global::BLPvpMode.Engine.Info.PvpMode.FFA_2) {
             var heroId = _storageManager.SelectedHeroKey;
             var pvpHeroId = new HeroId(heroId, HeroAccountType.Tr);
-            JoinPvPQueue(global::BLPvpMode.Engine.Info.PvpMode.FFA_2, null, pvpHeroId);
+            JoinPvPQueue(mode, null, pvpHeroId);
             _analytics.TrackClickPlayPvp(pvpHeroId.Id);
         }
 
@@ -108,7 +118,7 @@ namespace Scenes.MainMenuScene.Scripts.Controller {
         private void JoinPvPQueue(global::BLPvpMode.Engine.Info.PvpMode mode, string matchId, HeroId heroId) {
             UniTask.Void(async () => {
                 try {
-                    var results = await _pvpJoinManager.FindMatch(mode, matchId);
+                    var results = await _pvpJoinManager.FindMatch(mode, matchId, (int)_wagerMode, (int)_wagerTier, (int)_wagerToken);
                     var infoList = results.Select(item => item.MatchInfo).ToArray();
                     var helper = new MatchHelper(
                         new PredefinedMatchFinder(infoList),

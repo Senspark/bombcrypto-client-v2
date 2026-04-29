@@ -28,6 +28,9 @@ namespace BLPvpMode.Engine.Info {
         [JsonProperty("win_match_count")]
         public int WinMatchCount { get; set; }
 
+        [JsonProperty("ranking")]
+        public int Ranking { get; set; }
+
         [JsonProperty("boosters")]
         public int[] Boosters { get; set; }
 

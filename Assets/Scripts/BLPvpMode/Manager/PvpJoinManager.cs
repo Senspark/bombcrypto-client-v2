@@ -103,7 +103,7 @@ namespace BLPvpMode.Manager {
             _taskFindMatch?.SetResult(_matchList.ToArray());
         }
 
-        public async Task<IFindMatchResult[]> FindMatch(global::BLPvpMode.Engine.Info.PvpMode mode, string matchId) {
+        public async Task<IFindMatchResult[]> FindMatch(global::BLPvpMode.Engine.Info.PvpMode mode, string matchId, int gameMode = 1, int wagerMode = 0, int wagerTier = 0, int wagerToken = 0) {
             try {
                 _matchList ??= new List<IFindMatchResult>();
                 _matchList.Clear();
@@ -123,7 +123,11 @@ namespace BLPvpMode.Manager {
                     boosters,
                     pingInfo,
                     avatarId,
-                    false);
+                    false,
+                    gameMode,
+                    wagerMode,
+                    wagerTier,
+                    wagerToken);
                 _logManager.Log($"PvpJoin: Response JoinQueue");
                 UpdateStatus(JoinStatus.InQueue);
                 _taskFindMatch = new TaskCompletionSource<IFindMatchResult[]>();
