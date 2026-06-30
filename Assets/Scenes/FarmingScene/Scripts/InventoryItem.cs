@@ -233,12 +233,14 @@ namespace Scenes.FarmingScene.Scripts {
 
         private void UpdateUIModePolygon() {
             if (_chooseMode != DialogInventory.ChooseMode.InventoryBurn &&
-                _chooseMode != DialogInventory.ChooseMode.InventoryFusion) {
+                _chooseMode != DialogInventory.ChooseMode.InventoryFusion &&
+                _chooseMode != DialogInventory.ChooseMode.RepairShield) {
                 return;
             }
             imgCheck.gameObject.SetActive(_isClicked);
             btnCheck.gameObject.SetActive(_chooseMode == DialogInventory.ChooseMode.InventoryBurn ||
-                                          _chooseMode == DialogInventory.ChooseMode.InventoryFusion);
+                                          _chooseMode == DialogInventory.ChooseMode.InventoryFusion ||
+                                          _chooseMode == DialogInventory.ChooseMode.RepairShield);
         }
 
         public void UpdateUILockHero(PlayerData player) {

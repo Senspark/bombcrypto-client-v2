@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Animation;
@@ -43,6 +44,10 @@ namespace Game.Dialog {
         protected Button senBtn;
 
         protected PlayerData ResetThisHero;
+
+        // Heroes selected in multi-select mode (batch reset). Null/<=1 => single-hero flow.
+        private List<PlayerData> _selectedHeroes;
+
         protected Canvas Canvas;
 
         protected ISoundManager SoundManager;
@@ -82,6 +87,12 @@ namespace Game.Dialog {
         #region PUBLIC
 
         public async void OnResetShieldBtnClicked() {
+            // Batch reset when more than one hero is selected (outside onboarding)
+            if (!CheckOnBoarding() && _selectedHeroes != null && _selectedHeroes.Count > 1) {
+                OnResetMultipleClicked();
+                return;
+            }
+
             resetBtn.interactable = false;
             SoundManager.PlaySound(Audio.Tap);
             var hero = ResetThisHero;
@@ -128,13 +139,103 @@ namespace Game.Dialog {
         public async void ChooseResetHero() {
             var inventory = await DialogInventoryCreator.Create();
             var exclude = _playerStoreManager.GetPlayerDataList(HeroAccountType.Nft)
-                .Where(e => !Controller.CanHeroRepairable(e))
+                .Where(e => !Controller.CanHeroRepairable(e) || !Controller.HasRepairConfig(e))
                 .Select(e => e.heroId).ToArray();
+
+            // During onboarding keep the single-hero flow (the tutorial expects one hero at a time)
             if (CheckOnBoarding()) {
                 Array.Clear(exclude, 0, exclude.Length);
+                inventory.SetChooseHeroForResetRoi(exclude, DisplayResetHeroWithId);
+                inventory.Show(Canvas);
+                return;
             }
-            inventory.SetChooseHeroForResetRoi(exclude, DisplayResetHeroWithId);
+
+            // Outside onboarding: dedicated multi-select (checkboxes, without burn/stake warnings)
+            inventory.SetChooseHeroForRepairShield(exclude, OnHeroesSelected);
             inventory.Show(Canvas);
+        }
+
+        private async void OnHeroesSelected(PlayerData[] heroes) {
+            _selectedHeroes = heroes
+                .Where(e => e != null && Controller.CanHeroRepairable(e) && Controller.HasRepairConfig(e))
+                .ToList();
+
+            if (_selectedHeroes.Count == 0) {
+                Init(null);
+                _chooseHeroCallBack?.Invoke(null);
+                return;
+            }
+
+            // A single hero => behaves like the single-hero flow
+            if (_selectedHeroes.Count == 1) {
+                DisplayResetHeroWithId(_selectedHeroes[0].heroId);
+                return;
+            }
+
+            await ShowMultiSelectionSummary();
+        }
+
+        private async Task ShowMultiSelectionSummary() {
+            var first = _selectedHeroes[0];
+            ResetThisHero = first;
+
+            // Count first: doesn't depend on config, so it never breaks the screen
+            heroIdLbl.text = $"x{_selectedHeroes.Count}";
+            heroShieldAmountLbl.text = $"{_selectedHeroes.Count} heroes";
+
+            backlight.sprite = await AnimationResource.GetBacklightImageByRarity(first.rare, true);
+            backlight.enabled = true;
+            resetThisHeroAvatar.ChangeImage(first);
+            groupPlus.gameObject.SetActive(false);
+            avatar.gameObject.SetActive(true);
+
+            var totalCost = Controller.TotalRepairCostUsingMaterial(_selectedHeroes);
+            amountMaterialRepair.text = $"{totalCost}";
+            resetBtn.interactable = Controller.CanProcessBatchUsingMaterial(_selectedHeroes);
+        }
+
+        private async void OnResetMultipleClicked() {
+            resetBtn.interactable = false;
+            SoundManager.PlaySound(Audio.Tap);
+            var heroes = _selectedHeroes.ToList();
+            var totalCost = Controller.TotalRepairCostUsingMaterial(heroes);
+
+            void OnYes() {
+                var waiting = new WaitingUiManager(Canvas);
+                waiting.Begin();
+                UniTask.Void(async () => {
+                    try {
+                        var result = await Controller.ProcessBatchUsingMaterial(heroes);
+                        OnBatchResetCompleted(result);
+                    } catch (Exception e) {
+                        resetBtn.interactable = Controller.CanProcessBatchUsingMaterial(_selectedHeroes);
+                        if (e is ErrorCodeException) {
+                            DialogError.ShowError(Canvas, e.Message);
+                        } else {
+                            DialogOK.ShowError(Canvas, e.Message);
+                        }
+                    } finally {
+                        waiting.End();
+                    }
+                });
+            }
+
+            var info = _languageManager.GetValue(LocalizeKey.ui_info_buy_repair_shield);
+            var str = $"{heroes.Count} heroes\n" + string.Format(info, totalCost, "Quartz");
+            var dialog = await DialogConfirm.Create();
+            dialog.SetInfo(str, "Yes", "No", OnYes, () => {
+                resetBtn.interactable = Controller.CanProcessBatchUsingMaterial(_selectedHeroes);
+            }).Show(Canvas);
+        }
+
+        private void OnBatchResetCompleted(IRepairShieldBatchResponse result) {
+            _selectedHeroes = null;
+            Init(null);
+            var message = result.FailedCount > 0
+                ? $"Repaired {result.SuccessCount}, failed {result.FailedCount}"
+                : $"Successfully repaired {result.SuccessCount} heroes";
+            DialogOK.ShowInfo(Canvas, message);
+            _chooseHeroCallBack?.Invoke(null);
         }
 
         public async void Init(PlayerData resetThisHero) {
@@ -255,6 +356,22 @@ namespace Game.Dialog {
             var shieldConfig = _storeManager.RepairShieldConfig.Data[rarity][level];
             return (int)shieldConfig;
         }
+
+        // Is there a repair-cost config for this hero's rarity/level?
+        // (heroes with a new rarity/level without config can't be repaired)
+        public bool HasRepairConfig(PlayerData hero) {
+            if (hero == null) {
+                return false;
+            }
+            try {
+                var config = _storeManager.RepairShieldConfig?.Data;
+                return config != null
+                       && config.ContainsKey(hero.rare)
+                       && config[hero.rare].ContainsKey(hero.levelShield);
+            } catch {
+                return false;
+            }
+        }
         
         public int SenFeeRepairShield(PlayerData hero) {
             var heroType = _playerStoreManager.GetHeroRarity(hero);
@@ -312,7 +429,49 @@ namespace Game.Dialog {
             var newData = _playerStoreManager.GetPlayerDataFromId(heroId);
             return newData;
         }
-        
+
+        // Total cost in Quartz, ignoring heroes without a repair config (avoids KeyNotFound)
+        public int TotalRepairCostUsingMaterial(List<PlayerData> heroes) {
+            if (heroes == null) {
+                return 0;
+            }
+            var total = 0;
+            foreach (var hero in heroes) {
+                if (hero == null || !CanHeroRepairable(hero)) {
+                    continue;
+                }
+                try {
+                    total += RateExchangeMaterialsToHero(hero);
+                } catch (Exception) {
+                    // hero without a repair config (e.g. new rarity/level) — skip it in the cost
+                }
+            }
+            return total;
+        }
+
+        public bool CanProcessBatchUsingMaterial(List<PlayerData> heroes) {
+            if (heroes == null || heroes.Count == 0) {
+                return false;
+            }
+            var totalFee = TotalRepairCostUsingMaterial(heroes);
+            if (totalFee <= 0) {
+                return false;
+            }
+            var current = _chestRewardManager.GetRock();
+            return totalFee <= current;
+        }
+
+        public async Task<IRepairShieldBatchResponse> ProcessBatchUsingMaterial(List<PlayerData> heroes) {
+            var ids = heroes
+                .Where(h => h != null && CanHeroRepairable(h))
+                .Select(h => h.heroId.Id)
+                .ToArray();
+            if (ids.Length == 0) {
+                throw new Exception("No heroes to repair");
+            }
+            return await _serverManager.General.RepairShieldBatch(ids, BlockRewardType.Rock);
+        }
+
         public async Task<PlayerData> ProcessUsingSen(PlayerData hero) {
             if (!CanProcessUsingSen(hero)) {
                 throw new Exception("Cannot repair");
