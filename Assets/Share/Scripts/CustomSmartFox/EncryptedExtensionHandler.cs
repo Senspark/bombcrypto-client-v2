@@ -135,6 +135,7 @@ namespace CustomSmartFox {
             if (!_enableLog) {
                 return;
             }
+            if (_cmd == "PING_PONG") return;
             var message = $"{(send ? "SEND" : "RECEIVED")}: {_cmd}({_requestId}) {data}";
             Debug.LogFormat(LogType.Log, LogOption.NoStacktrace, null, "LOG: {0}", message);
         }

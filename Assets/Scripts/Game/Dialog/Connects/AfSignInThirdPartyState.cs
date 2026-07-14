@@ -61,7 +61,7 @@ namespace Game.Dialog.Connects {
             void OnReject() {
                 _task.TrySetCanceled();
             }
-            new ConnectThirdPartyController(new NullEncoder(_logManager), new NullMasterUnity(), _logManager, new NullBridgeUtils(), sv, t, OnResolve, OnReject, data.CurrentCanvas)
+            new ConnectThirdPartyController(new NullMasterUnity(), _logManager, new NullBridgeUtils(), sv, t, OnResolve, OnReject, data.CurrentCanvas)
                 .ToLoginThirdParty();
         }
         

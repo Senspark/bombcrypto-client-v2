@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Numerics;
 using CodeStage.AntiCheat.ObscuredTypes;
@@ -15,6 +16,26 @@ using SuperTiled2Unity;
 using UnityEngine;
 
 namespace App.BomberLand {
+    public class BridgeWithdrawResult {
+        public int Code;
+        public string Message;
+        public string NetWei;
+        public string TxHash;
+        public string Status;
+        public int BlockRewardType;
+        public string Chain;
+
+        public BridgeWithdrawResult(ISFSObject data) {
+            Code = data.ContainsKey("code") ? data.GetInt("code") : 0;
+            Message = data.ContainsKey("message") ? data.GetUtfString("message") : null;
+            NetWei = data.ContainsKey("net") ? data.GetUtfString("net") : null;
+            TxHash = data.ContainsKey("tx_hash") ? data.GetUtfString("tx_hash") : null;
+            Status = data.ContainsKey("status") ? data.GetUtfString("status") : null;
+            BlockRewardType = data.ContainsKey("block_reward_type") ? data.GetInt("block_reward_type") : 0;
+            Chain = data.ContainsKey("chain") ? data.GetUtfString("chain") : null;
+        }
+    }
+
     public partial class DefaultGeneralServerBridge {
         private class SendExtensionRequestResult<T> {
             [JsonProperty("ec")]
@@ -658,6 +679,7 @@ namespace App.BomberLand {
             public double[] FusionFee { get; }
             public double[] HousePriceTokenNetwork { get; }
             public double EndTimeTokenNetwork { get; }
+            public double BridgeFeePercent { get; }
 
             public TreasureHuntConfigResponse(ISFSObject data) {
                 // hero limit
@@ -728,6 +750,12 @@ namespace App.BomberLand {
                     var endTimeBuyTon = data.GetUtfString("disable_buy_with_token_network");
                     EndTimeTokenNetwork = JsonConvert.DeserializeObject<double>(endTimeBuyTon);
                 }
+
+                BridgeFeePercent = data.ContainsKey("bridge_fee_percent")
+                    && double.TryParse(data.GetUtfString("bridge_fee_percent"), NumberStyles.Any,
+                        CultureInfo.InvariantCulture, out var bridgeFee)
+                    ? bridgeFee
+                    : 5.0;
             }
         }
 
@@ -772,10 +800,22 @@ namespace App.BomberLand {
         private class UpgradeShieldResponse : IUpgradeShieldResponse {
             public int Nonce { get; }
             public string Signature { get; }
-            
+
             public UpgradeShieldResponse(ISFSObject data) {
                 Nonce = data.GetInt("nonce");
                 Signature = data.GetUtfString("signature");
+            }
+        }
+
+        private class UpgradeShieldLevelPush : IUpgradeShieldLevelPush {
+            public bool Success { get; }
+            public string ErrorMessage { get; }
+            public IHeroDetails Hero { get; }
+
+            public UpgradeShieldLevelPush(bool success, string errorMessage, IHeroDetails hero) {
+                Success = success;
+                ErrorMessage = errorMessage;
+                Hero = hero;
             }
         }
         

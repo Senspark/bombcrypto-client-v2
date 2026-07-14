@@ -5,6 +5,6 @@ namespace CustomSmartFox.SolCommands {
         public CmdSyncDeposited(ISFSObject data) : base(data) {
         }
 
-        public override string Cmd => SFSDefine.SFSCommand.SYNC_DEPOSITED_V3;
+        public override string Cmd => SFSDefine.SFSCommand.SYNC_DEPOSITED_V4;
     }
 }

@@ -257,37 +257,47 @@ namespace Game.Dialog {
             };
         }
 
+        // Nguồn sự thật DUY NHẤT cho ánh xạ hero itemId → PlayerType.
+        // Đồng bộ với server config_item (cột type = HERO/4) — verify 2026-06-15 (27 hero: Mr.Poo..Hesman).
+        // ConvertFromHeroId + IsHeroItemId cùng derive từ đây để detector và converter không bao giờ lệch nhau.
+        private static readonly IReadOnlyDictionary<int, PlayerType> HeroIdToType = new Dictionary<int, PlayerType> {
+            { 8, PlayerType.Poo },
+            { 9, PlayerType.Knight },
+            { 10, PlayerType.Man },
+            { 11, PlayerType.GKu },
+            { 12, PlayerType.Witch },
+            { 13, PlayerType.PinkyToon },
+            { 14, PlayerType.Stickman },
+            { 15, PlayerType.Ninja },
+            { 16, PlayerType.Monitor },
+            { 17, PlayerType.Dragon },
+            { 100, PlayerType.Santa },
+            { 101, PlayerType.Miner },
+            { 116, PlayerType.Calico },
+            { 117, PlayerType.Kuroneko },
+            { 118, PlayerType.GoldenKat },
+            { 119, PlayerType.MrDear },
+            { 120, PlayerType.TLion },
+            { 127, PlayerType.Frog },
+            { 128, PlayerType.DogeTr },
+            { 129, PlayerType.KingTr },
+            { 130, PlayerType.Cupid },
+            { 131, PlayerType.BGuy },
+            { 136, PlayerType.PinkyBear },
+            { 141, PlayerType.PinkyNeko },
+            { 143, PlayerType.Dragoon2 },
+            { 144, PlayerType.FatTiger },
+            { 145, PlayerType.Hesman },
+        };
+
+        /// <summary>
+        /// true nếu itemId là hero. Bộ phát hiện TIN CẬY cho chokepoint <c>BLGachaRes</c>.
+        /// KHÔNG dùng <see cref="ConvertFromHeroId"/> làm detector vì nó default về Knight cho id lạ → false-positive.
+        /// </summary>
+        public static bool IsHeroItemId(int itemId) => HeroIdToType.ContainsKey(itemId);
+
         public static PlayerType ConvertFromHeroId(int heroId) {
-            return heroId switch {
-                8 => PlayerType.Poo,
-                9 => PlayerType.Knight,
-                10 => PlayerType.Man,
-                11 => PlayerType.GKu,
-                12 => PlayerType.Witch,
-                13 => PlayerType.PinkyToon,
-                14 => PlayerType.Stickman,
-                15 => PlayerType.Ninja,
-                16 => PlayerType.Monitor,
-                17 => PlayerType.Dragon,
-                100 => PlayerType.Santa,
-                101 => PlayerType.Miner,
-                116 => PlayerType.Calico,
-                117 => PlayerType.Kuroneko,
-                118 => PlayerType.GoldenKat,
-                119 => PlayerType.MrDear,
-                120 => PlayerType.TLion,
-                127 => PlayerType.Frog,
-                128 => PlayerType.DogeTr,
-                129 => PlayerType.KingTr,
-                130 => PlayerType.Cupid,
-                131 => PlayerType.BGuy,
-                136 => PlayerType.PinkyBear,
-                141 => PlayerType.PinkyNeko,
-                143 => PlayerType.Dragoon2,
-                144 => PlayerType.FatTiger,
-                145 => PlayerType.Hesman,
-                _ => PlayerType.Knight
-            };
+            return HeroIdToType.TryGetValue(heroId, out var type) ? type : PlayerType.Knight;
         }
     }
 

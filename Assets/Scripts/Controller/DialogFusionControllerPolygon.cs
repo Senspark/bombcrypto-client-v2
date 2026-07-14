@@ -35,7 +35,7 @@ namespace Controller {
                 return;
             }
             changeWaiting?.Invoke();
-            await ProcessTokenHelper.ProcessTokenRequest(canvas, _blockchainManager, _serverManager, true);
+            await ProcessTokenHelper.ProcessTokenRequest(canvas, _blockchainManager, _serverManager, true, false, true);
         }
 
         public static bool CanFusion(List<PlayerData> mainListIdHero) {

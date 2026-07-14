@@ -21,19 +21,22 @@ namespace App {
         private readonly IGachaChestItemManager _gachaChestItemManager;
         private readonly IServerDispatcher _serverDispatcher;
         private readonly IChestRewardManager _chestRewardManager;
+        private readonly IDedupServerRequester _dedup;
 
         public NewServerRequester(
             ILogManager logManager,
             IServerManager serverManager,
             IGachaChestItemManager gachaChestItemManager,
             IServerDispatcher serverDispatcher,
-            IChestRewardManager chestRewardManager
+            IChestRewardManager chestRewardManager,
+            IDedupServerRequester dedup
         ) {
             _logManager = logManager;
             _serverManager = serverManager;
             _gachaChestItemManager = gachaChestItemManager;
             _serverDispatcher = serverDispatcher;
             _chestRewardManager = chestRewardManager;
+            _dedup = dedup;
         }
 
         public Task<bool> Initialize() {
@@ -177,13 +180,14 @@ namespace App {
             return result.ToJson();
         }
 
-        public async Task<string> GetTRHeroes(string type) {
-            var data = new SFSObject();
-            data.PutUtfString("type", type);
-            
-            var result = await _serverDispatcher.SendCmd(new CmdGetHeroesTraditional(data));
-            return result.ToJson();
-        }
+        public Task<string> GetTRHeroes(string type)
+            => _dedup.Dedup<string>($"{SFSDefine.SFSCommand.GET_HEROES_TRADITIONAL_V3}|{type}", async () => {
+                var data = new SFSObject();
+                data.PutUtfString("type", type);
+
+                var result = await _serverDispatcher.SendCmd(new CmdGetHeroesTraditional(data));
+                return result.ToJson();
+            });
 
         public async Task<string> GetEarlyConfig() {
             var data = new SFSObject();
@@ -192,13 +196,14 @@ namespace App {
             return result.ToJson();
         }
 
-        public async Task<string> GetRankInfo() {
-            _logManager.Log();
-            var data = new SFSObject();
-            
-            var result = await _serverDispatcher.SendCmd(new CmdGetRankInfo(data));
-            return result.ToJson();
-        }
+        public Task<string> GetRankInfo()
+            => _dedup.Dedup<string>(SFSDefine.SFSCommand.GET_RANK_INFO_V2, async () => {
+                _logManager.Log();
+                var data = new SFSObject();
+
+                var result = await _serverDispatcher.SendCmd(new CmdGetRankInfo(data));
+                return result.ToJson();
+            });
 
         public async Task<string> UnlockChestSlot(int slotId) {
             var data = new SFSObject();

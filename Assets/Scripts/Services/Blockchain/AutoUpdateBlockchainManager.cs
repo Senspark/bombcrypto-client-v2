@@ -178,7 +178,7 @@ namespace App {
             return _manager.GetNFT(amount, eventId, nonce, signature);
         }
 
-        public Task<string> ClaimToken(double amount, int tokenType, int nonce, string[] details, string signature,
+        public Task<ClaimAndProcessResult> ClaimToken(double amount, int tokenType, int nonce, string[] details, string signature,
             string formatType, int waitConfirmations) {
             return _manager.ClaimToken(amount, tokenType, nonce, details, signature, formatType, waitConfirmations);
         }
@@ -222,20 +222,20 @@ namespace App {
             return _manager.Exchange_GetInfo();
         }
 
-        public Task<bool> StakeToHero(int id, double amount, string tokenAddress, StakeHeroCategory category) {
-            return _manager.StakeToHero(id, amount, tokenAddress, category);
+        public Task<StakeResult> StakeToHero(int id, double amount, StakeHeroCategory category) {
+            return _manager.StakeToHero(id, amount, category);
         }
 
-        public Task<bool> WithDrawFromHeroId(int id, double amount, string tokenAddress) {
-            return _manager.WithDrawFromHeroId(id, amount, tokenAddress);
+        public Task<StakeResult> WithDrawFromHeroId(int id, double amount, StakeHeroCategory category) {
+            return _manager.WithDrawFromHeroId(id, amount, category);
         }
 
-        public Task<double> GetStakeFromHeroId(int id, string tokenAddress) {
-            return _manager.GetStakeFromHeroId(id, tokenAddress);
+        public Task<double> GetStakeFromHeroId(int id, StakeHeroCategory category) {
+            return _manager.GetStakeFromHeroId(id, category);
         }
 
-        public Task<double> GetFeeFromHeroId(int id, string tokenAddress) {
-            return _manager.GetFeeFromHeroId(id, tokenAddress);
+        public Task<double> GetFeeFromHeroId(int id, StakeHeroCategory category) {
+            return _manager.GetFeeFromHeroId(id, category);
         }
 
         public Task<bool> DepositTon(string invoice, double amount) {
@@ -244,6 +244,22 @@ namespace App {
         
         public Task<bool> DepositAirdrop(string invoice, string amount, string chainId) {
             return _manager.DepositAirdrop(invoice, amount, chainId);
+        }
+
+        public Task<string> GetBridgeDeposited(string token) {
+            return _manager.GetBridgeDeposited(token);
+        }
+
+        public Task<string> GetBridgeWithdrawn(string token) {
+            return _manager.GetBridgeWithdrawn(token);
+        }
+
+        public Task<BridgeTxResult> BridgeDeposit(string token, string amountWei) {
+            return _manager.BridgeDeposit(token, amountWei);
+        }
+
+        public Task<BridgeTxResult> BridgeWithdraw(string token, string grossWei, string beforeWei, string signature) {
+            return _manager.BridgeWithdraw(token, grossWei, beforeWei, signature);
         }
     }
 }

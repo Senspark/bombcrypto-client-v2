@@ -359,7 +359,7 @@ namespace Scenes.PvpModeScene.Scripts {
                         _analytics.TrackAds(AdsCategory.X2GoldPve, adsResult);
                     }
                     buttonAds.Interactable = true;
-                    DialogOK.ShowError(DialogCanvas, e.Message);
+                    DialogOK.ShowError(DialogCanvas, e);
                 } finally {
                     waiting.End();
                 }

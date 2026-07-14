@@ -150,18 +150,18 @@ namespace Scenes.FarmingScene.Scripts {
         public HeroTypeFilter Filter1 { get; set; } = HeroTypeFilter.AllHeroesType;
         public ActiveFilter FilterActive { get; set; } = ActiveFilter.All;
 
-        private IServerManager _serverManager;
-        private IPlayerStorageManager _playerStore;
+        protected IServerManager _serverManager;
+        protected IBHeroManager _playerStore;
 
-        private List<DynamicInventoryItem> _items;
-        private ChooseMode _chooseMode = ChooseMode.None;
+        protected List<DynamicInventoryItem> _items;
+        protected ChooseMode _chooseMode = ChooseMode.None;
         private Sequence _timeOutTween;
         private WaitingUiManager _waiting;
-        private CancellationTokenSource _uiTaskCancellation;
+        protected CancellationTokenSource _uiTaskCancellation;
         private ObserverHandle _handle;
         private ISoundManager _soundManager;
         private IStorageManager _storeManager;
-        private IUserSolanaManager _userSolanaManager;
+        protected IUserSolanaManager _userSolanaManager;
 
         private List<PlayerData> _heroesIdBurn = new();
         private List<int> _heroesBurnIds = new();
@@ -178,6 +178,12 @@ namespace Scenes.FarmingScene.Scripts {
 
         private const int MaxNumForDynamic = 200;
         private readonly DynamicScroll<DynamicInventoryItem, DynamicObject> _verticalDynamicScroll = new();
+
+        // Pool tái dùng item qua các lần lật trang / đổi filter (tránh Destroy + Instantiate lại).
+        // _items = tập con đang hiển thị (đầu pool); phần dư bị ẩn (SetActive false), không destroy.
+        private readonly List<DynamicInventoryItem> _pool = new();
+        // Số item Instantiate mỗi frame khi phải tạo mới — rải spike để không giật fade-in.
+        private const int InstantiateChunk = 16;
 
         private const int PageRow = 8;
         private int _itemsInPage = 50;
@@ -203,7 +209,7 @@ namespace Scenes.FarmingScene.Scripts {
         protected override void Awake() {
             base.Awake();
             _serverManager = ServiceLocator.Instance.Resolve<IServerManager>();
-            _playerStore = ServiceLocator.Instance.Resolve<IPlayerStorageManager>();
+            _playerStore = ServiceLocator.Instance.Resolve<IBHeroManager>();
             _soundManager = ServiceLocator.Instance.Resolve<ISoundManager>();
             _storeManager = ServiceLocator.Instance.Resolve<IStorageManager>();
             _userSolanaManager = ServiceLocator.Instance.Resolve<IServerManager>().UserSolanaManager;
@@ -211,17 +217,17 @@ namespace Scenes.FarmingScene.Scripts {
             _uiTaskCancellation = new CancellationTokenSource();
             _handle = new ObserverHandle();
             _handle.AddObserver(_serverManager, new ServerObserver {
-                OnSyncHero = OnSyncHero
+                OnSyncHero = OnSyncHero,
+                OnHeroStakePush = _ => OnSyncHero(null)
             });
             var featureManager = ServiceLocator.Instance.Resolve<IFeatureManager>();
             var enableRepair = featureManager.EnableRepairShield;
             heroDescriptionPanel.Init(enableRepair);
-            heroDescriptionPopup.Init(enableRepair);
 
             if (AppConfig.IsAirDrop()) {
                 dropDownHeroFilter.gameObject.SetActive(false);
             } else {
-                dropDownHeroFilter.gameObject.SetActive(featureManager.EnableBHero && featureManager.EnableBHeroS);
+                dropDownHeroFilter.gameObject.SetActive(featureManager.EnableBHeroS);
             }
             keyboard?.gameObject.SetActive(false);
             if (dialogTransform != null)
@@ -259,14 +265,15 @@ namespace Scenes.FarmingScene.Scripts {
                 title.text = titleDialog;
             base.Show(canvas);
             pageContent.SetActive(false);
-            scroller.gameObject.SetActive(false);
+            // Giữ scroller ACTIVE: object inactive thì layout không chạy → viewport.rect.width = 0
+            // → chia 0 khi tính số column. Spinner (BeginWait) che lúc dựng nên không thấy item nhảy vào.
+            scroller.gameObject.SetActive(true);
 
             // mặc định không load player list và sort
             // mà get trực tiếp sorted player data.
             // _getPlayer ??= () => _playerStore.GetPlayerDataList(HeroAccountType.Nft, HeroAccountType.Ton,HeroAccountType.Trial);
 
             BeginWait();
-            heroDescriptionPopup.Hide();
             heroDescriptionPanel.HideInfo();
             HideButtons();
             SetDataToDropDown();
@@ -274,12 +281,8 @@ namespace Scenes.FarmingScene.Scripts {
             _currentPage = 0;
             inputField.text = $"{_currentPage + 1}";
 
-            foreach (Transform child in scroller.content.transform) {
-                Destroy(child.gameObject);
-            }
-            // Chờ dialog FadeIn
-            // (Nếu không hiệu ứng FadeIn sẽ bị mất khi InstantiateItems lâu hơn 0.5s)
-            await UniTask.Delay(500);
+            // Pooling lo việc tái dùng/ẩn item nên không Destroy con ở đây nữa.
+            // InstantiateItems rải spike Instantiate qua nhiều frame → không cần Delay(500) chờ FadeIn.
             await InstantiateItems(true, _sortRarity, Order1, Order2);
             scroller.gameObject.SetActive(true);
 
@@ -313,7 +316,6 @@ namespace Scenes.FarmingScene.Scripts {
             _targetUpgradeRarity = targetUpgradeRarity;
             _sortRarity = sortRarity;
             heroDescriptionPanel.Init(enableRepair);
-            heroDescriptionPopup.Init(enableRepair);
         }
 
         public void Init(bool enableRepair, bool showGroupButton, bool enablePreviewStake) {
@@ -327,12 +329,22 @@ namespace Scenes.FarmingScene.Scripts {
             SortOrder2 order2 = SortOrder2.HighStatsFirst,
             HeroTypeFilter filter1 = HeroTypeFilter.AllHeroesType,
             ActiveFilter filterActive = ActiveFilter.All) {
-            // Tính số column của grid theo chiểu ngang của view port 
+            // Số column phải khớp ĐÚNG cách GridLayoutGroup wrap, nếu không page sẽ lẻ hàng (hàng cuối
+            // thiếu item nhìn kì). Ép layout trước khi đo (lần Show đầu viewport có thể chưa layout → width 0).
+            Canvas.ForceUpdateCanvases();
             var gridLayoutGroup = scroller.content.GetComponent<GridLayoutGroup>();
-            var rect = scroller.viewport.rect;
-            var width = rect.width;
-            var itemWidth = gridLayoutGroup.cellSize.x + gridLayoutGroup.spacing.x;
-            var column = (int)(width / itemWidth);
+            int column;
+            if (gridLayoutGroup.constraint == GridLayoutGroup.Constraint.FixedColumnCount) {
+                column = gridLayoutGroup.constraintCount;
+            } else {
+                // Giống công thức nội bộ của GridLayoutGroup: width của content − padding + spacing.
+                var cellStride = gridLayoutGroup.cellSize.x + gridLayoutGroup.spacing.x;
+                var avail = scroller.content.rect.width - gridLayoutGroup.padding.horizontal + gridLayoutGroup.spacing.x;
+                column = cellStride > 0 ? Mathf.FloorToInt((avail + 0.001f) / cellStride) : 0;
+            }
+            if (column < 1) {
+                column = 5; // fallback khi chưa đo được width — tránh page quá nhỏ / chia 0
+            }
             _itemsInPage = column * PageRow;
 
             List<PlayerData> players;
@@ -352,25 +364,12 @@ namespace Scenes.FarmingScene.Scripts {
                 var heroCount = _playerStore.GetTotalHeroesSize();
                 capacityText.text = $"{heroCount}/{_storeManager.HeroLimit}";
             }
-            _items = new List<DynamicInventoryItem>();
-            var inventoryItemCallback = new InventoryItem.InventoryItemCallback();
-            if (_chooseMode == ChooseMode.InventoryBurn) {
-                inventoryItemCallback.OnClicked = OnItemClickedInventoryBurn;
-            } else if (_chooseMode == ChooseMode.InventoryFusion) {
-                inventoryItemCallback.OnClicked = OnItemClickedInventoryFusion;
-            } else {
-                inventoryItemCallback.OnClicked = OnItemClicked;
-            }
-            inventoryItemCallback.OnHover = OnItemHover;
+            var inventoryItemCallback = new InventoryItem.InventoryItemCallback {
+                OnClicked = ResolveItemClickCallback(),
+                OnHover = OnItemHover,
+            };
 
             var parent = scroller.content.transform;
-            if (num > MaxNumForDynamic) {
-                parent = container;
-            } else {
-                foreach (Transform child in parent) {
-                    Destroy(child.gameObject);
-                }
-            }
 
             // Cập nhật _heroesIdBurn theo instance player mới
             for (var i = 0; i < num; i++) {
@@ -388,6 +387,8 @@ namespace Scenes.FarmingScene.Scripts {
             var curActiveFilter = ConvertFromValue(dropDownActiveFilter.value);
             var isIOSBrowser = await _webGlUtils.IsIOSBrowser();
             if (curActiveFilter == ActiveFilter.Locked && isIOSBrowser) {
+                HideAllPooledItems();
+                _items = new List<DynamicInventoryItem>();
                 scroller.content.gameObject.SetActive(false);
                 if (notSupportedText != null) {
                     notSupportedText.SetActive(true);
@@ -395,22 +396,52 @@ namespace Scenes.FarmingScene.Scripts {
                 return;
             }
 
-            for (var i = 0; i < num; i++) {
-                if (players[i] != null) {
-                    scroller.content.gameObject.SetActive(true);
-                    if (notSupportedText != null) {
-                        notSupportedText.SetActive(false);
-                    }
-                    var item = Instantiate(inventoryItemPrefab, parent, false);
-                    _heroesIdBurn = await item.SetInfo(players[i], inventoryItemCallback, _chooseMode, _heroesIdBurn,
-                        _chooseMode == ChooseMode.PvpMode,
-                        _heroesIdBurn.Contains(players[i]), canvas: DialogCanvas, heroDescriptionPanel);
-                    item.UpdateLockedHeroes(curActiveFilter == ActiveFilter.Locked);
-                    if (_isShowLockHero) {
-                        item.UpdateUILockHero(players[i]);
-                    }
-                    _items.Add(item);
+            scroller.content.gameObject.SetActive(true);
+            if (notSupportedText != null) {
+                notSupportedText.SetActive(false);
+            }
+
+            // Lần dựng đầu: dọn item placeholder đặt sẵn trong content từ Editor (để preview layout).
+            // Trước đây vòng Destroy-children lo việc này; pooling bỏ vòng đó nên phải dọn 1 lần ở đây,
+            // nếu không placeholder sẽ nằm lại ở đầu mỗi page như 1 skeleton lạ.
+            if (_pool.Count == 0) {
+                foreach (Transform child in parent) {
+                    Destroy(child.gameObject);
                 }
+            }
+
+            // Pool: chỉ Instantiate khi pool chưa đủ; phần tạo mới rải qua nhiều frame để khỏi giật fade-in.
+            while (_pool.Count < num) {
+                var newItem = Instantiate(inventoryItemPrefab, parent, false);
+                newItem.gameObject.SetActive(false);
+                _pool.Add(newItem);
+                if (_pool.Count % InstantiateChunk == 0) {
+                    await UniTask.Yield();
+                }
+            }
+
+            // Bơm data vào item đầu pool; phần dư (trang trước nhiều hơn) thì ẩn đi.
+            _items = new List<DynamicInventoryItem>();
+            var used = 0;
+            for (var i = 0; i < num; i++) {
+                if (players[i] == null) {
+                    continue;
+                }
+                var item = _pool[used];
+                used++;
+                item.gameObject.SetActive(true);
+                item.SetInfo(players[i], inventoryItemCallback, _chooseMode, _heroesIdBurn,
+                    _chooseMode == ChooseMode.PvpMode,
+                    _heroesIdBurn.Contains(players[i]), canvas: DialogCanvas, heroDescriptionPanel).Forget();
+                item.UpdateLockedHeroes(curActiveFilter == ActiveFilter.Locked);
+                if (_isShowLockHero) {
+                    item.UpdateUILockHero(players[i]);
+                }
+                _items.Add(item);
+                OnItemCreated(item.Item);
+            }
+            for (var i = used; i < _pool.Count; i++) {
+                _pool[i].gameObject.SetActive(false);
             }
 
             if (_chooseMode == ChooseMode.Upgrade) {
@@ -421,9 +452,6 @@ namespace Scenes.FarmingScene.Scripts {
             // (exclude trước khi phân trang)
             //FilterExcludeHeroes();
 
-            if (num > MaxNumForDynamic) {
-                StartCoroutine(InitDynamicScroll());
-            }
             StartCoroutine(GetRowAndColumn());
             StartCoroutine(ScrollToCoroutine(scroll));
 
@@ -432,8 +460,20 @@ namespace Scenes.FarmingScene.Scripts {
                 OnItemClicked(_items[0].Item);
             }
             foreach (var iter in _items) {
-                iter.Item.OnSelectAllItemClicked(_heroesBurnIds.Contains(iter.Item.playerData.heroId.Id));
+                iter.Item.OnSelectAllItemClicked(IsItemSelected(iter.Item));
             }
+        }
+
+        private void HideAllPooledItems() {
+            foreach (var item in _pool) {
+                if (item) {
+                    item.gameObject.SetActive(false);
+                }
+            }
+        }
+
+        protected virtual bool IsItemSelected(InventoryItem item) {
+            return _heroesBurnIds.Contains(item.playerData.heroId.Id);
         }
 
         public void SelectItem(int itemIndex) {
@@ -485,7 +525,20 @@ namespace Scenes.FarmingScene.Scripts {
             _notHover = true;
         }
 
-        private void SetHighLight(InventoryItem item) {
+        protected virtual Action<InventoryItem> ResolveItemClickCallback() {
+            if (_chooseMode == ChooseMode.InventoryBurn) {
+                return OnItemClickedInventoryBurn;
+            }
+            if (_chooseMode == ChooseMode.InventoryFusion) {
+                return OnItemClickedInventoryFusion;
+            }
+            return OnItemClicked;
+        }
+
+        protected virtual void OnItemCreated(InventoryItem item) {
+        }
+
+        protected virtual void SetHighLight(InventoryItem item) {
             foreach (var iter in _items) {
                 iter.SetHighLight(iter.Item.playerData.heroId.Id == item.playerData.heroId.Id);
             }
@@ -535,13 +588,13 @@ namespace Scenes.FarmingScene.Scripts {
             UpdateItemInfo(item);
         }
 
-        private void UpdateItemInfo(InventoryItem item) {
+        protected virtual void UpdateItemInfo(InventoryItem item) {
             var playerData = item.playerData;
             SelectId = playerData.heroId;
             heroDescriptionPanel.SetInfo(playerData, DialogCanvas, HideButtonsAndPanels);
             ShowButtons(playerData, _chooseMode != ChooseMode.None);
             if (_isShowLockHero) {
-                heroDescriptionPanel.SetLockHero(() => { ShowButtons(playerData, _chooseMode != ChooseMode.None); });
+                heroDescriptionPanel.SetLockHero();
             }
         }
 
@@ -583,15 +636,20 @@ namespace Scenes.FarmingScene.Scripts {
 
         public void OnPopupClosedClicked() {
             ServiceLocator.Instance.Resolve<ISoundManager>().PlaySound(Audio.Tap);
-            heroDescriptionPopup.Hide();
         }
 
         public void OnActiveClicked() {
             ServiceLocator.Instance.Resolve<ISoundManager>().PlaySound(Audio.Tap);
 
+            var selectedPlayer = _playerStore.GetPlayerDataFromId(SelectId);
+            if (selectedPlayer != null && selectedPlayer.IsLocked()) {
+                DialogOK.ShowErrorMsgOnly(DialogCanvas, "Hero is locked");
+                return;
+            }
+
             if (_playerStore.GetActivePlayersAmount() >= 15) {
                 var str = "Hero max active reach";
-                DialogOK.ShowError(DialogCanvas, str);
+                DialogOK.ShowErrorMsgOnly(DialogCanvas, str);
                 return;
             }
 
@@ -609,7 +667,7 @@ namespace Scenes.FarmingScene.Scripts {
                     }
                     SortInventory();
                 } catch (Exception e) {
-                    DialogOK.ShowError(DialogCanvas, e.Message);
+                    DialogOK.ShowError(DialogCanvas, e);
                 } finally {
                     EndWait();
                 }
@@ -669,8 +727,7 @@ namespace Scenes.FarmingScene.Scripts {
 
         #region PRIVATE METHODS
 
-        private void HideButtonsAndPanels() {
-            heroDescriptionPopup.Hide();
+        protected void HideButtonsAndPanels() {
             heroDescriptionPanel.HideInfo();
             HideButtons();
         }
@@ -700,13 +757,13 @@ namespace Scenes.FarmingScene.Scripts {
             //     OnItemClicked(_items[index]);
         }
 
-        private void BeginWait() {
+        protected void BeginWait() {
             EndWait();
             _waiting ??= new WaitingUiManager(DialogCanvas);
             _waiting.Begin();
         }
 
-        private void EndWait() {
+        protected void EndWait() {
             if (_waiting == null) {
                 return;
             }
@@ -742,7 +799,7 @@ namespace Scenes.FarmingScene.Scripts {
             chooseMaterialButtons.ForEach(e => e.gameObject.SetActive(false));
         }
 
-        private void ShowButtons(PlayerData playerData, bool forChooseOnly) {
+        protected virtual void ShowButtons(PlayerData playerData, bool forChooseOnly) {
             if (forChooseOnly) {
                 activeButtons.ForEach(e => e.gameObject.SetActive(false));
                 deactiveButtons.ForEach(e => e.gameObject.SetActive(false));
@@ -767,7 +824,7 @@ namespace Scenes.FarmingScene.Scripts {
                     unlockNextDay.ForEach(e => e.gameObject.SetActive(false));
                 }
             } else {
-                activeButtons.ForEach(e => e.gameObject.SetActive(!playerData.active));
+                activeButtons.ForEach(e => e.gameObject.SetActive(!playerData.active && !playerData.IsLocked()));
                 deactiveButtons.ForEach(e => e.gameObject.SetActive(playerData.active));
                 var enableUpgrade = ServiceLocator.Instance.Resolve<IFeatureManager>().EnableUpgrade;
                 upgradeButtons.ForEach(e => {
@@ -800,7 +857,8 @@ namespace Scenes.FarmingScene.Scripts {
         public enum SortOrder2 {
             HighStatsFirst,
             HighRarityFirst,
-            NewestFirst
+            NewestFirst,
+            HighStakeFirst
         }
 
         public enum ActiveFilter {
@@ -814,7 +872,17 @@ namespace Scenes.FarmingScene.Scripts {
         public enum HeroTypeFilter {
             AllHeroesType,
             HeroOnly,
-            HeroSOnly
+            HeroSOnly,
+            RarityCommon,
+            RarityRare,
+            RaritySuperRare,
+            RarityEpic,
+            RarityLegend,
+            RaritySuperLegend,
+            RarityMega,
+            RaritySuperMega,
+            RarityMystic,
+            RaritySuperMystic
         }
 
         private void SetDataToDropDown() {
@@ -831,6 +899,7 @@ namespace Scenes.FarmingScene.Scripts {
             dropDown2.options.Add(new Dropdown.OptionData(languageManager.GetValue(LocalizeKey.ui_high_stats)));
             dropDown2.options.Add(new Dropdown.OptionData(languageManager.GetValue(LocalizeKey.ui_high_rarity)));
             dropDown2.options.Add(new Dropdown.OptionData(languageManager.GetValue(LocalizeKey.ui_newest)));
+            dropDown2.options.Add(new Dropdown.OptionData("High Stake"));
 
             dropDownHeroFilter.options.Add(
                 new Dropdown.OptionData(languageManager.GetValue(LocalizeKey.ui_filter_all_heroes)));
@@ -838,6 +907,9 @@ namespace Scenes.FarmingScene.Scripts {
                 new Dropdown.OptionData(languageManager.GetValue(LocalizeKey.ui_filter_bhero_only)));
             dropDownHeroFilter.options.Add(
                 new Dropdown.OptionData(languageManager.GetValue(LocalizeKey.ui_filter_heros_only)));
+            foreach (HeroRarity rarity in Enum.GetValues(typeof(HeroRarity))) {
+                dropDownHeroFilter.options.Add(new Dropdown.OptionData(rarity.ToString()));
+            }
 
             dropDownActiveFilter.options.Add(
                 new Dropdown.OptionData("All"));
@@ -871,7 +943,7 @@ namespace Scenes.FarmingScene.Scripts {
             dropDownActiveFilter.onValueChanged.AddListener(_ => SortInventory());
         }
 
-        private async void SortInventory() {
+        protected async void SortInventory() {
             _currentPage = 0;
             inputField.text = $"{_currentPage + 1}";
             var curActiveFilter = ConvertFromValue(dropDownActiveFilter.value);
@@ -922,7 +994,7 @@ namespace Scenes.FarmingScene.Scripts {
 
             var result = new List<PlayerData>();
             foreach (var t in list) {
-                result.Add(DefaultPlayerStoreManager.GeneratePlayerData(t));
+                result.Add(BHeroManager.GeneratePlayerData(t));
             }
             if (_totalHeroIds.Count == 0) {
                 _onSelectAll?.Invoke(false);
@@ -1048,11 +1120,11 @@ namespace Scenes.FarmingScene.Scripts {
         }
 
         private void FilterHeroesSuitableToUpgrade() {
-            // Gỡ ra Hero đang được chọn
+            // Gỡ ra Hero đang được chọn (ẩn thôi, giữ trong pool để tái dùng — không Destroy).
             var baseHero = _items.FirstOrDefault(e => e.Item.playerData.heroId == _baseHeroId);
             if (baseHero) {
                 _items.Remove(baseHero);
-                Destroy(baseHero.gameObject);
+                baseHero.gameObject.SetActive(false);
             }
 
             // Gỡ ra Hero khác level
@@ -1060,7 +1132,7 @@ namespace Scenes.FarmingScene.Scripts {
                 var diff = _items.Where(e => e.Item.playerData.level != _baseHeroLevel).ToList();
                 diff.ForEach(e => {
                     _items.Remove(e);
-                    Destroy(e.gameObject);
+                    e.gameObject.SetActive(false);
                 });
             }
         }
@@ -1102,10 +1174,12 @@ namespace Scenes.FarmingScene.Scripts {
             inputField.text = $"{valid}";
             _currentPage = valid - 1;
             scroller.gameObject.SetActive(false);
-            await InstantiateItems(true, _sortRarity, (SortOrder1)dropDown1.value, (SortOrder2)dropDown2.value,
-                (HeroTypeFilter)dropDownHeroFilter.value, ConvertFromValue(dropDownActiveFilter.value));
-            scroller.gameObject.SetActive(true);
-
+            try {
+                await InstantiateItems(true, _sortRarity, (SortOrder1)dropDown1.value, (SortOrder2)dropDown2.value,
+                    (HeroTypeFilter)dropDownHeroFilter.value, ConvertFromValue(dropDownActiveFilter.value));
+            } finally {
+                scroller.gameObject.SetActive(true);
+            }
         }
 
         public ChooseMode GetChooseMode() {
@@ -1154,7 +1228,8 @@ namespace Scenes.FarmingScene.Scripts {
             ResetRoi,
             InventoryBurn,
             InventoryFusion,
-            PreviewSummary
+            PreviewSummary,
+            MultiActiveToggle
         }
     }
 }

@@ -11,6 +11,8 @@ using Com.LuisPedroFonseca.ProCamera2D;
 
 using CreativeSpore.SuperTilemapEditor;
 
+using Cysharp.Threading.Tasks;
+
 using Engine.Activity;
 using Engine.Camera;
 using Engine.Collision;
@@ -67,7 +69,7 @@ namespace StoryMode.UI {
             _directionInputProcess = new DirectionInputProcess();
         }
 
-        public void Initialize(
+        public async UniTask Initialize(
             IHeroDetails hero,
             IStoryMapDetail storyMapDetail,
             IBossSkillDetails bossSkillDetails,
@@ -169,8 +171,10 @@ namespace StoryMode.UI {
             var locations = new List<Vector2Int>() {new(playerSpawn.x, playerSpawn.y)};
             manager.PlayerManager = new DefaultPlayerManager(manager, startLocation.transform,
                 storyMapDetail.Equipments, storyMapDetail.MaximumStats);
-            manager.PlayerManager.FirstInitPlayerPVE(locations);
-            //Set MainPlayer 
+            // Phải await: hero render qua IHeroSpriteLoader (path-load async). Trước khi decouple, dict đồng bộ
+            // nên Players[0] có ngay; giờ Preload yield → phải đợi mới đọc được. Mirror LevelView (main) đã await.
+            await manager.PlayerManager.FirstInitPlayerPVE(locations);
+            //Set MainPlayer
             _idxMainPlayer = 0;
             MainPlayer = manager.PlayerManager.Players[_idxMainPlayer];
             //

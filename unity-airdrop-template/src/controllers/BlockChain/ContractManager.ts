@@ -330,23 +330,23 @@ export class ContractManager{
     }
 
     async withdrawFromHeroIdV2(args: string): Promise<string> {
-        const data = JSON.parse(args) as {id: number, amount: number, tokenAddress: string};
-        return JSON.stringify(await this._heroStake.withdrawV2(data.id, data.amount, data.tokenAddress));
+        const data = JSON.parse(args) as {id: number, amount: number, category: number};
+        return JSON.stringify(await this._heroStake.withdrawV2(data.id, data.amount, data.category));
     }
 
     async stakeToHeroV2(args: string): Promise<string> {
-        const data = JSON.parse(args) as {walletAddress: string, id: number, amount: number, tokenAddress: string, category: number};
-        return JSON.stringify(await this._heroStake.depositV2(data.walletAddress, data.id, data.amount, data.tokenAddress, data.category));
+        const data = JSON.parse(args) as {walletAddress: string, id: number, amount: number, category: number};
+        return JSON.stringify(await this._heroStake.depositV2(data.walletAddress, data.id, data.amount, data.category));
     }
 
     async getStakeFromHeroIdV2(args: string): Promise<string> {
-        const data = JSON.parse(args) as {id: number, tokenAddress: string};
-        return await this._heroStake.getCoinBalanceV2(data.id, data.tokenAddress);
+        const data = JSON.parse(args) as {id: number, category: number};
+        return await this._heroStake.getCoinBalanceV2(data.id, data.category);
     }
 
     async getFeeFromHeroIdV2(args: string): Promise<string> {
-        const data = JSON.parse(args) as {id: number, tokenAddress: string};
-        return await this._heroStake.getWithdrawFeeV2(data.id, data.tokenAddress);
+        const data = JSON.parse(args) as {id: number, category: number};
+        return await this._heroStake.getWithdrawFeeV2(data.id, data.category);
     }
     
 

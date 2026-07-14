@@ -61,7 +61,7 @@ namespace Game.UI {
             _networkConfig =  ServiceLocator.Instance.Resolve<INetworkConfig>();
             _handle = new ObserverHandle();
             _handle.AddObserver(_chestRewardManager, new ChestRewardManagerObserver() {
-                    OnRewardChanged = UpdateValue,
+                    OnRewardBalanceChanged = UpdateValue,
             });
             UpdateValue();
         }
@@ -88,7 +88,7 @@ namespace Game.UI {
             }
         }
 
-        private void UpdateValue(BlockRewardType type, double value) {
+        private void UpdateValue(BlockRewardType type, DataType scope, double value) {
             if (!tokens.Contains(type)) {
                 return;
             }
@@ -100,7 +100,7 @@ namespace Game.UI {
             if (tokenMineType == TokenMineType.Network) {
                 var network = _networkConfig.NetworkType;
                 var dataType = RewardUtils.ConvertNetworkToDatatype(network);
-                value = tokens.Sum(t => _chestRewardManager.GetChestReward(t, dataType.ToString()));
+                value = tokens.Sum(t => _chestRewardManager.GetChestReward(t, dataType));
 
             } else {
                 value = tokens.Sum(t => _chestRewardManager.GetChestReward(t));

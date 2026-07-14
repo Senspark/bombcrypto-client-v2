@@ -58,17 +58,17 @@ namespace Engine.Manager {
             Event[id].AddListener(param);
         }
         
-        //Chỉ có 1 listener cho event này
+        // Idempotent per-callback: tránh duplicate cùng `param` được đăng ký nhiều lần,
+        // nhưng KHÔNG evict các callback khác. Trước đây `RemoveAllListeners` làm cho
+        // chỉ subscriber cuối còn sống → InventoryHeroS/L/CharacterItem ăn nhau, một
+        // trong số đó miss push.
         public static void AddUnique(Enum id, UnityAction<T> param) {
             if (!UniqueEvent.TryGetValue(id, out var value)) {
-                UnityEvent<T> newEvent = new UnityEvent<T>();
-                UniqueEvent.Add(id, newEvent);
+                value = new UnityEvent<T>();
+                UniqueEvent.Add(id, value);
             }
-            else {
-                value.RemoveAllListeners();
-            }
-
-            UniqueEvent[id].AddListener(param);
+            value.RemoveListener(param);
+            value.AddListener(param);
         }
         /// <summary>
         /// Xóa tác vụ khỏi thư viện.

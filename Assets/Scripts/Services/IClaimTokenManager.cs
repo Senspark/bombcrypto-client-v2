@@ -24,9 +24,33 @@ namespace App {
         }
     }
 
+    public enum ClaimPhase { None, Waiting, Submitting }
+    public enum ClaimEndReason { Success, PushTimeout, ConnectionLost, ServerError, Error }
+
+    public class ClaimTokenObserver {
+        public Action OnStateChanged;
+        public Action<ClaimEndReason> OnClaimFinalized;
+    }
+
     [Service(nameof(IClaimTokenManager))]
-    public interface IClaimTokenManager : IService {
-        Task<float> ClaimToken(BlockRewardType type, int code);
-        Task<ClaimHeroResponse> ClaimHero();
+    public interface IClaimTokenManager : IService, IObserverManager<ClaimTokenObserver> {
+        ClaimPhase Phase { get; }
+        int? InFlightCode { get; }
+        BlockRewardType? InFlightType { get; }
+
+        Task<ClaimSubmitResult> Claim(BlockRewardType type, int code);
+    }
+
+    public struct ClaimSubmitResult {
+        public float ClaimedAmount;
+        public int FusionFailAmount;
+    }
+
+    public class ClaimConnectionLostException : Exception {
+        public ClaimConnectionLostException(string reason) : base($"Connection lost: {reason}") { }
+    }
+
+    public class ClaimServerErrorException : Exception {
+        public ClaimServerErrorException(string reason) : base(reason) { }
     }
 }

@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
+using Cysharp.Threading.Tasks;
+
 using Data;
 
 using Senspark;
@@ -68,7 +70,7 @@ namespace Services {
             return GetItem(itemId);
         }
 
-        public async Task InitializeAsync() {
+        public async UniTask InitializeAsync() {
             if (_data != null) {
                 return;
             }

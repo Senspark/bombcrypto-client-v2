@@ -214,7 +214,7 @@ namespace Game.Dialog.Connects {
                 _userAccountManager.EraseGuest();
                 return true;
             } catch (Exception e) {
-                var info = await DialogError.ShowErrorDialog(_canvasDialog, e.Message);
+                var info = await DialogError.ShowErrorDialog(_canvasDialog, e);
                 await info.WaitForHide();
                 return false;
                 // ignore

@@ -381,7 +381,7 @@ namespace Scenes.TutorialScene.Scripts {
             // Plant Bomb
             {
                 BombPvp bomb = null;
-                if (Application.isMobilePlatform || Application.isEditor) {
+                if (Application.isMobilePlatform || AppConfig.IsEditor) {
                     _instructionsTap.SetPosPointerHand(levelScenePvpTutorial.ButtonBombTransform
                         .GetComponent<RectTransform>());
                     levelScenePvpTutorial.ShowElementGui(ElementGui.ButtonBomb);
@@ -1042,7 +1042,7 @@ namespace Scenes.TutorialScene.Scripts {
                 await SceneLoader.LoadSceneAsync(sceneName);
             } catch (Exception e) {
                 if (e is ServerMaintenanceException se) {
-                    DialogOK.ShowErrorAndKickToConnectScene(canvasDialog, "Server is under maintenance");
+                    DialogOK.ShowErrorMsgOnlyAndKickToConnectScene(canvasDialog, "Server is under maintenance");
                     // var dialog = await DialogMaintenance.Create();
                     // dialog.Show(canvasDialogTop);
                     // await dialog.WaitMaintenanceFinish(se.SecondWait);
@@ -1054,7 +1054,7 @@ namespace Scenes.TutorialScene.Scripts {
                     if (le.Error == LoginException.ErrorType.WrongVersion) {
                         const string msg =
                             "Your current version is outdated and needs to be updated to run the game";
-                        DialogOK.ShowError(canvasDialogTop, msg);
+                        DialogOK.ShowErrorMsgOnly(canvasDialogTop, msg);
                         return;
                     }
                 }
@@ -1067,8 +1067,7 @@ namespace Scenes.TutorialScene.Scripts {
                     NoAwaitWithoutTryCatch(async () => { await StepGetReward(isShowDialogReward); });
                     return;
                 }
-                DialogOK.ShowError(canvasDialogTop, e.Message);
-                // DialogOK.ShowErrorAndKickToConnectScene(canvasDialogTop, e.Message);
+                DialogOK.ShowError(canvasDialogTop, e);
             }
         }
 

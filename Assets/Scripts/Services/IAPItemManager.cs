@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using App;
 using App.BomberLand;
+using Cysharp.Threading.Tasks;
 using Data;
 using Newtonsoft.Json;
 using Services.IapAds;
@@ -118,7 +119,7 @@ namespace Services {
             return _freeGoldRewardConfig;
         }
 
-        public async Task SyncOfferShops() {
+        public async UniTask SyncOfferShops() {
             if (_packShopResultTask == null) {
                 _packShopResultTask = new TaskCompletionSource<bool>();
                 try {

@@ -49,6 +49,10 @@ class BlockChainCommand {
     static readonly STAKE_TO_HERO_V2: string = "STAKE_TO_HERO_V2";
     static readonly GET_STAKE_FROM_HERO_ID_V2: string = "GET_STAKE_FROM_HERO_ID_V2";
     static readonly GET_FEE_FROM_HERO_ID_V2: string = "GET_FEE_FROM_HERO_ID_V2";
+    static readonly BRIDGE_GET_DEPOSITED: string = "BRIDGE_GET_DEPOSITED";
+    static readonly BRIDGE_GET_WITHDRAWN: string = "BRIDGE_GET_WITHDRAWN";
+    static readonly BRIDGE_DEPOSIT: string = "BRIDGE_DEPOSIT";
+    static readonly BRIDGE_WITHDRAW: string = "BRIDGE_WITHDRAW";
 }
 
 export default BlockChainCommand;

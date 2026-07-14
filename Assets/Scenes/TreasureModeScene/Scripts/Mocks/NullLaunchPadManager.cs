@@ -1,7 +1,10 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Cysharp.Threading.Tasks;
 
 using App;
+
+using Game.UI;
 
 using Services.Rewards;
 
@@ -14,11 +17,11 @@ namespace Scenes.TreasureModeScene.Scripts.Mocks {
         public void Destroy() {
         }
 
-        public Task SyncRemoteData() {
-            return Task.CompletedTask;
+        public UniTask SyncRemoteData() {
+            return UniTask.CompletedTask;
         }
 
-        public bool CanShowInLaunchPad(IRewardType type, NetworkSymbol symbol) {
+        public bool CanShowInLaunchPad(IRewardType type, DataType symbol) {
             return false;
         }
 
@@ -26,15 +29,15 @@ namespace Scenes.TreasureModeScene.Scripts.Mocks {
             return false;
         }
 
-        public bool CanClaim(IRewardType type, NetworkSymbol symbol, float rewardValue) {
+        public bool CanClaim(IRewardType type, DataType symbol, float rewardValue) {
             return false;
         }
 
-        public (float, string) GetClaimFee(IRewardType type, NetworkSymbol symbol) {
+        public (float, string) GetClaimFee(IRewardType type, DataType symbol) {
             throw new System.NotImplementedException();
         }
 
-        public TokenData GetData(IRewardType type, NetworkSymbol symbol) {
+        public TokenData GetData(IRewardType type, DataType symbol) {
             throw new System.NotImplementedException();
         }
 
@@ -66,7 +69,7 @@ namespace Scenes.TreasureModeScene.Scripts.Mocks {
             throw new System.NotImplementedException();
         }
 
-        public IRewardType CreateRewardType(string tokenType) {
+        public IRewardType CreateRewardType(BlockRewardType type) {
             throw new System.NotImplementedException();
         }
     }

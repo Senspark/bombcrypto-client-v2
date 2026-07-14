@@ -145,6 +145,7 @@ namespace Share.Scripts.Communicate {
         /// 3. User logout để vào bằng 1 account khác
         /// </summary>
         public void ResetSession() {
+            if (AppConfig.IsEditor) return;
             _jwtSession.Reset();
             AppConfig.Reset();
         }

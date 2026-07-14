@@ -93,9 +93,9 @@ namespace Scenes.MainMenuScene.Scripts {
                     Hide();
                 } catch (Exception e) {
                     if (e is ErrorCodeException) {
-                        await DialogError.ShowError(DialogCanvas, e.Message, ()=>{_isClicked = false;});    
+                        await DialogError.ShowError(DialogCanvas, e, ()=>{_isClicked = false;});    
                     } else {
-                        DialogOK.ShowError(DialogCanvas, e.Message, ()=>{_isClicked = false;});
+                        DialogOK.ShowError(DialogCanvas, e, ()=>{_isClicked = false;});
                     }
                 } finally {
                     waiting.End();

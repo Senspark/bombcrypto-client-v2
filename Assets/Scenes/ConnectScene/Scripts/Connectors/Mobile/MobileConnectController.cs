@@ -1,7 +1,5 @@
 using System.Threading.Tasks;
 
-using Analytics.Modules;
-
 using App;
 
 using Senspark;
@@ -18,7 +16,6 @@ namespace Scenes.ConnectScene.Scripts.Connectors.Mobile {
             IMasterUnityCommunication unityCommunicate,
             bool isProduction,
             ILogManager logManager,
-            IAnalyticsModuleLogin analytics,
             IAuthManager authManager,
             ITaskDelay taskDelay,
             IUserAccountManager userAccountManager,
@@ -31,7 +28,6 @@ namespace Scenes.ConnectScene.Scripts.Connectors.Mobile {
             _stateData = new StateData(
                 unityCommunicate,
                 logManager,
-                analytics,
                 authManager,
                 userAccountManager,
                 taskDelay,

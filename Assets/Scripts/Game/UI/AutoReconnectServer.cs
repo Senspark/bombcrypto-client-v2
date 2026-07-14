@@ -181,7 +181,7 @@ namespace Game.UI {
         private void Kick() {
             _isBeingKicked = true;
             var reason = "The account is having a data conflict with server.\n Try login again";
-            DialogOK.ShowError(canvasDialog, reason, App.Utils.KickToConnectScene);
+            DialogOK.ShowErrorMsgOnly(canvasDialog, reason, App.Utils.KickToConnectScene);
         }
     }
 }

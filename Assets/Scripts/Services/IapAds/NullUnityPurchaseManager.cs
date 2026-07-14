@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
+using Cysharp.Threading.Tasks;
+
 namespace Services.IapAds {
     public class NullUnityPurchaseManager : IUnityPurchaseManager {
         public Task<bool> Initialize() {
@@ -11,8 +13,8 @@ namespace Services.IapAds {
         public void Destroy() {
         }
 
-        public Task SyncData() {
-            return Task.CompletedTask;
+        public UniTask SyncData() {
+            return UniTask.CompletedTask;
         }
 
         public Task<PurchaseResult> PurchaseItem(string productId) {

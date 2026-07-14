@@ -182,6 +182,10 @@ namespace App {
                     ["walletAddress"] = walletAddress
                 };
                 var response = await _unityCommunication.UnityToReact.CallBlockChain(BlockChainCommand.GET_CLAIMABLE_HERO, data);
+                if (response.IsNullOrEmpty()) {
+                    _logManager.Log("response is null or empty");
+                    return 0;
+                }
                 var result = int.Parse(response);
                 _logManager.Log($"result = {result}");
                 return result;
@@ -555,8 +559,8 @@ namespace App {
             }
         }
 
-        public async Task<string> ClaimToken(int tokenType, double amount, int nonce, string[] details, string signature,
-            string formatType, int waitConfirmations) {
+        public async Task<ClaimAndProcessResult> ClaimToken(int tokenType, double amount, int nonce, string[] details, string signature,
+            string formatType, int waitConfirmations, string walletAddress) {
             try {
                 _logManager.Log();
                 var data = new JObject {
@@ -566,11 +570,12 @@ namespace App {
                     ["details"] = new JArray(details),
                     ["signature"] = signature,
                     ["formatType"] = formatType,
-                    ["waitConfirmations"] = waitConfirmations
+                    ["waitConfirmations"] = waitConfirmations,
+                    ["walletAddress"] = walletAddress
                 };
                 var response = await _unityCommunication.UnityToReact.CallBlockChain(BlockChainCommand.CLAIM_TOKEN, data);
-                var result = response;
-                _logManager.Log($"result = {result}");
+                var result = JsonConvert.DeserializeObject<ClaimAndProcessResult>(response);
+                _logManager.Log($"result txHash={result?.txHash} processResult={(result?.processResult != null ? "yes" : "null")}");
                 return result;
             } catch (Exception ex) {
                 Debug.LogException(ex);
@@ -749,19 +754,18 @@ namespace App {
             }
         }
 
-        public async Task<bool> StakeToHero(string walletAddress, int id, double amount, string tokenAddress, StakeHeroCategory category) {
+        public async Task<StakeResult> StakeToHero(string walletAddress, int id, double amount, StakeHeroCategory category) {
             try {
                 _logManager.Log();
                 var data = new JObject {
                     ["walletAddress"] = walletAddress,
                     ["id"] = id,
                     ["amount"] = amount,
-                    ["tokenAddress"] = tokenAddress,
                     ["category"] = (int)category
                 };
                 var response = await _unityCommunication.UnityToReact.CallBlockChain(BlockChainCommand.STAKE_TO_HERO_V2, data);
-                var result = bool.Parse(response);
-                _logManager.Log($"result stake to hero = {result}");
+                var result = JsonConvert.DeserializeObject<StakeResult>(response) ?? new StakeResult { success = false, txHash = "" };
+                _logManager.Log($"result stake to hero = {result.success} tx={result.txHash}");
                 return result;
             } catch (Exception ex) {
                 Debug.LogException(ex);
@@ -769,17 +773,17 @@ namespace App {
             }
         }
 
-        public async Task<bool> WithDrawFromHeroId(int id, double amount, string tokenAddress) {
+        public async Task<StakeResult> WithDrawFromHeroId(int id, double amount, StakeHeroCategory category) {
             try {
                 _logManager.Log();
                 var data = new JObject {
                     ["id"] = id,
                     ["amount"] = amount,
-                    ["tokenAddress"] = tokenAddress
+                    ["category"] = (int)category
                 };
                 var response = await _unityCommunication.UnityToReact.CallBlockChain(BlockChainCommand.WITHDRAW_FROM_HERO_ID_V2, data);
-                var result = bool.Parse(response);
-                _logManager.Log($"withdraw from hero = {result}");
+                var result = JsonConvert.DeserializeObject<StakeResult>(response) ?? new StakeResult { success = false, txHash = "" };
+                _logManager.Log($"withdraw from hero = {result.success} tx={result.txHash}");
                 return result;
             } catch (Exception ex) {
                 Debug.LogException(ex);
@@ -787,12 +791,12 @@ namespace App {
             }
         }
 
-        public async Task<double> GetStakeFromHeroId(int id, string tokenAddress) {
+        public async Task<double> GetStakeFromHeroId(int id, StakeHeroCategory category) {
             try {
                 _logManager.Log();
                 var data = new JObject {
                     ["id"] = id,
-                    ["tokenAddress"] = tokenAddress
+                    ["category"] = (int)category
                 };
                 var response = await _unityCommunication.UnityToReact.CallBlockChain(BlockChainCommand.GET_STAKE_FROM_HERO_ID_V2, data);
                 var result = double.Parse(response, NumberStyles.Number, CultureInfo.InvariantCulture) ;
@@ -804,12 +808,12 @@ namespace App {
             }
         }
 
-        public async Task<double> GetFeeFromHeroId(int id, string tokenAddress) {
+        public async Task<double> GetFeeFromHeroId(int id, StakeHeroCategory category) {
             try {
                 _logManager.Log();
                 var data = new JObject {
                     ["id"] = id,
-                    ["tokenAddress"] = tokenAddress
+                    ["category"] = (int)category
                 };
                 var response = await _unityCommunication.UnityToReact.CallBlockChain(BlockChainCommand.GET_FEE_FROM_HERO_ID_V2, data);
                 var result = double.Parse(response, NumberStyles.Number, CultureInfo.InvariantCulture) ;
@@ -849,6 +853,77 @@ namespace App {
                 var response = await _unityCommunication.UnityToReact.SendToReact(ReactCommand.DEPOSIT_AIRDROP, data);
                 var result = bool.Parse(response);
                 _logManager.Log($"result = {result}");
+                return result;
+            } catch (Exception ex) {
+                Debug.LogException(ex);
+                throw;
+            }
+        }
+
+        public async Task<string> GetBridgeDeposited(string walletAddress, string token) {
+            try {
+                _logManager.Log();
+                var data = new JObject {
+                    ["walletAddress"] = walletAddress,
+                    ["token"] = token
+                };
+                var response = await _unityCommunication.UnityToReact.CallBlockChain(BlockChainCommand.BRIDGE_GET_DEPOSITED, data);
+                _logManager.Log($"result = {response}");
+                return response;
+            } catch (Exception ex) {
+                Debug.LogException(ex);
+                throw;
+            }
+        }
+
+        public async Task<string> GetBridgeWithdrawn(string walletAddress, string token) {
+            try {
+                _logManager.Log();
+                var data = new JObject {
+                    ["walletAddress"] = walletAddress,
+                    ["token"] = token
+                };
+                var response = await _unityCommunication.UnityToReact.CallBlockChain(BlockChainCommand.BRIDGE_GET_WITHDRAWN, data);
+                _logManager.Log($"result = {response}");
+                return response;
+            } catch (Exception ex) {
+                Debug.LogException(ex);
+                throw;
+            }
+        }
+
+        public async Task<BridgeTxResult> BridgeDeposit(string walletAddress, string token, string amountWei) {
+            try {
+                _logManager.Log();
+                var data = new JObject {
+                    ["walletAddress"] = walletAddress,
+                    ["token"] = token,
+                    ["amountWei"] = amountWei
+                };
+                var response = await _unityCommunication.UnityToReact.CallBlockChain(BlockChainCommand.BRIDGE_DEPOSIT, data);
+                var result = JsonConvert.DeserializeObject<BridgeTxResult>(response) ?? new BridgeTxResult { success = false, txHash = "" };
+                _logManager.Log($"bridge deposit success={result.success} tx={result.txHash}");
+                return result;
+            } catch (Exception ex) {
+                Debug.LogException(ex);
+                throw;
+            }
+        }
+
+        public async Task<BridgeTxResult> BridgeWithdraw(string walletAddress, string token, string grossWei,
+            string beforeWei, string signature) {
+            try {
+                _logManager.Log();
+                var data = new JObject {
+                    ["walletAddress"] = walletAddress,
+                    ["token"] = token,
+                    ["grossWei"] = grossWei,
+                    ["beforeWei"] = beforeWei,
+                    ["signature"] = signature
+                };
+                var response = await _unityCommunication.UnityToReact.CallBlockChain(BlockChainCommand.BRIDGE_WITHDRAW, data);
+                var result = JsonConvert.DeserializeObject<BridgeTxResult>(response) ?? new BridgeTxResult { success = false, txHash = "" };
+                _logManager.Log($"bridge withdraw success={result.success} tx={result.txHash}");
                 return result;
             } catch (Exception ex) {
                 Debug.LogException(ex);

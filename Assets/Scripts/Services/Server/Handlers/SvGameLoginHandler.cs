@@ -150,7 +150,19 @@ namespace Services.Server.Handlers {
             var nickName = data.GetUtfString("name");
             var secondUserName = data.GetUtfString("second_username");
             var result = new LoginResponse(newUser, walletAddress, secondUserName, nickName, miningToken);
+            ApplyCurrentDataType(data);
             _tcs.TrySetResult(result);
+        }
+
+        // Server echo data_type (DataType server dùng để key ví) trong login response — nguồn chuẩn
+        // cho current network của ChestRewardManager (thay cho việc client tự đoán từ acc.network).
+        private void ApplyCurrentDataType(ISFSObject data) {
+            var dataType = data.GetUtfString("data_type");
+            if (string.IsNullOrEmpty(dataType)) {
+                return;
+            }
+            var chestRewardManager = ServiceLocator.Instance.Resolve<IChestRewardManager>();
+            chestRewardManager.SetCurrentNetwork(RewardUtils.ParseDataType(dataType));
         }
 
         public void OnExtensionResponse(string cmd, int requestId, byte[] data) {
@@ -171,6 +183,7 @@ namespace Services.Server.Handlers {
                     var nickName = outData.GetUtfString("name");
                     var secondUserName = outData.GetUtfString("second_username");
                     var result = new LoginResponse(newUser, walletAddress, secondUserName, nickName, miningToken);
+                    ApplyCurrentDataType(outData);
                     if (outData.ContainsKey("send_log")) {
                         var serverNotifyManager = ServiceLocator.Instance.Resolve<IServerNotifyManager>();
                         serverNotifyManager.DispatchEvent(e => e.OnClientSendLog?.Invoke());
@@ -192,13 +205,10 @@ namespace Services.Server.Handlers {
         private LoginRequest Login(ILoginData data) {
             var t = data.LoginDataType;
             switch (t) {
-                case LoginDataType.Bombcrypto: {
-                    var d = (LoginDataBombcrypto)data;
-                    return LoginBombcrypto(d.UserName, d.Password, string.Empty, d.Signature, d.LoginType, d.Slogan);
-                }
                 case LoginDataType.Bomberland: {
                     var d = (LoginDataBomberland)data;
-                    return LoginBomberLand(d.LoginType, d.Network, d.JwtToken, d.UserName, d.Slogan, d.DeviceType);
+                    return LoginBomberLand(d.LoginType, d.Network, d.JwtToken, d.UserName, d.Slogan, d.DeviceType,
+                        d.Landing);
                 }
                 case LoginDataType.Telegram: {
                     var d = (LoginDataTelegram)data;
@@ -214,44 +224,14 @@ namespace Services.Server.Handlers {
             }
         }
 
-        private LoginRequest LoginBombcrypto(
-            string username,
-            string password,
-            string activationCode,
-            string signature,
-            LoginType loginType,
-            string slogan
-        ) {
-            signature ??= string.Empty;
-            var parameters = new SFSObject();
-            var timestamp = DateTime.UtcNow.Ticks / TimeSpan.TicksPerMillisecond;
-            var hash = _hasher.GetHash($"{username.ToLower()}|LOGIN|{timestamp}|{_serverConfig.SaltKey}");
-            var data = new SFSObject();
-            data.PutUtfString(SFSDefine.SFSField.PLAYER_NAME, username);
-            data.PutUtfString(SFSDefine.SFSField.PASSWORD, password);
-            data.PutInt(SFSDefine.SFSField.VERSION_CODE, _serverConfig.Version);
-            data.PutInt(SFSDefine.SFSField.LOGIN_TYPE, (int)loginType);
-            data.PutUtfString(SFSDefine.SFSField.SLOGAN, slogan);
-            data.PutUtfString(SFSDefine.SFSField.ACTIVATION_CODE, activationCode);
-            parameters.PutUtfString(SFSDefine.SFSField.LOGIN_CODE, "" /* FIXME */);
-            data.PutInt(SFSDefine.SFSField.PLATFORM, (int)UserAccount.GetPlatform());
-
-            parameters.PutSFSObject("data", data);
-            parameters.PutUtfString("hash", hash);
-            parameters.PutLong("timestamp", timestamp);
-            data.PutUtfString(SFSDefine.SFSField.SIGNATURE, signature);
-
-            _logManager.Log($"Send CMD=LOGIN, data={parameters.ToJson()}");
-            return new LoginRequest(username, string.Empty, _serverConfig.Zone, parameters);
-        }
-
         private LoginRequest LoginBomberLand(
             int loginType,
             string network,
             string jwt,
             string username,
             string slogan,
-            DeviceType deviceType
+            DeviceType deviceType,
+            string landing
         ) {
             network ??= loginType == (int)LoginType.Guest ? "GUEST" : "TR";
             jwt ??= string.Empty;
@@ -273,6 +253,9 @@ namespace Services.Server.Handlers {
             data.PutInt(SFSDefine.SFSField.PLATFORM, (int)UserAccount.GetPlatform());
 
             data.PutUtfString("data_type", network);
+            if (landing != null) {
+                data.PutUtfString("landing", landing);
+            }
             data.PutUtfString(SFSDefine.SFSField.LoginTokenData, jwt);
             data.PutUtfString("device_type", dv);
 

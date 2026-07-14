@@ -15,6 +15,41 @@ export async function getWalletAddress(logger: Logger, provider: BrowserProvider
     }
 }
 
+export type AccountSwitchResult =
+    | { kind: 'matched'; address: string }
+    | { kind: 'not_active'; active: string; connected: string[] }
+    | { kind: 'not_connected'; connected: string[] }
+    | { kind: 'error' };
+
+// Skip wallet_revokePermissions here — revoking would also drop AppKit's session.
+// Signing uses accounts[0], so we require [0] === target, not merely "target is in the list".
+export async function requestAccountSwitch(
+    logger: Logger,
+    provider: BrowserProvider,
+    target: string,
+): Promise<AccountSwitchResult> {
+    try {
+        await provider.send('wallet_requestPermissions', [{ eth_accounts: {} }]);
+        const raw = await provider.send('eth_accounts', []) as string[];
+        const connected = (raw ?? []).map(a => a.toLowerCase());
+        const targetLower = target.toLowerCase();
+        if (connected.length === 0) {
+            return { kind: 'not_connected', connected };
+        }
+        const active = connected[0];
+        if (active === targetLower) {
+            return { kind: 'matched', address: active };
+        }
+        if (connected.includes(targetLower)) {
+            return { kind: 'not_active', active, connected };
+        }
+        return { kind: 'not_connected', connected };
+    } catch (error) {
+        logger.errors('Error requesting account switch:', error);
+        return { kind: 'error' };
+    }
+}
+
 export async function getBalance(logger: Logger, provider: BrowserProvider): Promise<bigint | null> {
     try {
         const address = await getWalletAddress(logger, provider);
@@ -52,14 +87,29 @@ export async function getChainId(logger: Logger, provider: BrowserProvider): Pro
 export async function forceSwapChain(
     logger: Logger,
     provider: BrowserProvider,
-    chainId: ChainId,
+    rpc: NetworkRpc,
 ): Promise<boolean> {
     try {
-        await provider.send('wallet_switchEthereumChain', [{chainId: chainId.hex}]);
+        await provider.send('wallet_switchEthereumChain', [{chainId: rpc.chainIdHex}]);
         return true;
     } catch (error) {
-        logger.errors('Error switching chain:', error);
-        return false;
+        if (!isUnrecognizedChainError(error)) {
+            logger.errors('Error switching chain:', error);
+            return false;
+        }
+        logger.log(`${TAG} Chain ${rpc.chainIdHex} not in wallet, adding it`);
+        const added = await addNetwork(logger, provider, rpc);
+        if (!added) {
+            return false;
+        }
+        try {
+            await provider.send('wallet_switchEthereumChain', [{chainId: rpc.chainIdHex}]);
+            return true;
+        } catch (retryError) {
+            // Most wallets switch automatically after add; some don't and surface a benign error here.
+            logger.errors('Error switching chain after add:', retryError);
+            return false;
+        }
     }
 }
 
@@ -86,6 +136,21 @@ export async function addNetwork(
         logger.errors('Error adding network:', error);
         return false;
     }
+}
+
+function isUnrecognizedChainError(error: unknown): boolean {
+    if (!error || typeof error !== 'object') {
+        return false;
+    }
+    const codes: unknown[] = [];
+    const messages: unknown[] = [];
+    const e = error as Record<string, any>;
+    codes.push(e.code, e.error?.code, e.info?.error?.code, e.data?.originalError?.code);
+    messages.push(e.message, e.error?.message, e.info?.error?.message, e.shortMessage);
+    if (codes.some(c => c === 4902 || c === '4902')) {
+        return true;
+    }
+    return messages.some(m => typeof m === 'string' && (m.includes('Unrecognized chain') || m.includes('4902')));
 }
 
 export async function estimateGas(

@@ -16,10 +16,13 @@ namespace App {
         private readonly Lazy<IAnalytics> _analytics = new(ServiceLocator.Instance.Resolve<IAnalytics>);
         private readonly IServerDispatcher _serverDispatcher;
         private readonly IServerManager _serverManager;
+        private readonly IDedupServerRequester _dedup;
 
-        public DefaultStoryModeServerBridge(IServerDispatcher serverDispatcher, IServerManager serverManager) {
+        public DefaultStoryModeServerBridge(IServerDispatcher serverDispatcher, IServerManager serverManager,
+            IDedupServerRequester dedup) {
             _serverDispatcher = serverDispatcher;
             _serverManager = serverManager;
+            _dedup = dedup;
         }
 
         public async Task<IStoryMapDetail> StoryModeGetMapDetail(int level, HeroId heroId,
@@ -99,11 +102,12 @@ namespace App {
             return result;
         }
         
-        public async Task<IAdventureLevelDetail> AdventureGetLevelDetail() {
-            var data = new SFSObject();
-            var response = await _serverDispatcher.SendCmd(new CmdGetAdventureLevelDetail(data));
-            return OnAdventureGetLevelDetail(response);
-        }
+        public Task<IAdventureLevelDetail> AdventureGetLevelDetail()
+            => _dedup.Dedup<IAdventureLevelDetail>(SFSDefine.SFSCommand.GET_ADVENTURE_LEVEL_DETAIL_V2, async () => {
+                var data = new SFSObject();
+                var response = await _serverDispatcher.SendCmd(new CmdGetAdventureLevelDetail(data));
+                return OnAdventureGetLevelDetail(response);
+            });
         
         private IAdventureLevelDetail OnAdventureGetLevelDetail(ISFSObject data) {
             var levelMapsArray = data.GetSFSArray("level_map");

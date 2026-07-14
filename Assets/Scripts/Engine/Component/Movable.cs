@@ -93,7 +93,7 @@ namespace Engine.Components {
 
         public FaceDirection CurrentFace { get; private set; } = FaceDirection.Down;
 
-        public Vector2 VelocityPhysics => _body == null ? Vector2.zero : _body.velocity;
+        public Vector2 VelocityPhysics => _body == null ? Vector2.zero : _body.linearVelocity;
 
         public Vector2? PositionPredict { get; set; }
 
@@ -267,7 +267,7 @@ namespace Engine.Components {
 
         public void ForceStop() {
             if (_body) {
-                _body.velocity = Vector2.zero;
+                _body.linearVelocity = Vector2.zero;
             }
             Velocity = Vector2.zero;
         }
@@ -285,7 +285,7 @@ namespace Engine.Components {
                     var v = velocity;
 #if UsePhysic
                     v *= Mathf.Clamp01(1.0f - delta * damping);
-                    _body.velocity = v;
+                    _body.linearVelocity = v;
 #else
                     _body.velocity = Vector2.zero;
                     var tf = transform;
@@ -294,7 +294,7 @@ namespace Engine.Components {
 #endif
                     UpdateFace(velocity);
                 } else {
-                    _body.velocity = Vector2.zero;
+                    _body.linearVelocity = Vector2.zero;
                 }
             }
             

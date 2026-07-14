@@ -100,7 +100,7 @@ namespace App {
         public static void Logout() {
             var unityCommunication = ServiceLocator.Instance.Resolve<IMasterUnityCommunication>();
             unityCommunication.ResetSession();
-            if (Application.isEditor || AppConfig.IsMobile()) {
+            if (AppConfig.IsEditor || AppConfig.IsMobile()) {
                 ReloadToConnectScene();
             } else {
                 UniTask.Void(async () => {
@@ -209,6 +209,17 @@ namespace App {
                 source.SetException(ex);
             }
             return await mainTask;
+        }
+
+        public static async Task<T> TimeoutAfter<T>(this Task<T> task, int ms,
+            ITaskDelay taskDelay = null) {
+            taskDelay ??= WebGLTaskDelay.Instance;
+            var delay = taskDelay.Delay(ms);
+            var completeTask = await Task.WhenAny(task, delay);
+            if (completeTask == delay) {
+                throw new TimeoutException();
+            }
+            return await task;
         }
 
         public static async Task<T> Retry<T>(Func<Task<T>> func, int retryTime) {

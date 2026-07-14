@@ -12,6 +12,5 @@ namespace App {
         // GameVariant GameVariant { get; }
         string Domain { get; }
         string NetworkName { get; }
-        IBlockchainConfig BlockchainConfig { get; }
     }
 }

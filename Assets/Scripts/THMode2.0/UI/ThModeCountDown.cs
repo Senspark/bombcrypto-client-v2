@@ -65,7 +65,7 @@ public class ThModeCountDown : MonoBehaviour {
         int minutes = Mathf.FloorToInt((timeLeft % 3600) / 60);
         int seconds = Mathf.FloorToInt(timeLeft % 60);
         
-        time.text = $"{hours:D2}h: {minutes:D2}m: {seconds:D2}s";
+        time.text = $"<color=#FFBB4E>Renew in </color><color=#FFFFFF>{hours:D2}h: {minutes:D2}m: {seconds:D2}s</color>";
     }
     
     private double GetSecondsLeft(double futureTotalSeconds) {

@@ -1,26 +1,48 @@
-import React from 'react'
+import React, {useState} from 'react'
 import styled from 'styled-components'
+import {Row} from "antd"
 
 import '@assets/fonts/fonts.css';
 import button from '@assets/images/webgame polygon/button_link.png'
 import homepageIcon from '@assets/images/webgame polygon/icon_homepage.png'
 import marketIcon from '@assets/images/webgame polygon/icon_market.png'
 import dappsIcon from '@assets/images/webgame polygon/icon_dapps.png'
-import {Row} from "antd";
+import customrpcIcon from '@assets/images/webgame polygon/icon_customrpc.png'
+import {QRCodeCanvas} from 'qrcode.react'
+import Metamask from "./Metamask.tsx";
+import {getCurrentLanding, openLandingMode} from "../controllers/LandingUtils.ts";
+
+const ANDROID_STORE_URL = 'https://play.google.com/store/apps/details?id=com.senspark.bomber.land.boom.battle.bombgames';
 
 type InformationT = {
     sold?: number;
 };
 
-const Wrapper = styled.div``
+type LinkItem = {
+    key: string;
+    label: string;
+    icon?: string;
+    width?: number;
+    onClick: () => void;
+};
+
+const BUTTON_WIDTH = 150;
+const BUTTON_MARGIN = 4;
+
+const Wrapper = styled.div`
+    width: 100%;
+`
 
 const IconContainer = styled.div<{ $width?: number }>`
-    width: ${props => props.$width || 229}px;
+    width: ${props => props.$width || BUTTON_WIDTH}px;
     height: 66px;
-    margin-left: 5px;
-    margin-right: 5px;
+    margin-left: ${BUTTON_MARGIN}px;
+    margin-right: ${BUTTON_MARGIN}px;
     cursor: pointer;
+    flex-shrink: 0;
     background-image: url(${button});
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
     overflow: visible;
     display: flex;
     align-items: center;
@@ -28,19 +50,19 @@ const IconContainer = styled.div<{ $width?: number }>`
 `
 
 const IconImage = styled.img`
-    width: 40px;
-    margin-left: 15px;
+    width: 28px;
+    margin-left: 10px;
     margin-top: -15px;
     max-width: 100%;
     max-height: 100%;
     position: relative;
-    left: 10px;
+    left: 6px;
 `
 
 const IconText = styled.span`
     margin-top: -15px;
-    margin-left: -15px;
-    font-size: 25px;
+    margin-left: -10px;
+    font-size: 15px;
     color: white;
     text-shadow: -2px -2px 0 #8d49b8,
     2px -2px 0 #8d49b8,
@@ -51,35 +73,50 @@ const IconText = styled.span`
     font-family: ${'GameFont'};
 `
 
+const QrContainer = styled.div`
+    width: 70px;
+    height: 70px;
+    margin: 0 8px;
+    flex-shrink: 0;
+`
+
 const Information: React.FC<InformationT> = () => {
-    const goToHomepage = () => {
-        window.open('https://bombcrypto.io')
-    }
+    const [openMetamask, setOpenMetamask] = useState(false);
+    const otherMode = getCurrentLanding() === 'treasure' ? 'adventure' : 'treasure';
 
-    const goToMarket = () => {
-        window.open('https://market.bombcrypto.io/')
-    }
-
-    const goToDapps = () => {
-        window.open('https://dapps.bombcrypto.io/bridge')
-    }
+    const links: LinkItem[] = [
+        {key: 'homepage', label: 'Homepage', icon: homepageIcon, onClick: () => window.open('https://bombcrypto.io')},
+        {key: 'market', label: 'Market', icon: marketIcon, onClick: () => window.open('https://market.bombcrypto.io/')},
+        {key: 'dapps', label: 'Dapps', icon: dappsIcon, onClick: () => window.open('https://dapps.bombcrypto.io/bridge')},
+        {key: 'leaderboard', label: 'Leaderboard', onClick: () => window.open('https://treasure-mode.bombcrypto.io/')},
+        {
+            key: 'switchMode',
+            label: otherMode === 'treasure' ? 'Treasure Mode' : 'Adventure/PvP',
+            width: 190,
+            onClick: () => openLandingMode(otherMode),
+        },
+        {key: 'rpc', label: 'RPC urls', icon: customrpcIcon, onClick: () => setOpenMetamask(true)},
+    ];
 
     return (
         <Wrapper>
-            <Row  justify='center'>
-                <IconContainer onClick={goToHomepage}>
-                    <IconImage src={homepageIcon} alt=""/>
-                    <IconText>Homepage</IconText>
-                </IconContainer>
-                <IconContainer onClick={goToMarket}>
-                    <IconImage src={marketIcon} alt=""/>
-                    <IconText>Market</IconText>
-                </IconContainer>
-                <IconContainer onClick={goToDapps}>
-                    <IconImage src={dappsIcon} alt=""/>
-                    <IconText>Dapps</IconText>
-                </IconContainer>
+            <Row justify='center' align='middle' wrap={false}>
+                {links.map(link => (
+                    <IconContainer key={link.key} $width={link.width} onClick={link.onClick}>
+                        {link.icon && <IconImage src={link.icon} alt=""/>}
+                        <IconText>{link.label}</IconText>
+                    </IconContainer>
+                ))}
+                <QrContainer>
+                    <QRCodeCanvas
+                        value={ANDROID_STORE_URL}
+                        size={70}
+                        style={{cursor: 'pointer'}}
+                        onClick={() => window.open(ANDROID_STORE_URL)}
+                    />
+                </QrContainer>
             </Row>
+            <Metamask open={openMetamask} setOpen={setOpenMetamask}/>
         </Wrapper>
     )
 }

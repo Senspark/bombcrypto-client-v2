@@ -78,12 +78,12 @@ namespace Scenes.FarmingScene.Scripts {
         public bool DisableUpgrade { get; set; }
 
         private List<CharacterItem> _items;
-        private IPlayerStorageManager _playerStore;
+        private IBHeroManager _playerStore;
         private IServerManager _serverManager;
         private IFeatureManager _featureManager;
         private IPveHeroStateManager _pveHeroStateManager;
         private IHouseStorageManager _houseStoreManager;
-        private IPlayerStorageManager _playerStoreManager;
+        private IBHeroManager _playerStoreManager;
         private ObserverHandle _handle;
         private ISoundManager _soundManager;
         private IUserSolanaManager _userSolanaManager;
@@ -95,11 +95,11 @@ namespace Scenes.FarmingScene.Scripts {
         protected override void Awake() {
             base.Awake();
             _serverManager = ServiceLocator.Instance.Resolve<IServerManager>();
-            _playerStore = ServiceLocator.Instance.Resolve<IPlayerStorageManager>();
+            _playerStore = ServiceLocator.Instance.Resolve<IBHeroManager>();
             _featureManager = ServiceLocator.Instance.Resolve<IFeatureManager>();
             _pveHeroStateManager = ServiceLocator.Instance.Resolve<IPveHeroStateManager>();
             _houseStoreManager = ServiceLocator.Instance.Resolve<IHouseStorageManager>();
-            _playerStoreManager = ServiceLocator.Instance.Resolve<IPlayerStorageManager>();
+            _playerStoreManager = ServiceLocator.Instance.Resolve<IBHeroManager>();
             _soundManager = ServiceLocator.Instance.Resolve<ISoundManager>();
             _userSolanaManager = ServiceLocator.Instance.Resolve<IServerManager>().UserSolanaManager;
             _handle = new ObserverHandle();

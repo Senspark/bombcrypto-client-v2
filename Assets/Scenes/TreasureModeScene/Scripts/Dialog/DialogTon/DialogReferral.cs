@@ -95,7 +95,7 @@ namespace Game.Dialog {
                     var referralData = await serverManager.UserTonManager.GetReferralData();
                     UpdateUI(referralData);
                 } catch (Exception e) {
-                    DialogOK.ShowError(_canvas, e.Message);
+                    DialogOK.ShowError(_canvas, e);
                 } finally {
                     waiting.End();
                 }
@@ -157,7 +157,7 @@ namespace Game.Dialog {
                     UpdateLocalStarCore();
                     DoStarCoreAnimation();
                 } catch (Exception e) {
-                    DialogOK.ShowError(_canvas, e.Message);
+                    DialogOK.ShowError(_canvas, e);
                 } finally {
                     waiting.End();
                 }

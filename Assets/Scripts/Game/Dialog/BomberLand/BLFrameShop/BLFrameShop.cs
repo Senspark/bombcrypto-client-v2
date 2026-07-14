@@ -211,7 +211,7 @@ namespace Game.Dialog.BomberLand.BLFrameShop {
                 segment.AutoLayoutVertical();
                 segment.SelectFirstItem();
             } catch (Exception e) {
-                DialogOK.ShowError(canvasDialog, e.Message);
+                DialogOK.ShowError(canvasDialog, e);
             }
         }
         
@@ -351,7 +351,7 @@ namespace Game.Dialog.BomberLand.BLFrameShop {
                         requestBuyCostume);
                 }
             } catch (Exception e) {
-                DialogOK.ShowError(canvasDialog, e.Message);
+                DialogOK.ShowError(canvasDialog, e);
             }
         }
 
@@ -528,7 +528,7 @@ namespace Game.Dialog.BomberLand.BLFrameShop {
                 segment.AutoLayoutVertical();
                 segment.SelectFirstItem();
             } catch (Exception e) {
-                DialogOK.ShowError(canvasDialog, e.Message);
+                DialogOK.ShowError(canvasDialog, e);
             }
         }
 
@@ -543,7 +543,7 @@ namespace Game.Dialog.BomberLand.BLFrameShop {
                 segment.AutoLayoutVertical();
                 segment.SelectFirstItem();
             } catch (Exception e) {
-                DialogOK.ShowError(canvasDialog, e.Message);
+                DialogOK.ShowError(canvasDialog, e);
             }
         }
 

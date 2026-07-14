@@ -136,7 +136,7 @@ namespace Scenes.StoryModeScene.Scripts
                         };
                         _analytics.TrackAds(category, adsResult);
                     }
-                    DialogOK.ShowError(DialogCanvas, e.Message);
+                    DialogOK.ShowError(DialogCanvas, e);
                     ShowGemsButton();
                 } finally {
                     waiting.End();
@@ -178,7 +178,7 @@ namespace Scenes.StoryModeScene.Scripts
                     _storyLoseCallback.OnRevive?.Invoke(result.Hp);
                     Hide();
                 } catch (Exception e) {
-                    DialogOK.ShowError(DialogCanvas, e.Message,() => {
+                    DialogOK.ShowError(DialogCanvas, e,() => {
                         _isClickGems = false;
                     });
                 } finally {

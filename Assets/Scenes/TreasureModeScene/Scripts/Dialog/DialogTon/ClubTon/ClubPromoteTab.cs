@@ -158,7 +158,7 @@ public class ClubPromoteTab : MonoBehaviour {
                     scrollView.content.anchoredPosition = Vector2.zero;
                     scrollView.StopMovement();
                 } catch (Exception ex) {
-                    DialogError.ShowError(_canvas, ex.Message);
+                    DialogError.ShowError(_canvas, ex);
                     Debug.LogError(ex);
                 } finally {
                     EnablePromoteConfirm(false);

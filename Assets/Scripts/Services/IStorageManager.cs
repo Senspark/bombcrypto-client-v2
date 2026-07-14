@@ -53,7 +53,6 @@ namespace App {
         IMinStakeHeroManager MinStakeHero { get; set; }
         IRepairShieldConfig RepairShieldConfig { get; set; }
         IRockPackConfigs RockPackConfigs { get; set; }
-        BurnHeroData LastBurnHeroData { get; set; }
         IBurnHeroConfig BurnHeroConfig { get; set; }
         IUpgradeShieldConfig UpgradeShieldConfig { get; set; }//
         IRentHousePackageConfigs RentHousePackConfigs { get; set; }

@@ -54,7 +54,7 @@ namespace Game.Dialog.Connects {
                     await _authManager.ForgotPassword(email);
                     Resolve(email);
                 } catch (Exception e) {
-                    DialogOK.ShowError(Data.CurrentCanvas, e.Message);
+                    DialogOK.ShowError(Data.CurrentCanvas, e);
                 } finally {
                     HideWaiting();
                 }

@@ -116,7 +116,7 @@ namespace Scenes.ConnectScene.Scripts.Connectors {
                             await UniTask.Delay(500);  
                             App.Utils.KickToConnectScene();
                         } catch (Exception e) {
-                            DialogOK.ShowError(_canvasDialog, e.Message);
+                            DialogOK.ShowError(_canvasDialog, e);
                         }
                         waiting.End();
                     });

@@ -162,7 +162,7 @@ namespace Scenes.StoryModeScene.Scripts {
         }
 
         public void ShowDialogOk(Canvas canvasDialog, string message) {
-            DialogOK.ShowError(canvasDialog, message);
+            DialogOK.ShowErrorMsgOnly(canvasDialog, message);
         }
 
         public void UpdateButtonBoosterUsed(BoosterType type, BoosterStatus boosterStatus, Func<bool> checkIsInJail) {
@@ -178,7 +178,7 @@ namespace Scenes.StoryModeScene.Scripts {
         }
 
         public async Task ShowDialogError(Canvas canvasDialog, string message) {
-            var dialog = await DialogError.ShowErrorDialog(canvasDialog, message);
+            var dialog = await DialogError.ShowErrorMsgOnlyDialog(canvasDialog, message);
             await dialog.WaitForHide();
         }
 

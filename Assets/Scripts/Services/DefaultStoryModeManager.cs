@@ -47,7 +47,7 @@ namespace App {
         public float PlayForFunFee => 0.1f;
 
         private readonly IStorageManager _storeManager;
-        private readonly IPlayerStorageManager _playerStoreManager;
+        private readonly IBHeroManager _playerStoreManager;
         private readonly ILanguageManager _languageManager;
         private readonly IServerManager _serverManager;
         private readonly IChestRewardManager _chestRewardManager;
@@ -56,7 +56,7 @@ namespace App {
 
         public DefaultStoryModeManager(
             IStorageManager storeManager,
-            IPlayerStorageManager playerStoreManager,
+            IBHeroManager playerStoreManager,
             ILanguageManager languageManager,
             IServerManager serverManager,
             IChestRewardManager chestRewardManager) {

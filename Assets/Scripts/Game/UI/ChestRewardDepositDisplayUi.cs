@@ -23,7 +23,7 @@ namespace Game.UI {
             _chestRewardManager = ServiceLocator.Instance.Resolve<IChestRewardManager>();
             _handle = new ObserverHandle();
             _handle.AddObserver(_chestRewardManager, new ChestRewardManagerObserver() {
-                    OnSameNetworkRewardChanged = UpdateValue,
+                    OnRewardBalanceChanged = UpdateValue,
                 });
             UpdateValue(_chestRewardManager.GetChestReward(tokenType));
 
@@ -33,29 +33,18 @@ namespace Game.UI {
             _handle.Dispose();
         }
         
-        private void UpdateValue(BlockRewardType type, double value, string network) {
+        private void UpdateValue(BlockRewardType type, DataType scope, double value) {
             if (type != tokenType) {
                 return;
             }
-            if (dataType == ConvertToNetwork(network)) {
+            if (dataType == scope) {
                 UpdateValue(value);
             }
         }
-        
+
         private void UpdateValue(double value) {
             var totalVal = App.Utils.FormatBcoinValue(value);
             coinTxt.text = totalVal;
-        }
-        
-        private DataType ConvertToNetwork(string network) {
-            return network switch {
-                "BSC" => DataType.BSC,
-                "POLYGON" => DataType.POLYGON,
-                "TR" => DataType.TR,
-                "TON" => DataType.TON,
-                "SOL" => DataType.SOL,
-                _ => DataType.BSC
-            };
         }
     }
 }

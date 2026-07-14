@@ -6,6 +6,8 @@ using Engine.Components;
 using Engine.Entities;
 using Engine.Utils;
 
+using Senspark;
+
 using UnityEngine;
 
 namespace BomberLand.Component {
@@ -29,13 +31,23 @@ namespace BomberLand.Component {
             _playerColor = playerColor;
         }
 
-        public void SetAnimation() {
-            var sprites = resource.GetSpriteMoving(_playerType, _playerColor, FaceDirection.Down);
+        // Thân hero qua IHeroSpriteLoader (path-load) thay cho dict AnimationResource.
+        // (Loader phục vụ idle/move từ cùng clip Down nên SetAnimation/SetIdle dùng chung.)
+        public async void SetAnimation() {
+            var loader = ServiceLocator.Instance.Resolve<IHeroSpriteLoader>();
+            var sprites = await loader.LoadClip(_playerType, _playerColor, FaceDirection.Down);
+            if (!imageAnimation) {
+                return;
+            }
             imageAnimation.StartLoop(sprites);
         }
 
-        public void SetIdle() {
-            var sprites = resource.GetSpriteIdle(_playerType, _playerColor, FaceDirection.Down);
+        public async void SetIdle() {
+            var loader = ServiceLocator.Instance.Resolve<IHeroSpriteLoader>();
+            var sprites = await loader.LoadClip(_playerType, _playerColor, FaceDirection.Down);
+            if (!imageAnimation) {
+                return;
+            }
             imageAnimation.StartLoop(sprites);
         }
     }

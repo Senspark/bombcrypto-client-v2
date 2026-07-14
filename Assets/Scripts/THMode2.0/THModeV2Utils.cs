@@ -78,6 +78,18 @@ public class THModeV2Utils {
                 case ThModeConstant.PoolSuperLegend:
                     PoolData.PoolSL = _poolDatas;
                     break;
+                case ThModeConstant.PoolMega:
+                    PoolData.PoolMega = _poolDatas;
+                    break;
+                case ThModeConstant.PoolSuperMega:
+                    PoolData.PoolSuperMega = _poolDatas;
+                    break;
+                case ThModeConstant.PoolMystic:
+                    PoolData.PoolMystic = _poolDatas;
+                    break;
+                case ThModeConstant.PoolSuperMystic:
+                    PoolData.PoolSuperMystic = _poolDatas;
+                    break;
                 case ThModeConstant.Period:
                     PoolData.Period = (int)variable.Value;
                     break;
@@ -104,6 +116,10 @@ public class THModeV2Utils {
     
     private static List<float[]> CreateRewardDetail() {
         var result = new List<float[]> {
+            new float[] { },
+            new float[] { },
+            new float[] { },
+            new float[] { },
             new float[] { },
             new float[] { },
             new float[] { },
@@ -151,7 +167,11 @@ public class THModeV2Utils {
         CurrentPoolSelect.Add(PoolData.PoolE.FirstOrDefault(e => e.Type == rewardType));
         CurrentPoolSelect.Add(PoolData.PoolL.FirstOrDefault(e => e.Type == rewardType));
         CurrentPoolSelect.Add(PoolData.PoolSL.FirstOrDefault(e => e.Type == rewardType));
-        
+        CurrentPoolSelect.Add(PoolData.PoolMega?.FirstOrDefault(e => e.Type == rewardType));
+        CurrentPoolSelect.Add(PoolData.PoolSuperMega?.FirstOrDefault(e => e.Type == rewardType));
+        CurrentPoolSelect.Add(PoolData.PoolMystic?.FirstOrDefault(e => e.Type == rewardType));
+        CurrentPoolSelect.Add(PoolData.PoolSuperMystic?.FirstOrDefault(e => e.Type == rewardType));
+
         return CurrentPoolSelect;
     }
     
@@ -172,7 +192,11 @@ public class THModeV2Utils {
             3 => PoolData.PoolE[(int)poolType].MaxPool,
             4 => PoolData.PoolL[(int)poolType].MaxPool,
             5 => PoolData.PoolSL[(int)poolType].MaxPool,
-            _ => throw new ArgumentOutOfRangeException(nameof(poolType), poolType, null)
+            6 => PoolData.PoolMega[(int)poolType].MaxPool,
+            7 => PoolData.PoolSuperMega[(int)poolType].MaxPool,
+            8 => PoolData.PoolMystic[(int)poolType].MaxPool,
+            9 => PoolData.PoolSuperMystic[(int)poolType].MaxPool,
+            _ => throw new ArgumentOutOfRangeException(nameof(rarity), rarity, "Rarity must be 0..9")
         };
     }
     

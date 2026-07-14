@@ -182,32 +182,29 @@ public class THModeV2Manager : ObserverManager<THModeObserver>, ITHModeV2Manager
     }
 
     private void Log(THModeV2PoolData data) {
-        _logManager.Log("Update Pool Common ----------------");
-        foreach (var c in data.PoolC) {
-            _logManager.Log($"Type = {c.Type} : Amount = {c.RemainingReward}");
-        }
-        _logManager.Log("Update Pool Rare ----------------");
-        foreach (var c in data.PoolR) {
-            _logManager.Log($"Type = {c.Type} : Amount = {c.RemainingReward}");
-        }
-        _logManager.Log("Update Pool Super Rare ----------------");
-        foreach (var c in data.PoolSR) {
-            _logManager.Log($"Type = {c.Type} : Amount = {c.RemainingReward}");
-        }
-        _logManager.Log("Update Pool Epic ----------------");
-        foreach (var c in data.PoolE) {
-            _logManager.Log($"Type = {c.Type} : Amount = {c.RemainingReward}");
-        }
-        _logManager.Log("Update Pool Legend ----------------");
-        foreach (var c in data.PoolL) {
-            _logManager.Log($"Type = {c.Type} : Amount = {c.RemainingReward}");
-        }
-        _logManager.Log("Update Pool Super Legend ----------------");
-        foreach (var c in data.PoolSL) {
-            _logManager.Log($"Type = {c.Type} : Amount = {c.RemainingReward}");
-        }
+        LogPool("Common", data.PoolC);
+        LogPool("Rare", data.PoolR);
+        LogPool("Super Rare", data.PoolSR);
+        LogPool("Epic", data.PoolE);
+        LogPool("Legend", data.PoolL);
+        LogPool("Super Legend", data.PoolSL);
+        LogPool("Mega", data.PoolMega);
+        LogPool("Super Mega", data.PoolSuperMega);
+        LogPool("Mystic", data.PoolMystic);
+        LogPool("Super Mystic", data.PoolSuperMystic);
 
         _logManager.Log($"Period = {_poolData.Period}");
+    }
+
+    private void LogPool(string label, PoolData[] pool) {
+        _logManager.Log($"Update Pool {label} ----------------");
+        if (pool == null) {
+            _logManager.Log("(null)");
+            return;
+        }
+        foreach (var c in pool) {
+            _logManager.Log($"Type = {c.Type} : Amount = {c.RemainingReward}");
+        }
     }
 
     public void OnConnection() {

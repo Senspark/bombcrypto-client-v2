@@ -14,10 +14,10 @@ namespace Ton.ui {
         [SerializeField]
         private List<GameObject> maps;
 
-        private IPlayerStorageManager _playerStoreManager;
+        private IBHeroManager _playerStoreManager;
 
         public void Awake() {
-            _playerStoreManager = ServiceLocator.Instance.Resolve<IPlayerStorageManager>();
+            _playerStoreManager = ServiceLocator.Instance.Resolve<IBHeroManager>();
         }
 
         public void Start() {

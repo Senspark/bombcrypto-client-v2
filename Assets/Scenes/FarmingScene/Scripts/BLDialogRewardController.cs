@@ -40,12 +40,22 @@ namespace Scenes.FarmingScene.Scripts {
             _networkType = networkType;
         }
 
+        public static bool IsBridge(BlockRewardType type) {
+            return type is BlockRewardType.BcoinBridge or BlockRewardType.SenBridge;
+        }
+
+        private bool IsEvmLogin() {
+            return _networkType is NetworkType.Binance or NetworkType.Polygon;
+        }
+
+        private DataType CurrentNetwork => RewardUtils.ConvertNetworkToDatatype(_networkType);
+
         public bool CanDeposit(TokenData tokenData) {
             if (AppConfig.IsSolana())
                 return true;
             var featureEnable = _featureManager.EnableDeposit;
             var tokenEnable = tokenData.enableDeposit;
-            var correctNetwork = tokenData.NetworkSymbol == _networkType;
+            var correctNetwork = IsBridge(tokenData.tokenName) ? IsEvmLogin() : tokenData.networkSymbol == CurrentNetwork;
             return featureEnable && tokenEnable && correctNetwork;
         }
 
@@ -53,8 +63,8 @@ namespace Scenes.FarmingScene.Scripts {
             var currentReward = GetClaimableValue(tokenData, type);
             var featureEnable = _featureManager.EnableClaim;
             var tokenEnable = tokenData.enableClaim;
-            var correctNetwork = tokenData.NetworkSymbol == _networkType;
-            var canClaim = _launchPadManager.CanClaim(type, tokenData.NetworkSymbol, currentReward);
+            var correctNetwork = IsBridge(tokenData.tokenName) ? IsEvmLogin() : tokenData.networkSymbol == CurrentNetwork;
+            var canClaim = _launchPadManager.CanClaim(type, tokenData.networkSymbol, currentReward);
             return featureEnable && tokenEnable && correctNetwork && canClaim;
         }
 
@@ -62,7 +72,9 @@ namespace Scenes.FarmingScene.Scripts {
             if (!_featureManager.EnableDeposit) {
                 throw new Exception("Not support");
             }
-            if (data.RefTokenData.NetworkSymbol != _networkType || !data.RefTokenData.enableDeposit) {
+            var tokenData = data.RefTokenData;
+            var correctNetwork = IsBridge(tokenData.tokenName) ? IsEvmLogin() : tokenData.networkSymbol == CurrentNetwork;
+            if (!correctNetwork || !tokenData.enableDeposit) {
                 throw new Exception("Not allow to deposit");
             }
         }
@@ -73,51 +85,25 @@ namespace Scenes.FarmingScene.Scripts {
             }
             var tokenData = data.RefTokenData;
             var rewardType = data.RefRewardType;
-            if (tokenData.NetworkSymbol != _networkType || !tokenData.enableClaim) {
+            if (tokenData.networkSymbol != CurrentNetwork || !tokenData.enableClaim) {
                 throw new Exception("Not allow to claim");
             }
             var currentReward = GetClaimableValue(tokenData, rewardType);
-            var canClaim = _launchPadManager.CanClaim(rewardType, tokenData.NetworkSymbol, currentReward);
+            var canClaim = _launchPadManager.CanClaim(rewardType, tokenData.networkSymbol, currentReward);
             if (!canClaim) {
                 throw new Exception("Cannot claim");
             }
         }
 
-        public async Task<ClaimCoinResult> ClaimCoin(DataWallet data) {
-            string message = null;
-            var claimed = 0d;
-
-            try {
-                ThrowIfCannotClaim(data);
-                var result = await _claimTokenManager.ClaimToken(data.RefRewardType.Type, data.RefTokenData.code);
-                claimed += result;
-            } catch (Exception ex) {
-                message = ex.Message;
+        public async Task<ClaimCoinResult> WaitForClaimCompletion(DataWallet data, float claimed) {
+            if (claimed <= 0) {
+                throw new Exception("Claim Failed");
             }
-
-            if (claimed > 0) {
-                var (balanceChanged, newBalance) = await WaitForBalanceChanged(data.RefRewardType);
-                return new ClaimCoinResult {
-                    Successful = balanceChanged,
-                    ClaimValue = claimed,
-                    NewBalance = newBalance,
-                };
-            }
-
-            message = !string.IsNullOrWhiteSpace(message) ? message : "Claim Failed";
-            throw new Exception(message);
-        }
-
-        public async Task<ClaimHeroResult> ClaimHero() {
-            var result = await _claimTokenManager.ClaimHero();
-            var lostAmount = 0;
-            if (result.Succeed) {
-                lostAmount = result.ProcessDetails?.fusionFailAmount ?? 0;
-                await _serverManager.General.SyncHero(true);
-            }
-            return new ClaimHeroResult {
-                Response = result,
-                LostHeroAmount = lostAmount
+            var (balanceChanged, newBalance) = await WaitForBalanceChanged(data.RefRewardType);
+            return new ClaimCoinResult {
+                Successful = balanceChanged,
+                ClaimValue = claimed,
+                NewBalance = newBalance,
             };
         }
 
@@ -166,8 +152,8 @@ namespace Scenes.FarmingScene.Scripts {
         }
         
         private float GetClaimableValue(TokenData tokenData, IRewardType type) {
-            var currentReward = _chestRewardManager.GetChestRewardByNetwork(type, tokenData.NetworkSymbol) +
-                                _chestRewardManager.GetClaimPendingRewardByNetwork(type, tokenData.NetworkSymbol);
+            var currentReward = _chestRewardManager.GetChestRewardByNetwork(type, tokenData.networkSymbol) +
+                                _chestRewardManager.GetClaimPendingRewardByNetwork(type, tokenData.networkSymbol);
 
             if (type.Type == BlockRewardType.Hero) {
                 currentReward += _blockchainClaimableHero;
@@ -179,11 +165,6 @@ namespace Scenes.FarmingScene.Scripts {
             public bool Successful;
             public double ClaimValue;
             public double NewBalance;
-        }
-
-        public class ClaimHeroResult {
-            public ClaimHeroResponse Response;
-            public int LostHeroAmount;
         }
 
         public class BlockchainHeroAmount {

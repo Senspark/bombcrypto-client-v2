@@ -21,7 +21,7 @@ namespace Game.UI {
 
         public async void OnBtnClicked() {
             _soundManager.PlaySound(Audio.Tap);
-            var dialog = await DialogInventoryCreator.Create();
+            var dialog = await DialogInventoryV2.Create();
             dialog.ShowLockHero();
             dialog.Show(canvasDialog);
             dialog.OnDidHide(() => {

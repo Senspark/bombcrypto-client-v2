@@ -3,9 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Analytics;
-using Analytics.Modules;
 using App;
-using CustomSmartFox;
 using Cysharp.Threading.Tasks;
 using Exceptions;
 using Game.ConnectControl;
@@ -25,12 +23,12 @@ namespace Scenes.ConnectScene.Scripts.Connectors {
     public class GameReadyController : IGameReadyController {
         public static bool IgnoreMaintenance;
 
+        public ModeResult ModeResult { get; private set; }
+
         private readonly Action<GameReadyProgress> _onProgressUpdate;
         private readonly CancellationTokenSource _cancellation;
         private readonly Canvas _canvasDialog;
 
-        private IAnalyticsModuleLogin _analyticsModuleLogin;
-        private Analytics.Modules.LoginType _analyticsLoginType = Analytics.Modules.LoginType.Unknown;
         private UniTaskCompletionSource _task;
 
         private bool _isPlayAnimationLoading;
@@ -42,6 +40,7 @@ namespace Scenes.ConnectScene.Scripts.Connectors {
             _canvasDialog = canvasDialog;
             _onProgressUpdate = onProgressUpdate;
             _cancellation = new CancellationTokenSource();
+            ModeResult = new ModeResult(false, true, LandingMode.Adventure);
         }
 
         public void ResetProgress() {
@@ -64,23 +63,27 @@ namespace Scenes.ConnectScene.Scripts.Connectors {
                 var cancel = _cancellation.Token;
                 UniTask.Void(async c => {
                     try {
+                        // Deployment-level config (landing mode) — phải load trước login để loginData gửi kèm landing.
+                        await RuntimeConfig.LoadAsync(new DefaultLogManager(AppConfig.EnableLog));
                         var acc = await InitServices();
-                        forceToMainMenu = AppConfig.IsTournament();
                         var keepContinue = await LogUserIn(acc, isForceLogin);
                         if (keepContinue) {
-                            ActionType actionType;
-                            if ((!forceToMainMenu && acc.loginType == LoginType.Wallet) || IsGoStraitToThMode()) {
-                                actionType = ActionType.EnteringTreasureHunt;
+                            ModeResult = ModeAccess.Resolve(
+                                acc.isUserFi,
+                                AppConfig.IsTournament(),
+                                AppConfig.IsAirDrop(),
+                                RuntimeConfig.Landing);
+
+                            if (ModeResult.Landing == LandingMode.Treasure) {
                                 keepContinue = await LoadForTh();
                             } else {
-                                actionType = ActionType.EnteringMainMenu;
                                 keepContinue = true; // Đem loadForMain vào Main Menu --- await LoadForMain();
                             }
                             if (keepContinue) {
-                                await InitBeforeComplete(actionType, progressEnd);
+                                await InitBeforeComplete(progressEnd);
                                 
                                 //DevHoang_20250725: Load blockchain data here to avoid login fail
-                                if (AppConfig.IsBscOrPolygon()) {
+                                if (AppConfig.IsBscOrPolygon() && ModeResult.Landing == LandingMode.Treasure) {
                                     InitBlockchainData();
                                 }
                             }
@@ -119,10 +122,6 @@ namespace Scenes.ConnectScene.Scripts.Connectors {
         }
 
 
-        private bool IsGoStraitToThMode() {
-            return AppConfig.IsAirDrop();
-        }
-
         public void Cancel() {
             _isPlayAnimationLoading = false;
             App.Utils.Logout();
@@ -148,7 +147,7 @@ namespace Scenes.ConnectScene.Scripts.Connectors {
             var isProdBuild = AppConfig.IsProduction;
             var isEnableLog = AppConfig.EnableLog;
             var isSimulated = AppConfig.Simulated;
-            var isEditor = Application.isEditor;
+            var isEditor = AppConfig.IsEditor;
             var webParams = WebGLUtils.GetUrlParams();
             if (webParams.TryGetValue("enable_log", out var val)) {
                 if (val == "true") {
@@ -158,18 +157,16 @@ namespace Scenes.ConnectScene.Scripts.Connectors {
             await ServiceUtils.InitializeBaseServices(isProdBuild, isEnableLog);
             
             var userAccountManager = ServiceLocator.Instance.Resolve<IUserAccountManager>();
-            var encoder = ServiceLocator.Instance.Resolve<IExtResponseEncoder>();
             var unityCommunication = ServiceLocator.Instance.Resolve<IMasterUnityCommunication>();
             var logManager = new SimpleLogManager(isEnableLog);
-            _analyticsModuleLogin = new FirebaseAnalyticsModuleLogin(isProdBuild || isEditor, logManager);
             
             if (AppConfig.IsSolana() || AppConfig.IsTon()) {
                 await unityCommunication.Handshake();
             }
             
             var webglUtils = ServiceLocator.Instance.Resolve<IWebGLBridgeUtils>();
-            var connectController = new DefaultConnectController(encoder, unityCommunication, userAccountManager, logManager, webglUtils,
-                _analyticsModuleLogin, _canvasDialog, isProdBuild, IgnoreMaintenance);
+            var connectController = new DefaultConnectController(unityCommunication, userAccountManager, logManager, webglUtils,
+                _canvasDialog, isProdBuild, IgnoreMaintenance);
             var acc = await connectController.StartFlow();
             unityCommunication.JwtSession.SetAccount(acc);
             UpdateLoadingBar(0,30,"Validate data",150);
@@ -230,12 +227,6 @@ namespace Scenes.ConnectScene.Scripts.Connectors {
             var storageManager = ServiceLocator.Instance.Resolve<IStorageManager>();
 
             try {
-                _analyticsLoginType = acc.loginType switch {
-                    LoginType.UsernamePassword => Analytics.Modules.LoginType.Senspark,
-                    LoginType.Guest => Analytics.Modules.LoginType.Guest,
-                    _ => Analytics.Modules.LoginType.Unknown
-                };
-                
                 UpdateLoadingBar(30,40,"Connecting");
                 await serverManager.Connect(45);
                 if (_cancellation.IsCancellationRequested) {
@@ -246,7 +237,6 @@ namespace Scenes.ConnectScene.Scripts.Connectors {
                 var loginData = GetLoginData(acc);
                 var res = await serverManager.Login(loginData, isForceLogin);
 
-                _analyticsModuleLogin.TrackAction(ActionType.LoginSuccess, _analyticsLoginType);
                 if (_cancellation.IsCancellationRequested) {
                     return false;
                 }
@@ -271,7 +261,6 @@ namespace Scenes.ConnectScene.Scripts.Connectors {
             } catch (Exception e) {
                 _loadingQueue.Clear();
                 if (e is not LoginException) {
-                    _analyticsModuleLogin.TrackAction(ActionType.LoginFailed, _analyticsLoginType);
                     userAccountManager.EraseData();
                 }
                 throw;
@@ -314,7 +303,7 @@ namespace Scenes.ConnectScene.Scripts.Connectors {
             var launchPadManager = ServiceLocator.Instance.Resolve<ILaunchPadManager>();
             var informationManager = ServiceLocator.Instance.Resolve<IInformationManager>();
             var financeUserLoader = ServiceLocator.Instance.Resolve<IFinanceUserLoader>();
-            var playerStoreManager = ServiceLocator.Instance.Resolve<IPlayerStorageManager>();
+            var playerStoreManager = ServiceLocator.Instance.Resolve<IBHeroManager>();
 
             try {
                 _isPlayAnimationLoading = false;
@@ -337,12 +326,13 @@ namespace Scenes.ConnectScene.Scripts.Connectors {
 
                 return !_cancellation.IsCancellationRequested;
             } catch (Exception e) {
+                Debug.LogException(e);
                 throw new LoginException(LoginException.ErrorType.LoadThMode,
                     "Loading Problems, please try again after a few seconds.");
             }
         }
 
-        private async UniTask InitBeforeComplete(ActionType actionType, int progressEnd) {
+        private async UniTask InitBeforeComplete(int progressEnd) {
             var analytics = ServiceLocator.Instance.Resolve<IAnalytics>();
             var logManager = ServiceLocator.Instance.Resolve<ILogManager>();
             var configManager = ServiceLocator.Instance.Resolve<IPvPServerConfigManager>();
@@ -351,7 +341,8 @@ namespace Scenes.ConnectScene.Scripts.Connectors {
             // WebGL Airdrop không cần config pvp
             //DevHoang: Open for all platforms
             // if (!AppConfig.IsAirDrop()) {
-            if (true) {
+            // Treasure landing không vào PvP → bỏ qua fetch PvP config + ping các /ping zone server
+            if (RuntimeConfig.Landing == LandingMode.Adventure) {
                 var pingManager = new DefaultPingManager(logManager, configManager);
                 await pingManager.Initialize();
                 ServiceLocator.Instance.Provide(pingManager);
@@ -364,7 +355,6 @@ namespace Scenes.ConnectScene.Scripts.Connectors {
             analytics.TrackConversionActiveUser();
 
             // Completed
-            _analyticsModuleLogin.TrackAction(actionType, _analyticsLoginType);
         }
 
         public static ILoginData GetLoginData(UserAccount acc) {

@@ -188,7 +188,7 @@ namespace Scenes.AdventureMenuScene.Scripts {
                     dialog.End();
                     
                 } catch (Exception e) {
-                    DialogOK.ShowError(canvasDialog, e.Message);
+                    DialogOK.ShowError(canvasDialog, e);
                 }
             });
         }

@@ -47,6 +47,14 @@ namespace Game.Dialog {
             _targetRarityUpgrade = targetRarityUpgrade;
             _callBackTargetUpgradeRarity = callBackTargetUpgradeRarity;
 
+            const int expected = (int)Rarity.Mystic + 1;
+            if (rarityGroups.Count < expected || rarityLightAvatarImgs.Count < expected) {
+                Debug.LogWarning(
+                    $"[FusionItemDisplayPolygon] DialogFusionPolygon.prefab has {rarityGroups.Count} rarityGroups / " +
+                    $"{rarityLightAvatarImgs.Count} rarityLightAvatarImgs; expected {expected} (Common..Mystic, " +
+                    "SuperMystic is result-only and not selectable).");
+            }
+
             RefreshUIAfterChooseRarity();
         }
 
@@ -79,15 +87,17 @@ namespace Game.Dialog {
 
         private void RefreshUIAfterChooseRarity() {
             for (var i = 0; i < rarityGroups.Count; i++) {
-                if (i == _targetRarityUpgrade) {
-                    rarityGroups[i].alpha = 1f;
-                } else {
-                    rarityGroups[i].alpha = 0.5f;
-                }
+                rarityGroups[i].alpha = i == _targetRarityUpgrade ? 1f : 0.5f;
             }
-            lightRarityAvatarImg.sprite = rarityLightAvatarImgs[_targetRarityUpgrade];
-            targetRarityTxt.text = HeroRarityDisplay.GetRarityData(_targetRarityUpgrade).Name;
-            targetRarityTxt.color = HeroRarityDisplay.GetRarityData(_targetRarityUpgrade).Color;
+            if (_targetRarityUpgrade >= 0 && _targetRarityUpgrade < rarityLightAvatarImgs.Count) {
+                lightRarityAvatarImg.sprite = rarityLightAvatarImgs[_targetRarityUpgrade];
+            }
+            var currentData = HeroRarityDisplay.GetRarityData(_targetRarityUpgrade);
+            var nextData = HeroRarityDisplay.GetRarityData(_targetRarityUpgrade + 1);
+            var currentHex = ColorUtility.ToHtmlStringRGB(currentData.Color);
+            var nextHex = ColorUtility.ToHtmlStringRGB(nextData.Color);
+            targetRarityTxt.text =
+                $"<color=#{currentHex}>{currentData.Name}</color> > <color=#{nextHex}>{nextData.Name}</color>";
         }
     }
 }

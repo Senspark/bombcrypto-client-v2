@@ -16,6 +16,8 @@ namespace Senspark {
 
         private readonly Dictionary<string, object> _services = new();
         private readonly Dictionary<Type, string> _serviceNames = new();
+        private readonly Dictionary<Type, List<MemberInfo>> _declaredInjectableMembers = new();
+        private readonly Dictionary<Type, List<MemberInfo>> _allInjectableMembers = new();
 
         [NotNull]
         private string GetServiceName([NotNull] Type type) {
@@ -58,19 +60,67 @@ namespace Senspark {
         }
 
         public void ResolveInjection<T>(T value) {
-            var type = typeof(T);
-            type.GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
-                .Where(it => it.GetCustomAttributes(typeof(InjectAttribute), true).Length > 0)
-                .ToList()
-                .ForEach(it => { //
-                    it.SetValue(value, Resolve(it.PropertyType));
-                });
-            type.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
-                .Where(it => it.GetCustomAttributes(typeof(InjectAttribute), true).Length > 0)
-                .ToList()
-                .ForEach(it => { //
-                    it.SetValue(value, Resolve(it.FieldType));
-                });
+            var members = GetAllInjectableMembers(value.GetType());
+            foreach (var member in members) {
+                switch (member) {
+                    case PropertyInfo property:
+                        property.SetValue(value, Resolve(property.PropertyType));
+                        break;
+                    case FieldInfo field:
+                        field.SetValue(value, Resolve(field.FieldType));
+                        break;
+                }
+            }
+        }
+
+        private List<MemberInfo> GetAllInjectableMembers(Type runtimeType) {
+            if (_allInjectableMembers.TryGetValue(runtimeType, out var cached)) {
+                return cached;
+            }
+            var members = new List<MemberInfo>();
+            var type = runtimeType;
+            while (type != null && type != typeof(UnityEngine.MonoBehaviour)) {
+                members.AddRange(GetDeclaredInjectableMembers(type));
+                type = type.BaseType;
+            }
+            _allInjectableMembers.Add(runtimeType, members);
+            return members;
+        }
+
+        public void Dispose() {
+            foreach (var service in _services.Values.Reverse()) {
+                try {
+                    if (service is IService svc) {
+                        svc.Destroy();
+                    }
+                    if (service is IDisposable disposable) {
+                        disposable.Dispose();
+                    }
+                } catch {
+                }
+            }
+            _services.Clear();
+        }
+
+        private List<MemberInfo> GetDeclaredInjectableMembers(Type type) {
+            if (_declaredInjectableMembers.TryGetValue(type, out var cached)) {
+                return cached;
+            }
+            var members = new List<MemberInfo>();
+            const BindingFlags flags = BindingFlags.Instance | BindingFlags.Public
+                | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
+            foreach (var property in type.GetProperties(flags)) {
+                if (property.GetCustomAttributes(typeof(InjectAttribute), true).Length > 0) {
+                    members.Add(property);
+                }
+            }
+            foreach (var field in type.GetFields(flags)) {
+                if (field.GetCustomAttributes(typeof(InjectAttribute), true).Length > 0) {
+                    members.Add(field);
+                }
+            }
+            _declaredInjectableMembers.Add(type, members);
+            return members;
         }
     }
 }

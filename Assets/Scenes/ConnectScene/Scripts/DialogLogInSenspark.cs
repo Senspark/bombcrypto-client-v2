@@ -102,8 +102,7 @@ namespace Scenes.ConnectScene.Scripts {
 
         public DialogLogInSenspark Init(bool isProduction) {
             _isProduction = isProduction;
-            var signManager = new NullSignManager();
-            _authManager = new DefaultAuthManager(_logManager, signManager, new NullEncoder(_logManager), _unityCommunication, isProduction);
+            _authManager = new DefaultAuthManager(_logManager, _unityCommunication, isProduction);
             return this;
         }
 
@@ -185,13 +184,13 @@ namespace Scenes.ConnectScene.Scripts {
             }
             if (_authManager == null) {
                 buttonLogin.interactable = true;
-                DialogOK.ShowError(DialogCanvas, "Auth service not started");
+                DialogOK.ShowErrorMsgOnly(DialogCanvas, "Auth service not started");
                 return;
             }
             var errorMsg = App.Utils.CheckUsernameAndPassword(username, password); 
             if (!string.IsNullOrWhiteSpace(errorMsg)) {
                 buttonLogin.interactable = true;
-                DialogOK.ShowError(DialogCanvas, errorMsg);
+                DialogOK.ShowErrorMsgOnly(DialogCanvas, errorMsg);
                 return;
             }
             _processing = true;
@@ -214,7 +213,7 @@ namespace Scenes.ConnectScene.Scripts {
                 OnCompleted(acc);
             } catch (Exception e) {
                 _logManager.Log($"Error when login account {e.Message}");
-                DialogOK.ShowError(DialogCanvas, "Username or password is incorrect");
+                DialogOK.ShowErrorMsgOnly(DialogCanvas, "Username or password is incorrect");
             } finally {
                 _processing = false;
                 waiting.End();

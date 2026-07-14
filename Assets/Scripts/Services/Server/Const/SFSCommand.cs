@@ -1,10 +1,7 @@
 public static partial class SFSDefine {
     public static class SFSCommand {
         public const string USER_LOGIN = "USER_LOGIN";
-        
-        public const string GET_LAUNCH_PAD_DATA = "GET_LAUNCHPAD_DATA";
-        public const string GET_INFORMATION_DATA = "GET_INFORMATION_DATA";
-        
+
         public const string PVE_NEW_MAP = "PVE_NEW_MAP";
         public const string DEPOSIT_TON_RESPONSE = "DEPOSIT_TON_RESPONSE";
         public const string TH_MODE_V2_REWARDS = "TH_MODE_V2_REWARDS";
@@ -19,6 +16,7 @@ public static partial class SFSDefine {
         public const string CHANGE_BBM_STAGE_V2 = "CHANGE_BBM_STAGE_V2";
         public const string CHANGE_BBM_STAGE_V3 = "CHANGE_BBM_STAGE_V3";
         public const string ACTIVE_BOMBER_V2 = "ACTIVE_BOMBER_V2";
+        public const string ACTIVE_BOMBERS = "ACTIVE_BOMBERS";
         public const string ACTIVE_HOUSE_V2 = "ACTIVE_HOUSE_V2";
         public const string GET_ACTIVE_BOMBER_V2 = "GET_ACTIVE_BOMBER_V2";
         public const string STOP_PVE_V2 = "STOP_PVE_V2";
@@ -27,7 +25,7 @@ public static partial class SFSDefine {
         public const string GET_ALL_SEASON_COIN_RANKING_V2 = "GET_ALL_SEASON_COIN_RANKING_V2";
         public const string AUTO_MINE_PRICE_V2 = "AUTO_MINE_PRICE_V2";
         public const string START_AUTO_MINE_V2 = "START_AUTO_MINE_V2";
-        public const string SYNC_HOUSE_V3 = "SYNC_HOUSE_V3";
+        public const string SYNC_HOUSE_V4 = "SYNC_HOUSE_V4";
         public const string BUY_AUTO_MINE_V2 = "BUY_AUTO_MINE_V2";
         public const string GET_TH_DATA_CONFIG_V2 = "GET_TH_DATA_CONFIG_V2";
         public const string ADD_HERO_FOR_AIRDROP_USER = "ADD_HERO_FOR_AIRDROP_USER";
@@ -36,6 +34,8 @@ public static partial class SFSDefine {
         public const string FUSION_HERO_SERVER = "FUSION_HERO_SERVER";
         public const string MULTI_FUSION_HERO_SERVER = "MULTI_FUSION_HERO_SERVER";
         public const string CHECK_BOMBER_STAKE_V2 = "CHECK_BOMBER_STAKE_V2";
+        public const string CHECK_BOMBER_STAKE_V3 = "CHECK_BOMBER_STAKE_V3";
+        public const string REFRESH_HERO_STAKE = "REFRESH_HERO_STAKE";
         public const string GET_INVOICE_DEPOSIT_SOL = "GET_INVOICE_DEPOSIT_SOL";
         public const string DEPOSIT_SOL_RESPONSE = "DEPOSIT_SOL_RESPONSE";
         public const string DEPOSIT_RON_RESPONSE = "DEPOSIT_RON_RESPONSE";
@@ -58,11 +58,13 @@ public static partial class SFSDefine {
         public const string ACTIVE_SKIN_CHEST_V3 = "ACTIVE_SKIN_CHEST_V3";
         public const string GET_BONUS_REWARD_ADVENTURE_V3 = "GET_BONUS_REWARD_ADVENTURE_V3";
         public const string GET_HERO_UPGRADE_POWER_V2 = "GET_HERO_UPGRADE_POWER_V2";
-        public const string SYNC_BOMBERMAN_V3 = "SYNC_BOMBERMAN_V3";
+        public const string SYNC_BOMBERMAN_V4 = "SYNC_BOMBERMAN_V4";
         public const string GET_REWARD_V2 = "GET_REWARD_V2";
-        public const string APPROVE_CLAIM_V2 = "APPROVE_CLAIM_V2";
+        public const string APPROVE_CLAIM_V4 = "APPROVE_CLAIM_V4";
         public const string CONFIRM_CLAIM_REWARD_SUCCESS_V2 = "CONFIRM_CLAIM_REWARD_SUCCESS_V2";
-        public const string SYNC_DEPOSITED_V3 = "SYNC_DEPOSITED_V3";
+        public const string SYNC_DEPOSITED_V4 = "SYNC_DEPOSITED_V4";
+        public const string CROSSCHAIN_DEPOSIT_BRIDGE_WITHDRAW = "CROSSCHAIN_DEPOSIT_BRIDGE_WITHDRAW";
+        public const string CROSSCHAIN_DEPOSIT_BRIDGE_CONFIRM_DEPOSIT = "CROSSCHAIN_DEPOSIT_BRIDGE_CONFIRM_DEPOSIT";
         public const string BUY_ROCK_V2 = "BUY_ROCK_V2";
         public const string REPAIR_SHIELD_V2 = "REPAIR_SHIELD_V2";
         public const string CHANGE_MINING_TOKEN = "CHANGE_MINING_TOKEN";
@@ -92,11 +94,11 @@ public static partial class SFSDefine {
         public const string GET_MIN_STAKE_HERO_V2 = "GET_MIN_STAKE_HERO_V2";
         public const string GET_REPAIR_SHIELD_CONFIG_V2 = "GET_REPAIR_SHIELD_CONFIG_V2";
         public const string GET_ROCK_PACK_CONFIG_V2 = "GET_ROCK_PACK_CONFIG_V2";
-        public const string SEND_MESSAGE_SLACK_V2 = "SEND_MESSAGE_SLACK_V2";
         public const string GET_BURN_HERO_CONFIG_V2 = "GET_BURN_HERO_CONFIG_V2";
         public const string CREATE_ROCK_V2 = "CREATE_ROCK_V2";
         public const string GET_UPGRADE_SHIELD_CONFIG_V2 = "GET_UPGRADE_SHIELD_CONFIG_V2";
-        public const string UPGRADE_SHIELD_LEVEL_V2 = "UPGRADE_SHIELD_LEVEL_V2";
+        public const string UPGRADE_SHIELD_LEVEL_V3 = "UPGRADE_SHIELD_LEVEL_V3";
+        public const string UPGRADE_SHIELD_LEVEL_RESPONSE = "UPGRADE_SHIELD_LEVEL_RESPONSE";
         public const string GET_OFFLINE_TH_MODE_REWARD_V2 = "GET_OFFLINE_TH_MODE_REWARD_V2";
         public const string GET_CLUB_INFO_V2 = "GET_CLUB_INFO_V2";
         public const string GET_ALL_CLUB_V2 = "GET_ALL_CLUB_V2";
@@ -241,5 +243,8 @@ public static partial class SFSDefine {
         public const string SYNC_HERO_RESPONSE = "SYNC_HERO_RESPONSE";
         public const string SYNC_HOUSE_RESPONSE = "SYNC_HOUSE_RESPONSE";
         public const string SYNC_DEPOSIT_RESPONSE = "SYNC_DEPOSIT_RESPONSE";
+        public const string APPROVE_CLAIM_RESPONSE = "APPROVE_CLAIM_RESPONSE";
+        public const string CROSSCHAIN_DEPOSIT_BRIDGE_WITHDRAW_RESPONSE = "CROSSCHAIN_DEPOSIT_BRIDGE_WITHDRAW_RESPONSE";
+        public const string BHERO_STAKE_PUSH = "BHERO_STAKE_PUSH";
     }
 }

@@ -115,7 +115,7 @@ namespace Game.UI {
                         _storageManager.EnableAutoMine = false;
                     }
                 } catch (Exception e) {
-                    DialogOK.ShowError(canvasDialog, e.Message);
+                    DialogOK.ShowError(canvasDialog, e);
                 } finally {
                     waiting.End();
                 }

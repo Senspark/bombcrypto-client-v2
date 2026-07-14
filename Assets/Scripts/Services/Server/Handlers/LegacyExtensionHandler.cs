@@ -155,6 +155,7 @@ namespace Services.Server.Handlers {
             if (!_enableLog) {
                 return;
             }
+            if (cmd == "PING_PONG") return;
             var message = $"{(send ? "SEND" : "RECEIVED")}: {cmd} {data.ToJson()}";
             Debug.LogFormat(LogType.Log, LogOption.NoStacktrace, null, "LOG: {0}", message);
         }

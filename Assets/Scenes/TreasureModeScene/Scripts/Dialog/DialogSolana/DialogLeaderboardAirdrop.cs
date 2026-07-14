@@ -137,7 +137,7 @@ public class DialogLeaderboardAirdrop : Dialog {
                 UpdateSeasonText(_coinRankingResult.RemainTime);
                 OnChangeTypeClicked(seasonButton);
             } catch (Exception e) {
-                await DialogError.ShowError(DialogCanvas, e.Message, OnCloseButtonClicked);
+                await DialogError.ShowError(DialogCanvas, e, OnCloseButtonClicked);
             } finally {
                 dialog.Hide();
                 EnableDataObjects(true);

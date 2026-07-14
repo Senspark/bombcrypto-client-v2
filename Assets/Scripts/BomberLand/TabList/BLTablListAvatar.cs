@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 
+using Animation;
+
 using App;
 
 using BomberLand.Shop;
@@ -9,6 +11,8 @@ using BomberLand.Shop;
 using Constant;
 
 using Cysharp.Threading.Tasks;
+
+using Senspark;
 
 using Data;
 
@@ -42,8 +46,7 @@ namespace Game.UI {
         [SerializeField]
         private BLShopResource shopResource;
         
-        private const string TonPath = "Assets/Scenes/TreasureModeScene/Textures/Pack";
-        private const string WebPath = "Assets/Scenes/MainMenuScene/Textures/Pack";
+        private const string CharPath = "Assets/Data/CharactersSprites";
         
         public void ChangeAvatar<T>(T data) {
             switch (data) {
@@ -51,7 +54,9 @@ namespace Game.UI {
                     if (resource == null) {
                         ChangeImage(hero.HeroType, hero.HeroColor);
                     } else {
-                        ChangeAvatarByItemId(hero.HeroId);
+                        // resource != null (market/inventory): hero ANIMATE. Trước đây qua ChangeAvatarByItemId →
+                        // resource.GetAnimationByItemId/GetSpriteByItemId (dict chest cũ, sprite hero đã gãy → trắng).
+                        ChangeHeroAnimation(hero.HeroType, hero.HeroColor);
                     }
                     break;
                 case InventoryChestData chest:
@@ -72,11 +77,40 @@ namespace Game.UI {
             ChangeItemImage(itemId);
         }
 
+        // Hero animate (idle Front) qua IHeroSpriteLoader (clip). Quản lý active state icon/imageAnimation/
+        // explodeAnimation y như ChangeItemImage để không sót explode animation của item trước còn đang play.
+        private async void ChangeHeroAnimation(PlayerType playerType, PlayerColor playerColor) {
+            if (imageAnimation == null || explodeAnimation == null) {
+                ChangeImage(playerType, playerColor);
+                return;
+            }
+            var loader = ServiceLocator.Instance.Resolve<IHeroSpriteLoader>();
+            var clip = await loader.LoadClip(playerType, playerColor, Engine.Components.FaceDirection.Down);
+            if (clip != null && clip.Length > 0) {
+                icon.gameObject.SetActive(false);
+                imageAnimation.StartLoop(clip);
+                imageAnimation.gameObject.SetActive(true);
+                explodeAnimation.gameObject.SetActive(false);
+            } else {
+                // cold-miss / thiếu art → portrait tĩnh, ẩn 2 animation.
+                icon.sprite = await loader.LoadPortrait(playerType, playerColor);
+                icon.gameObject.SetActive(true);
+                imageAnimation.gameObject.SetActive(false);
+                explodeAnimation.gameObject.SetActive(false);
+            }
+        }
+
         private async void ChangeImage(PlayerType playerType, PlayerColor playerColor, PlayerData playerData = null) {
             icon.enabled = false;
             string imgPath;
             Sprite spr = null;
-            if (AppConfig.IsAirDrop()) {
+            if (HeroSpriteCatalog.Has(playerType)) {
+                // Mọi hero trong catalog: portrait qua IHeroSpriteLoader (path-load, icon nếu có).
+                var loader = ServiceLocator.Instance.Resolve<IHeroSpriteLoader>();
+                var rarity = playerData != null ? (HeroRarity)playerData.rare : HeroRarity.Common;
+                spr = await loader.LoadPortrait(playerType, playerColor, rarity);
+            }
+            else if (AppConfig.IsAirDrop()) {
                 if (playerColor == PlayerColor.Skin) {
                     var skinPlayers = new List<PlayerType> { 
                         PlayerType.Ninja , PlayerType.Witch, PlayerType.Knight,
@@ -86,10 +120,10 @@ namespace Game.UI {
                     };
                     
                     if (skinPlayers.Contains(playerType) && playerData != null) {
-                        imgPath = $"Characters/{playerType}/{playerColor}/{(HeroRarity)playerData.rare}/Front/player_front_01";
+                        imgPath = $"{playerType}/{playerColor}/{(HeroRarity)playerData.rare}/Front/player_front_01";
                     } else {
                         playerColor = PlayerColor.White;
-                        imgPath = $"Characters/{playerType}/{playerColor}/Front/player_front_01";
+                        imgPath = $"{playerType}/{playerColor}/Front/player_front_01";
                     }
                     spr = await LoadWithAddressable(imgPath);
                 } else {
@@ -100,28 +134,28 @@ namespace Game.UI {
                         playerColor = (playerColor != PlayerColor.HeroTr) ? PlayerColor.White : PlayerColor.HeroTr;
                     }
                     if (playerType == PlayerType.DogeTr) {
-                        imgPath = $"Characters/{playerType}/{playerColor}/icon";
+                        imgPath = $"{playerType}/{playerColor}/icon";
                     } else {
-                        imgPath = $"Characters/{playerType}/{playerColor}/Front/player_front_01";
+                        imgPath = $"{playerType}/{playerColor}/Front/player_front_01";
                     }
                     spr = await LoadWithAddressable(imgPath);
                 }
             } 
             else {
                 if (playerType == PlayerType.DogeTr) {
-                    imgPath = $"Characters/{playerType}/{playerColor}/icon";
+                    imgPath = $"{playerType}/{playerColor}/icon";
                 } else {
-                    imgPath = $"Characters/{playerType}/{playerColor}/Front/player_front_01";
+                    imgPath = $"{playerType}/{playerColor}/Front/player_front_01";
                 }
                 spr = await LoadWithAddressable(imgPath);
                 if (spr == null) {
                     playerColor = PlayerColor.White;
-                    imgPath = $"Characters/{playerType}/{playerColor}/Front/player_front_01";
+                    imgPath = $"{playerType}/{playerColor}/Front/player_front_01";
                     spr = await LoadWithAddressable(imgPath);
                 }
                 if (spr == null) {
                     playerColor = PlayerColor.HeroTr;
-                    imgPath = $"Characters/{playerType}/{playerColor}/Front/player_front_01";
+                    imgPath = $"{playerType}/{playerColor}/Front/player_front_01";
                     spr = await LoadWithAddressable(imgPath);
                 }
             }
@@ -131,9 +165,8 @@ namespace Game.UI {
         }
 
         private async UniTask<Sprite> LoadWithAddressable(string path) {
-            var resourcePath = AppConfig.IsAirDrop() ? TonPath : WebPath;
             try {
-                var actualPath = $"{resourcePath}/{path}.png";
+                var actualPath = $"{CharPath}/{path}.png";
                 var spr = await AddressableLoader.LoadAsset<Sprite>(actualPath);
                 spr.texture.filterMode = FilterMode.Point;
                 return spr;

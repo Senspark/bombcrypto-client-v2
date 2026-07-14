@@ -46,7 +46,7 @@ namespace Game.Dialog {
         protected Canvas Canvas;
 
         protected ISoundManager SoundManager;
-        private IPlayerStorageManager _playerStoreManager;
+        private IBHeroManager _playerStoreManager;
         private IStorageManager _storeManager;
         protected ILanguageManager _languageManager;
         private IOnBoardingManager _onBoardingManager;
@@ -55,7 +55,7 @@ namespace Game.Dialog {
 
         private void Awake() {
             SoundManager = ServiceLocator.Instance.Resolve<ISoundManager>();
-            _playerStoreManager = ServiceLocator.Instance.Resolve<IPlayerStorageManager>();
+            _playerStoreManager = ServiceLocator.Instance.Resolve<IBHeroManager>();
             _storeManager = ServiceLocator.Instance.Resolve<IStorageManager>();
             _languageManager = ServiceLocator.Instance.Resolve<ILanguageManager>();
             _onBoardingManager = ServiceLocator.Instance.Resolve<IOnBoardingManager>();
@@ -104,9 +104,9 @@ namespace Game.Dialog {
                     } catch (Exception e) {
                         resetBtn.interactable = Controller.CanProcessUsingMaterial(ResetThisHero) || CheckOnBoarding();
                         if (e is ErrorCodeException) {
-                            DialogError.ShowError(Canvas, e.Message);
+                            DialogError.ShowError(Canvas, e);
                         } else {
-                            DialogOK.ShowError(Canvas, e.Message);
+                            DialogOK.ShowError(Canvas, e);
                         }
                     }
                     waiting.End();
@@ -225,7 +225,7 @@ namespace Game.Dialog {
     }
 
     public class NewRepairShieldController {
-        private readonly IPlayerStorageManager _playerStoreManager;
+        private readonly IBHeroManager _playerStoreManager;
         private readonly IStorageManager _storeManager;
         private readonly IBlockchainManager _blockchainManager;
         private readonly IServerManager _serverManager;
@@ -234,14 +234,14 @@ namespace Game.Dialog {
         private readonly IOnBoardingManager _onBoardingManager;
 
         public NewRepairShieldController(
-            IPlayerStorageManager playerStorageManager,
+            IBHeroManager bHeroManager,
             IStorageManager storageManager,
             IBlockchainManager blockchainManager,
             IServerManager serverManager,
             IChestRewardManager chestRewardManager,
             IBlockchainStorageManager blockchainStorageManager
         ) {
-            _playerStoreManager = playerStorageManager;
+            _playerStoreManager = bHeroManager;
             _storeManager = storageManager;
             _blockchainManager = blockchainManager;
             _serverManager = serverManager;

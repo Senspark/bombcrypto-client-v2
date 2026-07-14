@@ -117,7 +117,7 @@ namespace Game.Dialog {
                     _ratioSen = rSen;
                     UpdateUI();
                 } catch (Exception e) {
-                    DialogOK.ShowError(canvas, e.Message);
+                    DialogOK.ShowError(canvas, e);
                 }
             });
             swapTokenButton.SetChangeTokenCallback(currentType => {
@@ -152,11 +152,6 @@ namespace Game.Dialog {
             waiting.Begin(0);
             var confirm = await DialogConfirm.Create();
 
-            var data = new SFSObject();
-            data.PutUtfString("Amount", $"{_balance} Gem");
-            data.PutUtfString("Network", _networkConfig.NetworkName);
-            data.PutUtfString("TokenType", RewardTypeUtils.GetName(_tokenType));
-
             confirm.SetInfo(
                 "Do you want to swap?",
                 "Yes",
@@ -164,23 +159,19 @@ namespace Game.Dialog {
                 () => UniTask.Void(async () => {
                     var ratio = GetRatioToken();
                     try {
-                        var tokenReceive = await _serverManager.General.SwapToken(_balance, _account.network, _tokenType);
+                        await _serverManager.General.SwapToken(_balance, _account.network, _tokenType);
                         _analytics.Iap_TrackSwapGem(_balance, (float)(_balance * ratio), TrackResult.Done);
                         await _serverManager.General.GetChestReward();
                         DialogSwapGemSuccess.ShowInfo(_canvas, _balance * ratio, _tokenType);
-                        data.PutFloat("Receive", tokenReceive);
-                        _serverManager.General.SendMessageSlack(":diamonds: User Swap Gem :white_check_mark:", data);
                         UpdateUI();
                         waiting.End();
                     } catch (Exception e) {
                         _analytics.Iap_TrackSwapGem(_balance, (float)(_balance * ratio), TrackResult.Error);
-                        data.PutUtfString("Error", e.Message);
-                        _serverManager.General.SendMessageSlack(":diamonds: User Swap Gem :x:", data);
                         waiting.End();
                         if (e is ErrorCodeException) {
-                            DialogError.ShowError(_canvas, e.Message);
+                            DialogError.ShowError(_canvas, e);
                         } else {
-                            DialogOK.ShowError(_canvas, e.Message);
+                            DialogOK.ShowError(_canvas, e);
                         }
                     }
                 }),
@@ -192,6 +183,9 @@ namespace Game.Dialog {
         public void HideChangeToken() {
             swapTokenButton.HideChangeToken();
         }
+
+        private BlockRewardType TokenRewardType =>
+            _tokenType == (int)RewardType.BCOIN ? BlockRewardType.BCoin : BlockRewardType.Senspark;
 
         private double GetRatioToken() {
             if (_tokenType == (int)RewardType.BCOIN) {
@@ -206,7 +200,7 @@ namespace Game.Dialog {
             BalanceInputText = _balance;
             balanceText.text = $"{Math.Truncate(_gemBalance)}";
             tokenBalanceText.text =
-                $"{Math.Truncate(_chestRewardManager.GetChestReward(RewardTypeUtils.GetName(_tokenType)))}";
+                $"{Math.Truncate(_chestRewardManager.GetChestReward(TokenRewardType))}";
             tokenPrice.text = $"1 GEM = {GetRatioToken():0.########} {RewardTypeUtils.GetName(_tokenType)}";
         }
     }

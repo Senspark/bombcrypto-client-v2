@@ -13,12 +13,6 @@ namespace Game.Dialog.Connects {
         private Button btnSyncWithSenspark;
 
         [SerializeField]
-        private Button btnSyncWithFacebook;
-
-        [SerializeField]
-        private Button btnSyncWithGoogle;
-
-        [SerializeField]
         private Button btnSyncWithApple;
 
         [SerializeField]
@@ -27,8 +21,6 @@ namespace Game.Dialog.Connects {
         protected override void Awake() {
             base.Awake();
             btnSyncWithSenspark.onClick.AddListener(OnSyncWithSenspark);
-            btnSyncWithFacebook.onClick.AddListener(OnSyncWithFacebook);
-            btnSyncWithGoogle.onClick.AddListener(OnSyncWithGoogle);
             btnSyncWithApple.onClick.AddListener(OnSyncWithApple);
             btnClose.onClick.AddListener(OnBtnCloseClicked);
 //
@@ -42,15 +34,6 @@ namespace Game.Dialog.Connects {
         private void OnSyncWithSenspark() {
             PlayClickSound();
             Resolve(AccountFlowLoginType.Senspark);
-        }
-
-        private void OnSyncWithFacebook() {
-            DialogOK.ShowError(DialogCanvas, "Login failed");
-        }
-
-        private void OnSyncWithGoogle() {
-            PlayClickSound();
-            Resolve(AccountFlowLoginType.Google);
         }
 
         private void OnSyncWithApple() {

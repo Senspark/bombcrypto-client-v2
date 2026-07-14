@@ -33,11 +33,14 @@ public static partial class SFSDefine {
         public const string Datas = "datas";
 
         public const string Bombers = "bombers";
+        public const string Bomber = "bomber";
         public const string NewBombers = "new_bombers";
+        public const string ForceFresh = "forceFresh";
         public const string HeroesSize = "heroes_size";
         public const string BLocks = "blocks";
         //public const string GenId = "gen_id";
         public const string Id = "id";
+        public const string TxHash = "tx_hash";
         public const string Enegy = "energy";
         public const string HouseGenId = "house_gen_id";
         public const string HouseId = "house_id";
@@ -45,6 +48,7 @@ public static partial class SFSDefine {
         public const string stage = "stage";
         public const string AccountType = "account_type";
         public const string HeroType = "hero_type";
+        public const string HeroIds = "hero_ids";
         public const string OldSeason = "old_season";
 
         public const string Houses = "houses";
@@ -62,5 +66,6 @@ public static partial class SFSDefine {
         
         public const string Config = "config";
         public const string CurrentStep = "current_step";
+        public const string Chain = "chain";
     }
 }

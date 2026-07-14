@@ -112,7 +112,7 @@ namespace Scenes.MainMenuScene.Scripts {
                               Epoch.GetTimeStringDayHourMinute(result.RemainTime));
                     }
                 } catch (Exception e) {
-                    DialogError.ShowError(DialogCanvas, e.Message, OnCloseButtonClicked);
+                    DialogError.ShowError(DialogCanvas, e, OnCloseButtonClicked);
                 }
                 HideWaiting();
             }, _cancellationTokenSource.Token);

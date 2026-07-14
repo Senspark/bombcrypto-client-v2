@@ -5,6 +5,6 @@ namespace CustomSmartFox.SolCommands {
         public CmdApproveClaim(ISFSObject data) : base(data) {
         }
 
-        public override string Cmd => SFSDefine.SFSCommand.APPROVE_CLAIM_V2;
+        public override string Cmd => SFSDefine.SFSCommand.APPROVE_CLAIM_V4;
     }
 }

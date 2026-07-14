@@ -208,23 +208,6 @@ namespace Animation {
         }
 
         [Serializable]
-        public class ResourceColorPicker {
-            public PlayerColor heroColor;
-            public ResourceAction ActionSprites;
-        }
-
-        [Serializable]
-        public class ResourceHeroPicker {
-            public PlayerType Type;
-            public SerializableDictionary<PlayerColor, ResourceColorPicker> heroPicker;
-        }
-        
-        [Serializable]
-        public class ResourceHeroSkinPicker {
-            public SerializableDictionary<HeroRarity, ResourceFace> Moving;
-        }
-
-        [Serializable]
         public class ResourceEnemyPicker {
             public EnemyType Type;
             public ResourceAction ActionSprites;
@@ -337,105 +320,6 @@ namespace Animation {
 
         #endregion
 
-        #region Hero
-        
-        public Sprite[] GetSpriteIdle(PlayerType type, PlayerColor color, FaceDirection face, HeroRarity rarity = HeroRarity.Common) {
-            //DevHoang: First check for skin hero
-            if ((AppConfig.IsAirDrop()) && color == PlayerColor.Skin) {
-                var skinResource = _animationResourceTon.resourceHeroSkinAnimation[type].Moving[rarity];
-                var skinResult = GetSpriteByFace(skinResource, face);
-                if (skinResult.Length > 0) {
-                    return skinResult;
-                }
-            }
-            var resource = !AppConfig.IsTon()
-                ? _animationResourceWeb.resourceHeroAnimation[type].heroPicker[color].ActionSprites.Idle
-                : _animationResourceTon.resourceHeroAnimation[type].heroPicker[color].ActionSprites.Idle;
-            var result = GetSpriteByFace(resource, face);
-            if (result.Length > 0) {
-                return result;
-            }
-            resource = !AppConfig.IsTon()
-                ? _animationResourceWeb.resourceHeroAnimation[type].heroPicker[PlayerColor.White].ActionSprites.Idle
-                : _animationResourceTon.resourceHeroAnimation[type].heroPicker[PlayerColor.White].ActionSprites.Idle;
-            result = GetSpriteByFace(resource, face);
-            if (result.Length > 0) {
-                return result;
-            }
-            resource = !AppConfig.IsTon()
-                ? _animationResourceWeb.resourceHeroAnimation[type].heroPicker[PlayerColor.HeroTr].ActionSprites.Idle
-                : _animationResourceTon.resourceHeroAnimation[type].heroPicker[PlayerColor.HeroTr].ActionSprites.Idle;
-            return GetSpriteByFace(resource, face);
-        }
-        public Sprite[] GetSpriteMoving(PlayerType type, PlayerColor color, FaceDirection face, HeroRarity rarity = HeroRarity.Common) {
-            //DevHoang: First check for skin hero
-            if ((AppConfig.IsAirDrop()) && color == PlayerColor.Skin) {
-                var skinResource = _animationResourceTon.resourceHeroSkinAnimation[type].Moving[rarity];
-                var skinResult = GetSpriteByFace(skinResource, face);
-                if (skinResult.Length > 0) {
-                    return skinResult;
-                }
-            }
-            var resource = !AppConfig.IsTon()
-                ? _animationResourceWeb.resourceHeroAnimation[type].heroPicker[color].ActionSprites.Moving
-                : _animationResourceTon.resourceHeroAnimation[type].heroPicker[color].ActionSprites.Moving;
-            var result = GetSpriteByFace(resource, face);
-            if (result.Length > 0) {
-                return result;
-            }
-            resource = !AppConfig.IsTon()
-                ? _animationResourceWeb.resourceHeroAnimation[type].heroPicker[PlayerColor.White].ActionSprites.Moving
-                : _animationResourceTon.resourceHeroAnimation[type].heroPicker[PlayerColor.White].ActionSprites.Moving;
-            result = GetSpriteByFace(resource, face);
-            if (result.Length > 0) {
-                return result;
-            }
-            resource = !AppConfig.IsTon()
-                ? _animationResourceWeb.resourceHeroAnimation[type].heroPicker[PlayerColor.HeroTr].ActionSprites.Moving
-                : _animationResourceTon.resourceHeroAnimation[type].heroPicker[PlayerColor.HeroTr].ActionSprites.Moving;
-            return GetSpriteByFace(resource, face);
-        }
-
-        public Sprite[] GetSpriteTakeDamage(PlayerType type, PlayerColor color) {
-            var result = !AppConfig.IsTon()
-                ? _animationResourceWeb.resourceHeroAnimation[type].heroPicker[color].ActionSprites.TakeDamage
-                : _animationResourceTon.resourceHeroAnimation[type].heroPicker[color].ActionSprites.TakeDamage;
-            if (result.Length > 0) {
-                return result;
-            }
-            result = !AppConfig.IsTon()
-                ? _animationResourceWeb.resourceHeroAnimation[type].heroPicker[PlayerColor.White].ActionSprites
-                    .TakeDamage
-                : _animationResourceTon.resourceHeroAnimation[type].heroPicker[PlayerColor.White].ActionSprites.TakeDamage;
-            if (result.Length > 0) {
-                return result;
-            }
-            return !AppConfig.IsTon()
-                ? _animationResourceWeb.resourceHeroAnimation[type].heroPicker[PlayerColor.HeroTr].ActionSprites
-                    .TakeDamage
-                : _animationResourceTon.resourceHeroAnimation[type].heroPicker[PlayerColor.HeroTr].ActionSprites.TakeDamage;
-        }
-
-        public Sprite[] GetSpriteDie(PlayerType type, PlayerColor color) {
-            var result = !AppConfig.IsTon()
-                ? _animationResourceWeb.resourceHeroAnimation[type].heroPicker[color].ActionSprites.Die
-                : _animationResourceTon.resourceHeroAnimation[type].heroPicker[color].ActionSprites.Die;
-            if (result.Length > 0) {
-                return result;
-            }
-            result = !AppConfig.IsTon()
-                ? _animationResourceWeb.resourceHeroAnimation[type].heroPicker[PlayerColor.White].ActionSprites.Die
-                : _animationResourceTon.resourceHeroAnimation[type].heroPicker[PlayerColor.White].ActionSprites.Die;
-            if (result.Length > 0) {
-                return result;
-            }
-            return !AppConfig.IsTon()
-                ? _animationResourceWeb.resourceHeroAnimation[type].heroPicker[PlayerColor.HeroTr].ActionSprites.Die
-                : _animationResourceTon.resourceHeroAnimation[type].heroPicker[PlayerColor.HeroTr].ActionSprites.Die;
-        }
-
-        #endregion
-
         #region Enemy
 
         public Sprite[] GetSpriteIdle(EnemyType type, FaceDirection face) {
@@ -519,12 +403,6 @@ namespace Animation {
             if (_animationResourceTon == null)
             {
                 _animationResourceTon = await AddressableLoader.LoadAsset<AnimationResourceTon>(tonReference);
-            }
-            foreach (var heroPicker in _animationResourceTon.resourceHeroAnimation) {
-                foreach (var hero in heroPicker.Value.heroPicker) {
-                    hero.Value.ActionSprites.Idle.Front.ToFillerPoint();
-                    hero.Value.ActionSprites.Moving.Front.ToFillerPoint();
-                }
             }
             return _animationResourceTon;
         }

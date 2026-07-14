@@ -35,7 +35,7 @@ public class InventoryHeroS : MonoBehaviour {
     private GameObject content;
 
     private IStorageManager _storageManager;
-    private IPlayerStorageManager _playerStorageManager;
+    private IBHeroManager _bHeroManager;
     private IFeatureManager _featureManager;
     private string _colorGreen = "0eff36", _colorRed = "ff0e0e";
 
@@ -51,7 +51,7 @@ public class InventoryHeroS : MonoBehaviour {
         }
         if (_storageManager == null) {
             _storageManager = ServiceLocator.Instance.Resolve<IStorageManager>();
-            _playerStorageManager = ServiceLocator.Instance.Resolve<IPlayerStorageManager>();
+            _bHeroManager = ServiceLocator.Instance.Resolve<IBHeroManager>();
             _featureManager = ServiceLocator.Instance.Resolve<IFeatureManager>();
         }
         content.SetActive(true);
@@ -66,7 +66,7 @@ public class InventoryHeroS : MonoBehaviour {
     }
 
     private void UpdateUi() {
-        var rarity = _playerStorageManager.GetHeroRarity(_hero);
+        var rarity = _bHeroManager.GetHeroRarity(_hero);
         var minStake = _storageManager.MinStakeHero;
         var haveMinStake = minStake != null;
         var minStakeLegacy = haveMinStake ? minStake.MinStakeLegacy[rarity] : 0;
@@ -85,6 +85,14 @@ public class InventoryHeroS : MonoBehaviour {
         senText.text = $"<color=#{colorSen}>{amountSen}</color>/{minSenStakeToEarn}";
     }
 
+    private void OnEnable() {
+        EventManager<PlayerData>.AddUnique(StakeEvent.AfterStake, OnAfterStake);
+    }
+
+    private void OnDisable() {
+        EventManager<PlayerData>.RemoveUnique(StakeEvent.AfterStake, OnAfterStake);
+    }
+
     public void ShowDialogStake() {
         if (_isClicked) return;
         _isClicked = true;
@@ -92,45 +100,35 @@ public class InventoryHeroS : MonoBehaviour {
         if (IsHeroSFake(_hero)) {
             DialogStakeHeroesPlus.Create().ContinueWith(dialog => {
                 dialog.Show(_hero, _canvas, GetCallback());
-            }); 
+            });
         } else {
             DialogStakeHeroesS.Create().ContinueWith(dialog => {
                 dialog.Show(_hero, _canvas, GetCallback());
-            }); 
+            });
         }
     }
 
     private StakeCallback.Callback GetCallback() {
-        var callback = new StakeCallback()
-            //call back nếu dialog stake bị tắt đi
-            .OnHide(
-                () => { _isClicked = false; })
-            
-            //call back nếu dialog unstake confirm bị tắt đi
-            .OnUnStakeHide(
-                () => { _isClicked = false; })
-            
-            //callback sau khi stake thành công => update lại ui
-            .OnStakeComplete(player => {
-                    EventManager<PlayerData>.Dispatcher(StakeEvent.AfterStake, player);
-                    _isClicked = false;
-                    _hero = player;
-                    UpdateUi();
-                })
-            
-            //callback sau khi uSstake thành công => update lại ui
-            .OnUnStakeComplete(player => {
-                _hero = player;
-                _isClicked = false;
-                avatar.ChangeImage(player);
-                inventoryHeroL.Show(player, _canvas);
-                UpdateUi();
-                gameObject.SetActive(IsHeroSFake(player) || player.IsHeroS);
-                EventManager<PlayerData>.Dispatcher(StakeEvent.AfterStake, player);
-            })
+        // Sau refactor: stake/unstake không còn block UI. _isClicked reset qua Hide/UnStakeHide.
+        // UI switch S↔L khi push BHERO_STAKE_PUSH đến → OnAfterStake.
+        return new StakeCallback()
+            .OnHide(() => { _isClicked = false; })
+            .OnUnStakeHide(() => { _isClicked = false; })
             .Create();
-        
-        return callback;
+    }
+
+    private void OnAfterStake(PlayerData player) {
+        if (_hero == null || player == null) return;
+        if (_hero.heroId.Id != player.heroId.Id) return;
+
+        _hero = player;
+        UpdateUi();
+        if (player.Shield == null) {
+            // Hero không còn shield (unstake hết) → switch sang view HeroL
+            avatar.ChangeImage(player);
+            inventoryHeroL.Show(player, _canvas);
+            gameObject.SetActive(IsHeroSFake(player) || player.IsHeroS);
+        }
     }
     
 

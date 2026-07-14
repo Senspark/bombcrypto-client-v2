@@ -133,9 +133,9 @@ namespace Scenes.InventoryScene.Scripts {
                     Debug.LogException(e);
 #endif
                     if (e is ErrorCodeException) {
-                        DialogError.ShowError(DialogCanvas, e.Message);
+                        DialogError.ShowError(DialogCanvas, e);
                     } else {
-                        DialogOK.ShowError(DialogCanvas, e.Message);
+                        DialogOK.ShowError(DialogCanvas, e);
                     }
                 } finally {
                     sellButton.interactable = true;

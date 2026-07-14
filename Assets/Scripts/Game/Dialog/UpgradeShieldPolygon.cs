@@ -54,7 +54,7 @@ namespace Game.Dialog {
         private Action<PlayerData> _chooseHeroCallBack;
 
         private ISoundManager _soundManager;
-        private IPlayerStorageManager _playerStoreManager;
+        private IBHeroManager _playerStoreManager;
         private IStorageManager _storeManager;
         private IBlockchainManager _blockchainManager;
         private IBlockchainStorageManager _blockchainStorageManager;
@@ -65,7 +65,7 @@ namespace Game.Dialog {
 
         private void Awake() {
             _soundManager = ServiceLocator.Instance.Resolve<ISoundManager>();
-            _playerStoreManager = ServiceLocator.Instance.Resolve<IPlayerStorageManager>();
+            _playerStoreManager = ServiceLocator.Instance.Resolve<IBHeroManager>();
             _storeManager = ServiceLocator.Instance.Resolve<IStorageManager>();
             _blockchainManager = ServiceLocator.Instance.Resolve<IBlockchainManager>();
             _blockchainStorageManager = ServiceLocator.Instance.Resolve<IBlockchainStorageManager>();
@@ -103,9 +103,14 @@ namespace Game.Dialog {
                 var waiting = await DialogWaiting.Create();
                 waiting.Show(_canvas);
                 waiting.ShowLoadingAnim();
-                
+
+                var pushTcs = new UniTaskCompletionSource<IUpgradeShieldLevelPush>();
+                var observerHandle = new ObserverHandle();
+                observerHandle.AddObserver(_serverManager, new ServerObserver {
+                    OnUpgradeShieldLevelResponse = push => pushTcs.TrySetResult(push)
+                });
+
                 try {
-                    var nextLevelShield = _resetThisHero.levelShield + 1;
                     //Bước 1: Gửi yêu cầu upgrade level shield cho server để trừ đá
                     var response = await _serverManager.General.UpgradeLevelShield(idHeroS);
                     //Bước 2: Gửi yêu cầu upgrade level shield cho blockchain sau khi đã có lệnh từ server
@@ -114,14 +119,17 @@ namespace Game.Dialog {
                     if (!result) {
                         throw new Exception("Upgrade Failed");
                     }
-                    //Bước 3: Đồng bộ với server
-                    await _serverManager.General.SyncHero(false);
-                    var newData = _playerStoreManager.GetPlayerDataFromId(idHeroS);
-                    while (newData.levelShield != nextLevelShield) {
-                        await WebGLTaskDelay.Instance.Delay(10000);
-                        await _serverManager.General.SyncHero(false);
-                        newData = _playerStoreManager.GetPlayerDataFromId(idHeroS);
+                    //Bước 3: Chờ server xác nhận on-chain (push UPGRADE_SHIELD_LEVEL_RESPONSE) — timeout 75s.
+                    var (winIndex, push, _) = await UniTask.WhenAny(
+                        pushTcs.Task,
+                        UniTask.Delay(TimeSpan.FromSeconds(75)).ContinueWith(() => (IUpgradeShieldLevelPush) null));
+                    if (winIndex != 0 || push == null) {
+                        throw new Exception("Upgrade verification timed out");
                     }
+                    if (!push.Success) {
+                        throw new Exception(push.ErrorMessage);
+                    }
+                    var newData = _playerStoreManager.GetPlayerDataFromId(idHeroS);
                     Init(newData);
                     DialogForge.ShowInfo(_canvas, "Successfully");
                     UpdateUI();
@@ -131,6 +139,7 @@ namespace Game.Dialog {
                     resetBtn.interactable = CanUpgradeShield();
                     DialogForge.ShowError(_canvas, e.Message);
                 } finally {
+                    observerHandle.Dispose();
                     waiting.Hide();
                 }
             });

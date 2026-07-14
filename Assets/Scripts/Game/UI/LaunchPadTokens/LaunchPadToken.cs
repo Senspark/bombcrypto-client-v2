@@ -110,11 +110,11 @@ namespace Game.UI.LaunchPadTokens {
             tokenItem.SetClaimBtnInteractable(CanClaim());
 
             // Farm Btn
-            var tokenName = TokenData.tokenName;
+            var tokenName = RewardUtils.ConvertToBlockRewardType(TokenData.tokenName);
             var canControl = _featureManager.EnableControlMining;
             var currentMiningToken = _storageManager.MiningTokenType;
             var canClickFarmBtn = currentMiningToken != tokenName;
-            var isFarming = tokenName == currentMiningToken && TokenData.NetworkSymbol == _currentNetwork;
+            var isFarming = tokenName == currentMiningToken && TokenData.networkSymbol == RewardUtils.ConvertNetworkToDatatype(_currentNetwork);
             tokenItem.SetFarmBtnInteractable(canClickFarmBtn, isFarming);
 
             // Show Current Mining Icon
@@ -137,7 +137,7 @@ namespace Game.UI.LaunchPadTokens {
 
             // Claim trừ fee như bình thường
             var (claimFee, currency) =
-                _launchPadManager.GetClaimFee(_rewardType, NetworkSymbol.Convert(_currentNetwork));
+                _launchPadManager.GetClaimFee(_rewardType, RewardUtils.ConvertNetworkToDatatype(_currentNetwork));
             if (string.IsNullOrWhiteSpace(currency)) {
                 _onClaimClicked?.Invoke(null, _rewardType);
             } else {
@@ -171,7 +171,7 @@ namespace Game.UI.LaunchPadTokens {
 
         private bool CanClaim() {
             var haveClaimFeature = _featureManager.EnableClaim;
-            var symbol = NetworkSymbol.Convert(_currentNetwork);
+            var symbol = RewardUtils.ConvertNetworkToDatatype(_currentNetwork);
             var canClaim = _launchPadManager.CanClaim(_rewardType, symbol, _claimableValue) || _pendingValue > 0;
             return haveClaimFeature && canClaim;
         }

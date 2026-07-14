@@ -13,6 +13,7 @@ const REQUIRED_HEADERS = {
 };
 const VERSION_HEADER = 'X-Bc-Version';
 const JWT_HEADER = 'authorization';
+const SHARE_CREATE_PATH = '/api/share/create';
 const CLIENT_TOKEN_EXPIRED_DAYS = 365; // 365 ngày
 
 export default class ApiService {
@@ -121,6 +122,12 @@ export default class ApiService {
         }
     }
 
+    // Share on X (Phase 3): POST ảnh + data -> backend lưu, soạn text, sinh trang OG -> trả { url, text }.
+    // Same-origin relative path -> nginx /api/share/ proxy. sendPost tự đính Authorization + version header.
+    public async createShare(payload: CreateShareRequest): Promise<{ url: string; text: string }> {
+        return await this.sendPost<{ url: string; text: string }>(SHARE_CREATE_PATH, JSON.stringify(payload));
+    }
+
     public async sendPost<T>(path: string, body: string): Promise<T> {
         const headers = {
             ...REQUIRED_HEADERS,
@@ -198,6 +205,14 @@ function generateClientToken(logger: Logger, settings: CookieSettings) {
 
         logger.log(JSON.stringify(result));
     }
+}
+
+export type CreateShareRequest = {
+    image: string;
+    source: string;
+    heroes?: [number, number, number][] | null;
+    token?: string;
+    amount?: number;
 }
 
 export type JwtData = {

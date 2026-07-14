@@ -19,6 +19,7 @@ import {getDefaultStore} from 'jotai';
 import NotificationService from "../NotificationService.ts";
 import {getSupportedNetworkFromChainId, getRpc} from "../RpcNetworkUtils.ts";
 import {RpcService} from "../BlockChain/RpcService.ts";
+import {buildLandingUrl, openLandingMode} from "../LandingUtils.ts";
 
 const TAG = '[UC]';
 const K_TRANSFER_AIRDROP_PREFIX = 'DEP';
@@ -213,6 +214,28 @@ export default class UnityCommunicator {
         this._logger.log(`${TAG} enableVideoThumbnail ${state}`);
         // window.enableBgVideo(state);
         return null;
+    }
+
+    // Opens the requested game mode (treasure/adventure) in a new browser tab.
+    async openGameMode(data: string): Promise<string | null> {
+        try {
+            const decrypted = this._aesHelper.decrypt(data);
+            if (decrypted == null) {
+                this._logger.error(`${TAG} openGameMode: cannot decrypt data`);
+                return null;
+            }
+            const {mode} = JSON.parse(decrypted) as { mode: string };
+            if (mode !== 'treasure' && mode !== 'adventure') {
+                this._logger.error(`${TAG} openGameMode: invalid mode "${mode}"`);
+                return null;
+            }
+            this._logger.log(`${TAG} openGameMode: ${mode} -> ${buildLandingUrl(mode)}`);
+            openLandingMode(mode);
+            return null;
+        } catch (e) {
+            this._logger.error(`${TAG} openGameMode fail: ${e}`);
+            return null;
+        }
     }
 
     async getLoginData(): Promise<string | null> {

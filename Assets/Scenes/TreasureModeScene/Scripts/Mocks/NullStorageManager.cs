@@ -67,7 +67,6 @@ namespace Scenes.TreasureModeScene.Scripts.Mocks {
         public IMinStakeHeroManager MinStakeHero { get; set; }
         public IRepairShieldConfig RepairShieldConfig { get; set; }
         public IRockPackConfigs RockPackConfigs { get; set; }
-        public BurnHeroData LastBurnHeroData { get; set; }
         public IBurnHeroConfig BurnHeroConfig { get; set; }
         public IUpgradeShieldConfig UpgradeShieldConfig { get; set; }
         public IRentHousePackageConfigs RentHousePackConfigs { get; set; }

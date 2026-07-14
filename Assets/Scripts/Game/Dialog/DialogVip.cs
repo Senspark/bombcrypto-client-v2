@@ -88,7 +88,7 @@ namespace Game.Dialog {
                     var result = await _serverManager.General.UserClaimStakeVip(type);
                     InitData(result);
                 } catch (Exception e) {
-                    DialogOK.ShowError(DialogCanvas, e.Message);
+                    DialogOK.ShowError(DialogCanvas, e);
                 }
                 waiting.End();
             });

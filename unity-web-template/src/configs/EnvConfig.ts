@@ -27,22 +27,19 @@ export const EnvConfig = {
         return import.meta.env.VITE_CODE_URL_EXTENSION
     },
     apiHost():string {
-        return import.meta.env.VITE_API_HOST
+        return '/api/login/web'
     },
     version(): string {
         return import.meta.env.VITE_VERSION
     },
     apiCheckIpHost(): string {
-        return import.meta.env.VITE_API_CHECK_IP_HOST
+        return '/api/login'
     },
     ignoreIpCheck(): boolean {
         return import.meta.env.VITE_IGNORE_IP_CHECK == 'true'
     },
     ignoreCheckVersion(): boolean {
         return import.meta.env.VITE_IGNORE_CHECK_VERSION == 'true'
-    },
-    otherNetworkUrl(): string {
-        return import.meta.env.VITE_OTHER_NETWORK_URL;
     },
     signSecret(): string {
         return import.meta.env.VITE_SIGN_SECRET;

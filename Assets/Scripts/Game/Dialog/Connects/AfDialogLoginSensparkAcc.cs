@@ -101,7 +101,7 @@ namespace Game.Dialog.Connects {
                     
                     Resolve(new LoginResult(false, acc));
                 } catch (Exception e) {
-                    DialogOK.ShowError(Data.CurrentCanvas, "Wrong username or password");
+                    DialogOK.ShowErrorMsgOnly(Data.CurrentCanvas, "Wrong username or password");
                 } finally {
                     HideWaiting();
                 }

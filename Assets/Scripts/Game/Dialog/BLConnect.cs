@@ -20,9 +20,6 @@ using UnityEngine;
 namespace Game.Dialog {
     public class BLConnect : MonoBehaviour {
         [SerializeField]
-        private GameObject facebook;
-
-        [SerializeField]
         private GameObject metamask;
 
         [SerializeField]
@@ -54,7 +51,7 @@ namespace Game.Dialog {
             _currentUserAccount = _userAccountManager.GetRememberedAccount();
             _isProduction = ServerAddress.IsMainServerAddress(_currentUserAccount.server.Address);
             
-            var isEditor = Application.isEditor;
+            var isEditor = AppConfig.IsEditor;
             var platform = Application.platform;
             metamask.SetActive(false);
             senspark.SetActive(isEditor ||
@@ -94,13 +91,6 @@ namespace Game.Dialog {
             _hide();
         }
 
-        public void OnButtonFacebookClicked() {
-#if UNITY_ANDROID || UNITY_IOS
-            _didHides.Add(() => ApplyState(State.ChooseServerAndNetwork));
-            _hide();
-#endif
-        }
-        
         public void OnButtonAppleClicked() {
 #if UNITY_IOS
             _requestLoginType = LoginType.Apple;
@@ -187,9 +177,9 @@ namespace Game.Dialog {
                 } catch (Exception e) {
                     _logManager.Log(e.Message);
                     if (e is ErrorCodeException) {
-                        DialogError.ShowError(_canvas, e.Message);    
+                        DialogError.ShowError(_canvas, e);    
                     } else {
-                        DialogOK.ShowError(_canvas, e.Message);
+                        DialogOK.ShowError(_canvas, e);
                     }
                 }
             });
@@ -209,46 +199,16 @@ namespace Game.Dialog {
                 } catch (Exception e) {
                     _logManager.Log(e.Message);
                     if (e is ErrorCodeException) {
-                        DialogError.ShowError(_canvas, e.Message);    
+                        DialogError.ShowError(_canvas, e);    
                     } else {
-                        DialogOK.ShowError(_canvas, e.Message);
+                        DialogOK.ShowError(_canvas, e);
                     }
                 }
             });
         }
 
-        private async void StateLoginMetamask() {
+        private void StateLoginMetamask() {
             //Ko dùng dialog connect nữa
-            return;
-            IBlockchainConfig networkConfig;
-            switch (_newUserAccount.network)
-            {
-                case NetworkType.Binance:
-                    networkConfig = new BinanceBlockchainConfig(_isProduction);
-                    break;
-                case NetworkType.Polygon:
-                    networkConfig = new PolygonBlockchainConfig(_isProduction);
-                    break;
-                case NetworkType.Ton:
-                    networkConfig = new TonBlockchainConfig(_isProduction);
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException();
-            }
-
-            var dialog = await DialogConnectWallet.Create();
-            dialog.Init(true, _isProduction, networkConfig.NetworkId)
-                .StartFlow(acc => {
-                    _newUserAccount.userName = acc.userName;
-                    _newUserAccount.id = acc.id;
-                    _newUserAccount.jwtToken = acc.jwtToken;
-                    _newUserAccount.walletAddress = acc.walletAddress;
-                    _newUserAccount.isUserFi = acc.isUserFi;
-                    _newUserAccount.hasPasscode = acc.hasPasscode;
-                    _newUserAccount.loginType = LoginType.Wallet;
-                    _newUserAccount.rememberMe = true;
-                }, () => { })
-                .Show(_canvas);
         }
 
         private void StateShowNetworkAndServer() {
@@ -272,9 +232,9 @@ namespace Game.Dialog {
                 } catch (Exception e) {
                     _logManager.Log(e.Message);
                     if (e is ErrorCodeException) {
-                        DialogError.ShowError(_canvas, e.Message);    
+                        DialogError.ShowError(_canvas, e);    
                     } else {
-                        DialogOK.ShowError(_canvas, e.Message);
+                        DialogOK.ShowError(_canvas, e);
                     }
                 }
             });

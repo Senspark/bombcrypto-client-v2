@@ -3,6 +3,8 @@ using System.Threading.Tasks;
 
 using Analytics;
 
+using Cysharp.Threading.Tasks;
+
 using Senspark;
 
 namespace Services.IapAds {
@@ -26,7 +28,7 @@ namespace Services.IapAds {
             _bridge = null;
         }
 
-        public Task SyncData() {
+        public UniTask SyncData() {
             return _bridge.SyncData();
         }
 

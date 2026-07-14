@@ -1,12 +1,17 @@
 using System;
 
+using Animation;
+
 using App;
 
 using Constant;
 
 using Cysharp.Threading.Tasks;
 
+using Engine.Components;
 using Engine.Entities;
+
+using Senspark;
 
 using Services;
 
@@ -70,7 +75,30 @@ namespace Game.Dialog.BomberLand.BLGacha {
             return await GetSpriteByItemId((GachaChestProductId)itemId);
         }
 
+        // Hero decouple (Phase 5) — chữa TẬP TRUNG: sprite hero trong ResourceChestSo/ResourceAnimationSo đã gãy
+        // sau khi gộp/xoá folder Characters ở 0.A → hero hiển thị trắng ở mọi caller dùng itemId (gacha reveal,
+        // market order, lucky wheel, daily gift...). Chặn ngay tại chokepoint này: hero → IHeroSpriteLoader (path-load);
+        // item khác (bomb/trail/wing/fire/emoji/avatar) giữ nguyên dict chest cũ.
+        // Detector = UIHeroData.IsHeroItemId (nguồn config_item.type = HERO) — KHÔNG dùng ConvertFromHeroId làm detector
+        // (nó default Knight cho id lạ → false-positive). Catalog.Has gác thêm để chắc có art trên đĩa.
+        // Đặt ở overload (GachaChestProductId) — điểm hội tụ của cả caller int LẪN enum (vd BLGachaChestReward
+        // truyền GachaChestItemData.ProductId kiểu enum) — để mọi đường vào đều được chặn.
+        private static bool TryGetHeroType(int itemId, out PlayerType type) {
+            if (UIHeroData.IsHeroItemId(itemId)) {
+                type = UIHeroData.ConvertFromHeroId(itemId);
+                if (HeroSpriteCatalog.Has(type)) {
+                    return true;
+                }
+            }
+            type = default;
+            return false;
+        }
+
         public async UniTask<Sprite> GetSpriteByItemId(GachaChestProductId type) {
+            if (TryGetHeroType((int)type, out var heroType)) {
+                var loader = ServiceLocator.Instance.Resolve<IHeroSpriteLoader>();
+                return await loader.LoadPortrait(heroType, PlayerColor.HeroTr);
+            }
             if (_resourceChestSo != null) {
                 return _resourceChestSo.GetSpriteByItemId(type); 
             }
@@ -151,6 +179,11 @@ namespace Game.Dialog.BomberLand.BLGacha {
         }
 
         public async UniTask<ResourceAnimationPicker> GetAnimation(GachaChestProductId type) {
+            if (TryGetHeroType((int)type, out var heroType)) {
+                var loader = ServiceLocator.Instance.Resolve<IHeroSpriteLoader>();
+                var clip = await loader.LoadClip(heroType, PlayerColor.HeroTr, FaceDirection.Down);
+                return new ResourceAnimationPicker { Type = InventoryItemType.Hero, AnimationIdle = clip };
+            }
             if (_resourceAnimationSo != null) {
                 return _resourceAnimationSo.GetAnimation(type);
             }

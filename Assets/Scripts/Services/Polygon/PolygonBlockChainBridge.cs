@@ -173,9 +173,9 @@ namespace App {
             return Task.FromResult(false);
         }
 
-        public Task<string> ClaimToken(int tokenType, double amount, int nonce, string[] details, string signature,
-            string formatType, int waitConfirmations) {
-            return _bridge.ClaimToken(tokenType, amount, nonce, details, signature, formatType, waitConfirmations);
+        public Task<ClaimAndProcessResult> ClaimToken(int tokenType, double amount, int nonce, string[] details, string signature,
+            string formatType, int waitConfirmations, string walletAddress) {
+            return _bridge.ClaimToken(tokenType, amount, nonce, details, signature, formatType, waitConfirmations, walletAddress);
         }
 
         public Task<int> GetRockAmount(string walletAddress) {
@@ -216,20 +216,20 @@ namespace App {
             return _bridge.Exchange_GetInfo();
         }
 
-        public Task<bool> StakeToHero(string walletAddress, int id, double amount, string tokenAddress, StakeHeroCategory category) {
-            return _bridge.StakeToHero(walletAddress, id, amount, tokenAddress, category);
+        public Task<StakeResult> StakeToHero(string walletAddress, int id, double amount, StakeHeroCategory category) {
+            return _bridge.StakeToHero(walletAddress, id, amount, category);
         }
 
-        public Task<bool> WithDrawFromHeroId(int id, double amount, string tokenAddress) {
-            return _bridge.WithDrawFromHeroId(id, amount, tokenAddress);
+        public Task<StakeResult> WithDrawFromHeroId(int id, double amount, StakeHeroCategory category) {
+            return _bridge.WithDrawFromHeroId(id, amount, category);
         }
 
-        public Task<double> GetStakeFromHeroId(int id, string tokenAddress) {
-            return _bridge.GetStakeFromHeroId(id, tokenAddress);
+        public Task<double> GetStakeFromHeroId(int id, StakeHeroCategory category) {
+            return _bridge.GetStakeFromHeroId(id, category);
         }
 
-        public Task<double> GetFeeFromHeroId(int id, string tokenAddress) {
-            return _bridge.GetFeeFromHeroId(id, tokenAddress);
+        public Task<double> GetFeeFromHeroId(int id, StakeHeroCategory category) {
+            return _bridge.GetFeeFromHeroId(id, category);
         }
 
         public Task<bool> DepositTon(string invoice, double amount) {
@@ -238,6 +238,23 @@ namespace App {
         
         public Task<bool> DepositAirdrop(string invoice, string amount, string chainId) {
             return _bridge.DepositAirdrop(invoice, amount, chainId);
+        }
+
+        public Task<string> GetBridgeDeposited(string walletAddress, string token) {
+            return _bridge.GetBridgeDeposited(walletAddress, token);
+        }
+
+        public Task<string> GetBridgeWithdrawn(string walletAddress, string token) {
+            return _bridge.GetBridgeWithdrawn(walletAddress, token);
+        }
+
+        public Task<BridgeTxResult> BridgeDeposit(string walletAddress, string token, string amountWei) {
+            return _bridge.BridgeDeposit(walletAddress, token, amountWei);
+        }
+
+        public Task<BridgeTxResult> BridgeWithdraw(string walletAddress, string token, string grossWei,
+            string beforeWei, string signature) {
+            return _bridge.BridgeWithdraw(walletAddress, token, grossWei, beforeWei, signature);
         }
     }
 }

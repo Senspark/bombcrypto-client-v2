@@ -103,7 +103,7 @@ namespace Scenes.TutorialScene.Scripts {
 
         private void OnDestroy() {
             DOTween.KillAll(true);
-            ServiceLocator.Instance.Resolve<ISoundManager>().StopMusic();
+            _soundManager?.StopMusic();
             _handle.Dispose();
         }
 

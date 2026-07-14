@@ -123,9 +123,9 @@ namespace Scenes.AltarScene.Scripts {
                     _currentContent.SetSelected(true);
                 } catch (Exception e) {
                     if (e is ErrorCodeException) {
-                        DialogError.ShowError(canvasDialog, e.Message);    
+                        DialogError.ShowError(canvasDialog, e);    
                     } else {
-                        DialogOK.ShowError(canvasDialog, e.Message);
+                        DialogOK.ShowError(canvasDialog, e);
                     }
                     _logManager.Log(e.Message);
                 } finally {
@@ -184,9 +184,9 @@ namespace Scenes.AltarScene.Scripts {
                     ShowDialogReward(result, BLTabType.Grind);
                 } catch (Exception e) {
                     if (e is ErrorCodeException) {
-                        DialogError.ShowError(canvasDialog, e.Message);    
+                        DialogError.ShowError(canvasDialog, e);    
                     } else {
-                        DialogOK.ShowError(canvasDialog, e.Message);
+                        DialogOK.ShowError(canvasDialog, e);
                     }
                 } finally {
                     waiting.End();
@@ -239,9 +239,9 @@ namespace Scenes.AltarScene.Scripts {
                     ShowDialogReward(reward, BLTabType.Fuse);
                 } catch (Exception e) {
                     if (e is ErrorCodeException) {
-                        DialogError.ShowError(canvasDialog, e.Message);    
+                        DialogError.ShowError(canvasDialog, e);    
                     } else {
-                        DialogOK.ShowError(canvasDialog, e.Message);
+                        DialogOK.ShowError(canvasDialog, e);
                     }
                 } finally {
                     waiting.End();

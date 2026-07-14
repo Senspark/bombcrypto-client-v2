@@ -33,8 +33,8 @@ namespace App {
         Task<bool> Fusion(int[] mainHeroIds, int[] secondHeroIds);
         Task<bool> RepairShield(int idHeroS, int[] idHeroesBurn);
         Task<bool> GetNFT(int amount, int eventId, int nonce, string signature);
-        Task<string> ClaimToken(int tokenType, double amount, int nonce, string[] details, string signature,
-            string formatType, int waitConfirmations);
+        Task<ClaimAndProcessResult> ClaimToken(int tokenType, double amount, int nonce, string[] details, string signature,
+            string formatType, int waitConfirmations, string walletAddress);
         Task<int> GetRockAmount(string walletAddress);
         Task<string> CreateRock(int[] idHeroesBurn);
         Task<bool> RepairShieldWithRock(int idHeroS, int amountRock);
@@ -47,11 +47,17 @@ namespace App {
         Task<bool> Exchange_BuyBcoin(double amount, BuyBcoinCategory category, string walletAddress);
         Task<ExchangeInfo> Exchange_GetInfo();
         
-        Task<bool> StakeToHero(string walletAddress, int id, double amount, string tokenAddress, StakeHeroCategory category);
-        Task<bool> WithDrawFromHeroId(int id, double amount, string tokenAddress);
-        Task<double> GetStakeFromHeroId(int id, string tokenAddress);
-        Task<double> GetFeeFromHeroId(int id, string tokenAddress);
+        Task<StakeResult> StakeToHero(string walletAddress, int id, double amount, StakeHeroCategory category);
+        Task<StakeResult> WithDrawFromHeroId(int id, double amount, StakeHeroCategory category);
+        Task<double> GetStakeFromHeroId(int id, StakeHeroCategory category);
+        Task<double> GetFeeFromHeroId(int id, StakeHeroCategory category);
         Task<bool> DepositTon(string invoice, double amount);
         Task<bool> DepositAirdrop(string invoice, string amount, string chainId);
+
+        Task<string> GetBridgeDeposited(string walletAddress, string token);
+        Task<string> GetBridgeWithdrawn(string walletAddress, string token);
+        Task<BridgeTxResult> BridgeDeposit(string walletAddress, string token, string amountWei);
+        Task<BridgeTxResult> BridgeWithdraw(string walletAddress, string token, string grossWei, string beforeWei,
+            string signature);
     }
 }

@@ -46,7 +46,7 @@ namespace App {
             if (AppConfig.ServerAddresses != null) {
                 if (AppConfig.IsTournament()) {
                     ApiHost = AppConfig.ServerAddresses.tournamentBaseApiHost;
-                    ApiTestHost = Application.isEditor ? BASE_API_TEST_HOST_LOCAL : AppConfig.ServerAddresses.baseApiTestHost;
+                    ApiTestHost = AppConfig.IsEditor ? BASE_API_TEST_HOST_LOCAL : AppConfig.ServerAddresses.baseApiTestHost;
                 } else {
                     if (networkConfig.NetworkType == NetworkType.Binance) {
                         ApiHost = AppConfig.ServerAddresses.baseApiHost;

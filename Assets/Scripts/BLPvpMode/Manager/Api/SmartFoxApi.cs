@@ -75,32 +75,23 @@ namespace BLPvpMode.Manager.Api {
             _keepAlive = new KeepAliveExtension(this, _dispatcher);
         }
 
-        ~SmartFoxApi() => Dispose(false);
-
         public void Dispose() {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
-        private void Dispose(bool disposing) {
             if (_disposed) {
                 return;
             }
-            if (disposing) {
-                _bridge.RemoveEventListener(SFSEvent.CONNECTION, OnConnection);
-                _bridge.RemoveEventListener(SFSEvent.CONNECTION_RETRY, OnConnectionRetry);
-                _bridge.RemoveEventListener(SFSEvent.CONNECTION_RESUME, OnConnectionResume);
-                _bridge.RemoveEventListener(SFSEvent.CONNECTION_LOST, OnConnectionLost);
-                _bridge.RemoveEventListener(SFSEvent.LOGIN, OnLogin);
-                _bridge.RemoveEventListener(SFSEvent.LOGIN_ERROR, OnLoginError);
-                _bridge.RemoveEventListener(SFSEvent.UDP_INIT, OnUdpInit);
-                _bridge.RemoveEventListener(SFSEvent.PING_PONG, OnPingPong);
-                _bridge.RemoveEventListener(SFSEvent.ROOM_VARIABLES_UPDATE, OnRoomVariableUpdate);
-                _bridge.RemoveEventListener(SFSEvent.ROOM_JOIN, OnRoomJoin);
-                _bridge.RemoveEventListener(SFSEvent.EXTENSION_RESPONSE, OnExtensionResponse);
-            }
-            _keepAlive.Dispose();
             _disposed = true;
+            _bridge.RemoveEventListener(SFSEvent.CONNECTION, OnConnection);
+            _bridge.RemoveEventListener(SFSEvent.CONNECTION_RETRY, OnConnectionRetry);
+            _bridge.RemoveEventListener(SFSEvent.CONNECTION_RESUME, OnConnectionResume);
+            _bridge.RemoveEventListener(SFSEvent.CONNECTION_LOST, OnConnectionLost);
+            _bridge.RemoveEventListener(SFSEvent.LOGIN, OnLogin);
+            _bridge.RemoveEventListener(SFSEvent.LOGIN_ERROR, OnLoginError);
+            _bridge.RemoveEventListener(SFSEvent.UDP_INIT, OnUdpInit);
+            _bridge.RemoveEventListener(SFSEvent.PING_PONG, OnPingPong);
+            _bridge.RemoveEventListener(SFSEvent.ROOM_VARIABLES_UPDATE, OnRoomVariableUpdate);
+            _bridge.RemoveEventListener(SFSEvent.ROOM_JOIN, OnRoomJoin);
+            _bridge.RemoveEventListener(SFSEvent.EXTENSION_RESPONSE, OnExtensionResponse);
+            _keepAlive.Dispose();
         }
 
         private void OnConnection(BaseEvent evt) {

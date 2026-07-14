@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Animation;
 using App;
 using Cysharp.Threading.Tasks;
 using Senspark;
@@ -14,18 +15,17 @@ public class Avatar : MonoBehaviour {
     [SerializeField]
     private GameObject heroS, heroL, heroSFake;
 
-    private const string TonPath = "Assets/Scenes/TreasureModeScene/Textures/Pack";
-    private const string WebPath = "Assets/Scenes/MainMenuScene/Textures/Pack";
+    private const string CharPath = "Assets/Data/CharactersSprites";
 
     public void HideImage() {
         img.enabled = false;
-        if (heroS != null) {
+        if (heroS) {
             heroS.SetActive(false);
         }
-        if (heroL != null) {
+        if (heroL) {
             heroL.SetActive(false);
         }
-        if (heroSFake != null) {
+        if (heroSFake) {
             heroSFake.SetActive(false);
         }
     }
@@ -49,74 +49,70 @@ public class Avatar : MonoBehaviour {
         img.enabled = false;
         string imgPath;
         Sprite spr = null;
-        if (AppConfig.IsAirDrop()) {
+        if (HeroSpriteCatalog.Has(playerType)) {
+            // Mọi hero trong catalog: portrait qua IHeroSpriteLoader (path-load, icon nếu có).
+            var loader = ServiceLocator.Instance.Resolve<IHeroSpriteLoader>();
+            var rarity = playerData != null ? (HeroRarity)playerData.rare : HeroRarity.Common;
+            spr = await loader.LoadPortrait(playerType, playerColor, rarity);
+        }
+        else if (AppConfig.IsAirDrop()) {
             if (playerColor == PlayerColor.Skin) {
-                var skinPlayers = new List<PlayerType> { 
-                    PlayerType.Ninja , PlayerType.Witch, PlayerType.Knight,
-                    PlayerType.Man, PlayerType.Vampire, PlayerType.Frog,
-                    PlayerType.King, PlayerType.Pepe, PlayerType.Doge,
-                    PlayerType.BomberMan
-                };
-                
-                if (skinPlayers.Contains(playerType) && playerData != null) {
-                    imgPath = $"Characters/{playerType}/{playerColor}/{(HeroRarity)playerData.rare}/Front/player_front_01";
+                if (BHeroSkinPalette.IsSkinSupported(playerType) && playerData != null) {
+                    imgPath = $"{playerType}/{playerColor}/{(HeroRarity)playerData.rare}/Front/player_front_01";
                 } else {
-                    playerColor = PlayerColor.White;
-                    imgPath = $"Characters/{playerType}/{playerColor}/Front/player_front_01";
+                    playerColor = BHeroSkinPalette.Resolve(playerType, PlayerColor.White);
+                    imgPath = $"{playerType}/{playerColor}/Front/player_front_01";
                 }
                 spr = await LoadWithAddressable(imgPath);
             } else {
-                // Player nhiều màu thì lấy theo màu, tránh sai đường dẫn bị in log lỗi
-                var colorfulPlayers = new List<PlayerType>
-                    { PlayerType.Witch, PlayerType.BomberMan, PlayerType.Knight, PlayerType.Man, PlayerType.Vampire };
-                if (!colorfulPlayers.Contains(playerType)) {
-                    playerColor = (playerColor != PlayerColor.HeroTr) ? PlayerColor.White : PlayerColor.HeroTr;
-                }
-                if (playerType == PlayerType.DogeTr) {
-                    imgPath = $"Characters/{playerType}/{playerColor}/icon";
-                } else {
-                    imgPath = $"Characters/{playerType}/{playerColor}/Front/player_front_01";
-                }
-                spr = await LoadWithAddressable(imgPath);
-            }
-        } 
-        else {
-            if (playerType == PlayerType.DogeTr) {
-                imgPath = $"Characters/{playerType}/{playerColor}/icon";
-            } else {
-                imgPath = $"Characters/{playerType}/{playerColor}/Front/player_front_01";
-            }
-            spr = await LoadWithAddressable(imgPath);
-            if (spr == null) {
-                playerColor = PlayerColor.White;
-                imgPath = $"Characters/{playerType}/{playerColor}/Front/player_front_01";
-                spr = await LoadWithAddressable(imgPath);
-            }
-            if (spr == null) {
-                playerColor = PlayerColor.HeroTr;
-                imgPath = $"Characters/{playerType}/{playerColor}/Front/player_front_01";
+                playerColor = BHeroSkinPalette.Resolve(playerType, playerColor);
+                imgPath = playerType == PlayerType.DogeTr
+                    ? $"{playerType}/{playerColor}/icon"
+                    : $"{playerType}/{playerColor}/Front/player_front_01";
                 spr = await LoadWithAddressable(imgPath);
             }
         }
-        
+        else {
+            playerColor = BHeroSkinPalette.Resolve(playerType, playerColor);
+            imgPath = playerType == PlayerType.DogeTr
+                ? $"{playerType}/{playerColor}/icon"
+                : $"{playerType}/{playerColor}/Front/player_front_01";
+            spr = await LoadWithAddressable(imgPath);
+            if (!spr) {
+                playerColor = PlayerColor.White;
+                imgPath = $"{playerType}/{playerColor}/Front/player_front_01";
+                spr = await LoadWithAddressable(imgPath);
+            }
+            if (!spr) {
+                playerColor = PlayerColor.HeroTr;
+                imgPath = $"{playerType}/{playerColor}/Front/player_front_01";
+                spr = await LoadWithAddressable(imgPath);
+            }
+        }
+
+
+        // Item có thể đã bị destroy khi đang await load (vd lật trang inventory) → bỏ ghi để khỏi crash.
+        if (!this || !img) {
+            return;
+        }
 
         // Không hiển thị S, L trong bản airdrop
         if (AppConfig.IsAirDrop()) {
             iShow = false;
         }
-        
+
         img.sprite = spr;
         img.enabled = true;
         
         var isHeroS = playerData is { IsHeroS: true };
         var isHeroSFake = playerData is { IsHeroS: false, Shield: not null };
-        if (heroS != null) {
+        if (heroS) {
             heroS.SetActive(isHeroS && !isHeroSFake && iShow);
         }
-        if (heroL != null) {
+        if (heroL) {
             heroL.SetActive(!isHeroS && !isHeroSFake && iShow);
         }
-        if (heroSFake != null) {
+        if (heroSFake) {
             heroSFake.SetActive(!isHeroS && isHeroSFake && iShow);
         }
         
@@ -124,9 +120,8 @@ public class Avatar : MonoBehaviour {
     }
 
     private async UniTask<Sprite> LoadWithAddressable(string path) {
-        var resourcePath = AppConfig.IsAirDrop() ? TonPath : WebPath;
         try {
-            var actualPath = $"{resourcePath}/{path}.png";
+            var actualPath = $"{CharPath}/{path}.png";
             var spr = await AddressableLoader.LoadAsset<Sprite>(actualPath);
             spr.texture.filterMode = FilterMode.Point;
             return spr;

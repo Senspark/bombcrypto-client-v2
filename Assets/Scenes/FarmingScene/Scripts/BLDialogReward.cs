@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Threading;
 using System.Threading.Tasks;
 using App;
+using App.BomberLand;
 using Cysharp.Threading.Tasks;
 using Game.Dialog;
 using Game.Dialog.BomberLand.BLWallet;
@@ -61,6 +63,10 @@ namespace Scenes.FarmingScene.Scripts {
 
         private Dictionary<NetworkType, BLDialogRewardController.BlockchainHeroAmount> _heroAmount;
         private List<DataWallet> _walletDataFull;
+        private DataWallet? _currentSelectedWallet;
+        private bool _bridgeWithdrawInFlight;
+        private double _bridgeFeePercent = 5;
+        private bool _bridgeFeeLoaded;
 
         public static UniTask<BLDialogReward> Create() {
             return ServiceLocator.Instance.Resolve<IPrefabLoaderManager>().Instantiate<BLDialogReward>();
@@ -87,6 +93,9 @@ namespace Scenes.FarmingScene.Scripts {
             _handle = new ObserverHandle();
             _handle.AddObserver(_serverManager, new ServerObserver {
                 OnChestReward = OnChestReward
+            });
+            _handle.AddObserver(_claimTokenManager, new ClaimTokenObserver {
+                OnStateChanged = ApplyClaimButtonState,
             });
             _controller = new BLDialogRewardController(_serverManager, _launchPadManager, _claimTokenManager,
                 _chestRewardManager, _blockchainManager, _blockchainStorageManager, _storeManager, featureManager,
@@ -118,13 +127,14 @@ namespace Scenes.FarmingScene.Scripts {
             UniTask.Void(async token => {
                 try {
                     frameWallet.OnClaim = OnClaim;
+                    frameWallet.OnSelectionChanged = OnSelectionChanged;
                     await frameWallet.InitUi();
                     await RefreshClaimableHeroAmount();
                     await _serverManager.General.GetChestReward();
                     waitingPanel.gameObject.SetActive(false);
                 } catch (Exception e) when (!token.IsCancellationRequested) {
                     _logManager.Log(e.Message);
-                    DialogOK.ShowError(DialogCanvas, e.Message);
+                    DialogOK.ShowError(DialogCanvas, e);
                     Hide();
                 }
             }, _cancellation.Token);
@@ -163,22 +173,22 @@ namespace Scenes.FarmingScene.Scripts {
                         continue;
                     }
                 } else if (AppConfig.IsSolana()) {
-                    if (t.Network != NetworkSymbol.Sol.Name
+                    if (t.Network != nameof(DataType.SOL)
                         && rewardType.Type != BlockRewardType.BLCoin) {
                         continue;
                     }
                 } 
                 // RON ,VIC, BAS chỉ hiện starcore network, ko hiện star core TR
                 else if (AppConfig.IsRonin()) {
-                    if (t.Network != NetworkSymbol.Ron.Name) {
+                    if (t.Network != nameof(DataType.RON)) {
                         continue;
                     }
                 } else if (AppConfig.IsBase()) {
-                    if (t.Network != NetworkSymbol.Bas.Name) {
+                    if (t.Network != nameof(DataType.BAS)) {
                         continue;
                     }
                 } else if (AppConfig.IsViction()) {
-                    if (t.Network != NetworkSymbol.Vic.Name) {
+                    if (t.Network != nameof(DataType.VIC)) {
                         continue;
                     }
                 }
@@ -192,7 +202,7 @@ namespace Scenes.FarmingScene.Scripts {
                         continue;
                     }
                     // BSC, POL chỉ hiện starcore TR, ko hiện starcore network
-                    if(rewardType.Type == BlockRewardType.BLCoin && t.Network != NetworkSymbol.TR.Name ) {
+                    if(rewardType.Type == BlockRewardType.BLCoin && t.Network != nameof(DataType.TR) ) {
                         continue;
                     }
                 }
@@ -240,12 +250,12 @@ namespace Scenes.FarmingScene.Scripts {
                     var rewardType = _launchPadManager.CreateRewardType(data.tokenName);
                     var claimValue = 0;
                     if (rewardType.Type == BlockRewardType.Hero) {
-                        var n = RewardUtils.ConvertToNetworkType(data.NetworkSymbol.Name);
+                        var n = RewardUtils.ConvertToNetworkType(data.networkSymbol.ToString());
                         claimValue += _heroAmount[n].GetTotal();
                     }
                     DataWallet d;
                     d.RefTokenData = data;
-                    d.RefTokenReward = new TokenReward(data.tokenName, data.NetworkSymbol.Name);
+                    d.RefTokenReward = new TokenReward(RewardUtils.ConvertToBlockRewardType(data.tokenName), data.networkSymbol.ToString());
                     d.RefRewardType = rewardType;
                     d.ClaimValue = claimValue;
                     d.PendingValue = 0;
@@ -264,78 +274,204 @@ namespace Scenes.FarmingScene.Scripts {
         private void UpdateAllTokensUI() {
         }
 
-        #region CLAIM BCOIN
+        #region V4 CLAIM
 
-        private void ClaimCoin(DataWallet dataWallet) {
+        private void ClaimFlow(DataWallet wallet) {
             UniTask.Void(async () => {
                 var waiting = await ShowDialogWaiting();
                 try {
-                    var res = await _controller.ClaimCoin(dataWallet);
-                    if (res.Successful) {
-                        var dialog = await DialogBCoinReward.Create();
-                        dialog.SetReward(dataWallet.RefTokenData, res.ClaimValue).Show(DialogCanvas);
+                    _controller.ThrowIfCannotClaim(wallet);
+                    var result = await _claimTokenManager.Claim(wallet.RefRewardType.Type, wallet.RefTokenData.code);
+                    if (!this) return;
+                    var type = wallet.RefRewardType.Type;
+                    if (type == BlockRewardType.Hero) {
+                        await RefreshClaimableHeroAmount();
+                        await _serverManager.General.GetChestReward();
+                        if (!this) return;
+                        if (result.FusionFailAmount > 0) {
+                            await ProcessTokenHelper.FusionFailed(DialogCanvas, result.FusionFailAmount);
+                        }
                     } else {
-                        DialogOK.ShowInfo(DialogCanvas, "Claim Fail");
+                        var coinResult = await _controller.WaitForClaimCompletion(wallet, result.ClaimedAmount);
+                        if (!this) return;
+                        if (coinResult.Successful) {
+                            var dialog = await DialogBCoinReward.Create();
+                            if (!this) return;
+                            dialog.SetReward(wallet.RefTokenData, coinResult.ClaimValue, DialogCanvas).Show(DialogCanvas);
+                        } else {
+                            DialogOK.ShowInfo(DialogCanvas, "Claim Fail");
+                        }
                     }
                 } catch (Exception e) {
-                    DialogOK.ShowError(DialogCanvas, e.Message);
+                    if (this) DialogOK.ShowError(DialogCanvas, e);
                 } finally {
-                    UpdateAllTokensUI();
+                    if (this) UpdateAllTokensUI();
                     waiting.Hide();
                 }
             });
         }
 
-        private void ClaimDeposit(DataWallet dataWallet) {
+        private void BridgeWithdrawFlow(DataWallet wallet) {
+            var (serverType, _) = BridgeIds(wallet.RefRewardType.Type);
+            UniTask.Void(async () => {
+                var feePercent = await GetBridgeFeePercentAsync();
+                if (!this) return;
+                var dialog = await DialogBridgeWithdrawAmount.Create();
+                if (!this) return;
+                dialog.Show(DialogBridgeAmount.Mode.Withdraw, wallet.RefTokenData, BridgeNetworkName(),
+                    wallet.ClaimValue, feePercent, LoginChainString(), DialogCanvas,
+                    (amount, isMax, chain) => ExecuteBridgeWithdraw(wallet, serverType, amount, isMax, chain));
+            });
+        }
+
+        private void ExecuteBridgeWithdraw(DataWallet wallet, int serverType, double amount, bool allIn,
+            string chain) {
+            if (_bridgeWithdrawInFlight) return;
+            _bridgeWithdrawInFlight = true;
             UniTask.Void(async () => {
                 var waiting = await ShowDialogWaiting();
                 try {
-                    var res = await _controller.ClaimCoin(dataWallet);
-                    if (res.Successful) {
-                        var dialog = await DialogBCoinReward.Create();
-                        dialog.SetReward(dataWallet.RefTokenData, res.ClaimValue).Show(DialogCanvas);
-                    } else {
-                        DialogOK.ShowInfo(DialogCanvas, "Claim Fail");
-                    }
+                    var res = await _serverManager.General.RequestCrosschainBridgeWithdraw(serverType, amount, allIn, chain);
+                    if (!this) return;
+
+                    var netWei = string.IsNullOrEmpty(res.NetWei) ? "0" : res.NetWei;
+                    var net = (double)BigInteger.Parse(netWei) / 1e18;
+                    var dialog = await DialogBCoinReward.Create();
+                    if (!this) return;
+                    dialog.SetReward(wallet.RefTokenData, net, DialogCanvas).Show(DialogCanvas);
+
+                    ShowBridgeTxDialog(res);
                 } catch (Exception e) {
-                    DialogOK.ShowError(DialogCanvas, e.Message);
+                    if (this) DialogOK.ShowError(DialogCanvas, e);
                 } finally {
-                    UpdateAllTokensUI();
+                    _bridgeWithdrawInFlight = false;
+                    if (this) UpdateAllTokensUI();
                     waiting.Hide();
                 }
             });
         }
 
-        #endregion
+        private async UniTask<double> GetBridgeFeePercentAsync() {
+            if (_bridgeFeeLoaded) return _bridgeFeePercent;
+            try {
+                var config = await _serverManager.General.GetTreasureHuntDataConfig();
+                if (this && config != null) {
+                    _bridgeFeePercent = config.BridgeFeePercent;
+                    _bridgeFeeLoaded = true;
+                }
+            } catch (Exception e) {
+                if (this) _logManager.Log($"[Bridge] fee config load failed, using default {_bridgeFeePercent}%: {e.Message}");
+            }
+            return _bridgeFeePercent;
+        }
 
-        #region CLAIM HERO
+        private string LoginChainString() {
+            return _networkConfig.NetworkType == NetworkType.Polygon
+                ? DialogBridgeAmount.ChainPolygon
+                : DialogBridgeAmount.ChainBsc;
+        }
 
-        private void ClaimBHero(DataWallet dataWallet) {
+        private void ShowBridgeTxDialog(BridgeWithdrawResult res) {
+            if (res == null || string.IsNullOrEmpty(res.TxHash)) return;
+            var url = BridgeExplorerUrl(res.Chain, res.TxHash);
+            var pending = string.Equals(res.Status, "pending", StringComparison.OrdinalIgnoreCase);
+            var desc = pending
+                ? "Your withdraw is processing on-chain and will settle shortly."
+                : "Withdraw completed on-chain.";
+            UniTask.Void(async () => {
+                var dialog = await DialogConfirm.Create();
+                if (!this) return;
+                dialog.SetInfo(desc, "View Tx", "OK",
+                        () => { if (!string.IsNullOrEmpty(url)) Application.OpenURL(url); }, null)
+                    .Show(DialogCanvas);
+            });
+        }
+
+        private static string BridgeExplorerUrl(string chain, string txHash) {
+            var isBsc = string.Equals(chain, DialogBridgeAmount.ChainBsc, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(chain, "BNB", StringComparison.OrdinalIgnoreCase);
+            string host;
+            if (AppConfig.IsProduction) {
+                host = isBsc ? "https://bscscan.com" : "https://polygonscan.com";
+            } else {
+                host = isBsc ? "https://testnet.bscscan.com" : "https://amoy.polygonscan.com";
+            }
+            return $"{host}/tx/{txHash}";
+        }
+
+        private static (int serverType, string symbol) BridgeIds(BlockRewardType type) {
+            return type == BlockRewardType.SenBridge ? (30, "SEN") : (29, "BCOIN");
+        }
+
+        private void ProcessLeftoverPendingHeroFlow(DataWallet wallet) {
             UniTask.Void(async () => {
                 var waiting = await ShowDialogWaiting();
                 try {
-                    var res = await _controller.ClaimHero();
+                    var pending = await _blockchainManager.GetPendingHero();
+                    if (!this) return;
+
+                    if (pending.pendingHeroes <= 0) {
+                        waiting.Hide();
+                        ClaimFlow(wallet);
+                        return;
+                    }
+
+                    _logManager.Log(
+                        $"[Leftover-mint] pendingHeroes={pending.pendingHeroes} " +
+                        $"pendingHeroesFusion={pending.pendingHeroesFusion} " +
+                        $"code={wallet.RefTokenData.code}");
+
+                    var detail = await _blockchainManager.ProcessTokenRequests();
+                    if (!this) return;
+                    await _serverManager.General.SyncHero(notifyNewIds: true, forceFresh: true);
+                    if (!this) return;
+                    if (!detail.result) {
+                        throw new Exception("Try again");
+                    }
+
+                    if (detail.fusionFailAmount > 0) {
+                        await ProcessTokenHelper.FusionFailed(DialogCanvas, detail.fusionFailAmount);
+                        if (!this) return;
+                    }
+
                     await RefreshClaimableHeroAmount();
                     await _serverManager.General.GetChestReward();
-                    var success = res.Response.Succeed;
-                    var error = res.Response.ErrorMessage;
-                    var lostAmount = res.LostHeroAmount;
-
-                    var errorMsg = error ?? (!success ? "Claim Failed" : null);
-                    if (errorMsg != null) {
-                        DialogOK.ShowError(DialogCanvas, error);
-                    }
-
-                    if (res.LostHeroAmount > 0) {
-                        await ProcessTokenHelper.FusionFailed(DialogCanvas, lostAmount);
-                    }
+                    if (!this) return;
+                    
                 } catch (Exception e) {
-                    DialogOK.ShowError(DialogCanvas, e.Message);
+                    _logManager.Log($"[Leftover-mint] failed: {e}");
+                    if (this) DialogOK.ShowError(DialogCanvas, e);
                 } finally {
-                    UpdateAllTokensUI();
+                    if (this) UpdateAllTokensUI();
                     waiting.Hide();
                 }
             });
+        }
+
+        private void OnSelectionChanged(DataWallet wallet) {
+            _currentSelectedWallet = wallet;
+            ApplyClaimButtonState();
+        }
+
+        private void ApplyClaimButtonState() {
+            if (!_currentSelectedWallet.HasValue) return;
+            var phase = _claimTokenManager.Phase;
+
+            ClaimButtonMode mode;
+            bool interactable;
+            switch (phase) {
+                case ClaimPhase.None:
+                    mode = ClaimButtonMode.Withdraw;
+                    interactable = true;
+                    break;
+                case ClaimPhase.Waiting:
+                case ClaimPhase.Submitting:
+                default:
+                    mode = ClaimButtonMode.Waiting;
+                    interactable = false;
+                    break;
+            }
+            frameWallet.SetClaimButton(mode, interactable);
         }
 
         #endregion
@@ -348,9 +484,9 @@ namespace Scenes.FarmingScene.Scripts {
                 try {
                     var (tokenData, result) = await _controller.ClaimOtherCoin(dataWallet.RefRewardType);
                     var dialog = await DialogBCoinReward.Create();
-                    dialog.SetReward(tokenData, result.ClaimedValue).Show(DialogCanvas);
+                    dialog.SetReward(tokenData, result.ClaimedValue, DialogCanvas).Show(DialogCanvas);
                 } catch (Exception ex) {
-                    DialogOK.ShowError(DialogCanvas, ex.Message);
+                    DialogOK.ShowError(DialogCanvas, ex);
                 }
                 UpdateAllTokensUI();
                 waiting.Hide();
@@ -398,7 +534,7 @@ namespace Scenes.FarmingScene.Scripts {
                 if (depositList.Contains(item)) {
                     continue;
                 }
-                if (item.RefTokenData != null && item.RefTokenData.tokenName == "BOMBERMAN") {
+                if (item.RefTokenData != null && item.RefTokenData.tokenName == BlockRewardType.Hero) {
                     nftList.Add(item);
                 } else {
                     tokensList.Add(item);
@@ -414,39 +550,108 @@ namespace Scenes.FarmingScene.Scripts {
             try {
                 _soundManager.PlaySound(Audio.Tap);
                 _controller.ThrowIfCannotDeposit(dataWallet);
-                UniTask.Void(async () => {
-                    if (AppConfig.IsAirDrop()) {
-                        var dialogAirdrop = await DialogDepositAirdrop.Create(dataWallet.RefRewardType.Type);
+                var t = dataWallet.RefRewardType.Type;
+                if (AppConfig.IsAirDrop()) {
+                    UniTask.Void(async () => {
+                        var dialogAirdrop = await DialogDepositAirdrop.Create(t);
                         dialogAirdrop.Show(DialogCanvas);
-                    } else {
-                        DialogDeposit.Create().ContinueWith(dialog => {
-                            dialog.Init(dataWallet.RefTokenData).Show(DialogCanvas);
-                        });
-                    }
-           
-                });
+                    });
+                } else if (t is BlockRewardType.BcoinBridge or BlockRewardType.SenBridge) {
+                    OpenBridgeDepositDialog(dataWallet);
+                } else {
+                    DialogDeposit.Create().ContinueWith(dialog => {
+                        dialog.Init(dataWallet.RefTokenData).Show(DialogCanvas);
+                    });
+                }
             } catch (Exception e) {
-                DialogOK.ShowError(DialogCanvas, e.Message);
+                DialogOK.ShowError(DialogCanvas, e);
             }
         }
 
+        private void OpenBridgeDepositDialog(DataWallet wallet) {
+            var (symbol, category) = BridgeDepositIds(wallet.RefRewardType.Type);
+            UniTask.Void(async () => {
+                var available = await _blockchainManager.GetBalance(category);
+                if (!this) return;
+                var dialog = await DialogBridgeAmount.Create();
+                if (!this) return;
+                dialog.Show(DialogBridgeAmount.Mode.Deposit, wallet.RefTokenData, BridgeNetworkName(), available,
+                    0, LoginChainString(), DialogCanvas,
+                    (amount, _, _) => ExecuteBridgeDeposit(wallet, symbol, category, amount));
+            });
+        }
+
+        private void ExecuteBridgeDeposit(DataWallet wallet, string symbol, RpcTokenCategory category,
+            double amount) {
+            UniTask.Void(async () => {
+                var waiting = await ShowDialogWaiting();
+                try {
+                    var nano = new BigInteger(Math.Floor(amount * 1e9));
+                    var amountWei = (nano * BigInteger.Pow(10, 9)).ToString();
+                    var res = await _blockchainManager.BridgeDeposit(symbol, amountWei);
+                    if (!this) return;
+                    if (res.success) {
+                        var (serverType, _) = BridgeIds(wallet.RefRewardType.Type);
+                        await _serverManager.General.ConfirmCrosschainBridgeDeposit(serverType);
+                        await App.Utils.WaitForBalanceChange(category, _blockchainManager, _blockchainStorageManager);
+                        if (!this) return;
+                        DialogOK.ShowInfo(DialogCanvas, "Info", "Deposit Successfully");
+                    } else {
+                        DialogOK.ShowInfo(DialogCanvas, "Info", "Deposit Failed");
+                    }
+                } catch (Exception e) {
+                    if (this) DialogOK.ShowError(DialogCanvas, e);
+                } finally {
+                    if (this) UpdateAllTokensUI();
+                    waiting.Hide();
+                }
+            });
+        }
+
+        private string BridgeNetworkName() {
+            return _networkConfig.NetworkType switch {
+                NetworkType.Binance => "BNB Chain",
+                NetworkType.Polygon => "Polygon",
+                var n => n.ToString()
+            };
+        }
+
+        private (string symbol, RpcTokenCategory category) BridgeDepositIds(BlockRewardType type) {
+            var isSen = type == BlockRewardType.SenBridge;
+            var isBinance = _networkConfig.NetworkType == NetworkType.Binance;
+            var category = isSen
+                ? (isBinance ? RpcTokenCategory.SenBsc : RpcTokenCategory.SenPolygon)
+                : (isBinance ? RpcTokenCategory.Bcoin : RpcTokenCategory.Bomb);
+            return (isSen ? "SEN" : "BCOIN", category);
+        }
+
         private void OnWithdraw(DataWallet dataWallet) {
+            if (_claimTokenManager.Phase == ClaimPhase.None
+                && dataWallet.RefRewardType.Type == BlockRewardType.Hero
+                && !AppConfig.IsAirDrop()
+                && !AppConfig.IsSolana()) {
+                ProcessLeftoverPendingHeroFlow(dataWallet);
+                return;
+            }
+
             var t = dataWallet.RefRewardType.Type;
             switch (t) {
                 case BlockRewardType.Hero:
                     if (AppConfig.IsAirDrop()) {
                         ClaimHeroAirdrop((int)dataWallet.ClaimValue + (int)dataWallet.PendingValue);
                     } else {
-                        ClaimBHero(dataWallet);
+                        ClaimFlow(dataWallet);
                     }
                     return;
                 case BlockRewardType.BCoin:
                 case BlockRewardType.Senspark:
-                    ClaimCoin(dataWallet);
-                    return;
                 case BlockRewardType.BCoinDeposited:
                 case BlockRewardType.SensparkDeposited:
-                    ClaimDeposit(dataWallet);
+                    ClaimFlow(dataWallet);
+                    return;
+                case BlockRewardType.BcoinBridge:
+                case BlockRewardType.SenBridge:
+                    BridgeWithdrawFlow(dataWallet);
                     return;
                 default:
                     ClaimOtherToken(dataWallet);
@@ -467,9 +672,9 @@ namespace Scenes.FarmingScene.Scripts {
                     }
                 } catch (Exception e) {
                     if (e is ErrorCodeException) {
-                        DialogError.ShowError(DialogCanvas, e.Message);
+                        DialogError.ShowError(DialogCanvas, e);
                     } else {
-                        DialogOK.ShowError(DialogCanvas, e.Message);
+                        DialogOK.ShowError(DialogCanvas, e);
                     }
                 } finally {
                     waiting.End();
@@ -516,9 +721,9 @@ namespace Scenes.FarmingScene.Scripts {
                     await _serverManager.General.BuyHeroServer(amount, (int)Constant.RewardType.BHero);
                 } catch (Exception e) {
                     if (e is ErrorCodeException) {
-                        DialogError.ShowError(DialogCanvas, e.Message);
+                        DialogError.ShowError(DialogCanvas, e);
                     } else {
-                        DialogOK.ShowError(DialogCanvas, e.Message);
+                        DialogOK.ShowError(DialogCanvas, e);
                     }
                 } finally {
                     waiting.End();

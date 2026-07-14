@@ -1,9 +1,15 @@
 using System.Threading.Tasks;
 
 using Exceptions;
+using Game.ConnectControl;
 
 namespace Scenes.ConnectScene.Scripts.Connectors {
     public interface IGameReadyController {
+        /// <summary>
+        /// Mode routing decision computed once after login. Valid after Start() completes.
+        /// </summary>
+        ModeResult ModeResult { get; }
+
         /// <summary>
         /// Init tất cả service & account cần thiết để run game
         /// </summary>

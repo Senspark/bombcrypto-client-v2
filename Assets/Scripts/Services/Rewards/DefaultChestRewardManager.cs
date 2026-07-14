@@ -1,39 +1,23 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Game.UI;
 using Senspark;
-using Server.Models;
-using Services.Rewards;
-using Sfs2X.Entities.Data;
 
 namespace App {
     public class DefaultChestRewardManager : ObserverManager<ChestRewardManagerObserver>, IChestRewardManager {
-        /*
-         * FLOW
-         * Hiện tại có 3 loại data_type (Network) để lưu trữ: TR, BSC, POLYGON
-         * Nếu server trả về TR thì lưu vào TR
-         * Nếu server trả về BSC | POLYGON thì cũng lưu vào TR với điều kiện trùng với current network
-         *
-         * Thứ tự lưu trong mảng là [TR, BSC, POLYGON]
-         *
-         * Khi user lấy ra kết quả, nếu ko specify network thì sẽ trả về TR
-         */
-        private readonly Dictionary<string, float[]> _chestReward = new();
-        private readonly Dictionary<string, float[]> _pendingChestReward = new();
-        private readonly NetworkType _currentNetwork;
-        private const int DATA_TYPE_AMOUNT = 8;
-        private const string DATA_TYPE_TR = "TR";
-        private const string DATA_TYPE_BSC = "BSC";
-        private const string DATA_TYPE_POLYGON = "POLYGON";
-        private const string DATA_TYPE_TON = "TON";
-        private const string DATA_TYPE_SOLANA = "SOL";
-        private const string DATA_TYPE_RON = "RON";
-        private const string DATA_TYPE_BAS = "BAS";
-        private const string DATA_TYPE_VIC = "VIC";
+        private sealed class Balance {
+            public float Value;
+            public float Pending;
+        }
 
+        // token wire-name -> scope (DataType) -> balance
+        private readonly Dictionary<string, Dictionary<DataType, Balance>> _store = new();
 
-        public DefaultChestRewardManager(NetworkType currentNetwork) {  
-            _currentNetwork = currentNetwork;
+        private DataType _currentDataType = DataType.TR;
+        private HashSet<DataType> _visibleScopes = VisibleScopes(DataType.TR);
+
+        public DefaultChestRewardManager() {
         }
 
         public Task<bool> Initialize() {
@@ -43,138 +27,96 @@ namespace App {
         public void Destroy() {
         }
 
+        public void SetCurrentNetwork(DataType dataType) {
+            _currentDataType = dataType;
+            _visibleScopes = VisibleScopes(dataType);
+        }
+
+        // Scope nào được chấp nhận/hiển thị với network hiện tại (game owner confirmed).
+        // BSC/POLYGON thấy cả hai (cross-EVM) + TR; các network đơn chỉ thấy chính nó; VIC bị loại.
+        private static HashSet<DataType> VisibleScopes(DataType current) {
+            return current switch {
+                DataType.BSC or DataType.POLYGON => new HashSet<DataType> { DataType.BSC, DataType.POLYGON, DataType.TR, DataType.BP },
+                DataType.TR => new HashSet<DataType> { DataType.TR },
+                DataType.TON => new HashSet<DataType> { DataType.TON },
+                DataType.SOL => new HashSet<DataType> { DataType.SOL },
+                DataType.RON => new HashSet<DataType> { DataType.RON },
+                DataType.BAS => new HashSet<DataType> { DataType.BAS },
+                _ => new HashSet<DataType>(),
+            };
+        }
+
+        private static bool TryParseScope(string dataType, out DataType scope) {
+            scope = DataType.TR;
+            return !string.IsNullOrEmpty(dataType) && Enum.TryParse(dataType, out scope);
+        }
+
+        // Số dư "hiện tại" (không chỉ định scope): scope của network hiện tại, fallback TR
+        // (cho off-chain COIN/GEM/GOLD/ROCK vốn chỉ tồn tại ở TR).
+        private Balance GetCurrent(string token) {
+            if (!_store.TryGetValue(token, out var scopes)) {
+                return null;
+            }
+            if (scopes.TryGetValue(_currentDataType, out var cur)) {
+                return cur;
+            }
+            return scopes.TryGetValue(DataType.TR, out var tr) ? tr : null;
+        }
+
+        private float ScopeValue(string token, DataType scope) {
+            return _store.TryGetValue(token, out var scopes) && scopes.TryGetValue(scope, out var b) ? b.Value : 0;
+        }
+
+        private float ScopePending(string token, DataType scope) {
+            return _store.TryGetValue(token, out var scopes) && scopes.TryGetValue(scope, out var b) ? b.Pending : 0;
+        }
+
+        private Balance Ensure(string token, DataType scope) {
+            if (!_store.TryGetValue(token, out var scopes)) {
+                scopes = new Dictionary<DataType, Balance>();
+                _store[token] = scopes;
+            }
+            if (!scopes.TryGetValue(scope, out var b)) {
+                b = new Balance();
+                scopes[scope] = b;
+            }
+            return b;
+        }
+
         #region INIT
 
         public void InitNewChestReward(IChestReward rewards) {
-            _chestReward.Clear();
-            _pendingChestReward.Clear();
+            _store.Clear();
 
-            var list = rewards.Rewards;
-            foreach (var e in list) {
-                var t = e.Type.Name;
-                var n = ConvertDataTypeToDataIndex(e.Network);
-                var sameNetwork = IsSameNetwork(e.Network);
-                
-                // Set Claim Pending
-                InitPendingChestRewardIfNotExisted(t);
-                _pendingChestReward[t][n] = e.ClaimPending;
-
-                // Set Chest Reward
-                InitChestRewardIfNotExisted(t);
-                _chestReward[t][n] = e.Value;
-                
-                // Set luôn vào TR nếu trùng network, chỉ set nếu ko phải starcore vì starcore giờ sẽ có 2 đồng TR và network
-                if (sameNetwork && e.Type.Type != BlockRewardType.BLCoin) {
-                    var tr = ConvertDataTypeToDataIndex(DATA_TYPE_TR);
-                    _pendingChestReward[t][tr] = e.ClaimPending;
-                    _chestReward[t][tr] = e.Value;
+            foreach (var e in rewards.Rewards) {
+                // Filter-at-receive: scope lạ hoặc không visible (gồm VIC) -> bỏ, không throw.
+                if (!TryParseScope(e.Network, out var scope)) {
+                    continue;
+                }
+                if (!_visibleScopes.Contains(scope)) {
+                    continue;
                 }
 
-                DispatchEvent(d => d.OnRewardChanged?.Invoke(e.Type.Type, e.Value));
-                if (sameNetwork && e.Type.Type != BlockRewardType.BLCoin) {
-                    DispatchEvent(d => d.OnSameNetworkRewardChanged?.Invoke(e.Type.Type, e.Value, e.Network));
-                }
-            }
-        }
+                var balance = Ensure(e.Type.Name, scope);
+                balance.Value = e.Value;
+                balance.Pending = e.ClaimPending;
 
-        private static int ConvertNetworkTypeToDataIndex(NetworkType networkType) {
-            return networkType switch {
-                //DevHoang: Add new airdrop
-                NetworkType.Binance => 1,
-                NetworkType.Polygon => 2,
-                NetworkType.Ton => 3,
-                NetworkType.Solana => 4,
-                NetworkType.Ronin => 5,
-                NetworkType.Base => 6,
-                NetworkType.Viction => 7,
-                _ => throw new ArgumentOutOfRangeException(nameof(networkType), networkType, null)
-            };
-        }
-
-        private static int ConvertDataTypeToDataIndex(string network) {
-            return network switch {
-                //DevHoang: Add new airdrop
-                DATA_TYPE_TR => 0,
-                DATA_TYPE_BSC => 1,
-                DATA_TYPE_POLYGON => 2,
-                DATA_TYPE_TON => 3,
-                DATA_TYPE_SOLANA => 4,
-                DATA_TYPE_RON => 5,
-                DATA_TYPE_BAS => 6,
-                DATA_TYPE_VIC => 7,
-                
-                _ => throw new ArgumentOutOfRangeException(nameof(network), network, null)
-            };
-        }
-
-        private bool IsSameNetwork(string network) {
-            return network switch {
-                //DevHoang: Add new airdrop
-                DATA_TYPE_BSC => _currentNetwork == NetworkType.Binance,
-                DATA_TYPE_POLYGON => _currentNetwork == NetworkType.Polygon,
-                DATA_TYPE_TON => _currentNetwork == NetworkType.Ton,
-                DATA_TYPE_SOLANA => _currentNetwork == NetworkType.Solana,
-                DATA_TYPE_RON => _currentNetwork == NetworkType.Ronin,
-                DATA_TYPE_BAS => _currentNetwork == NetworkType.Base,
-                DATA_TYPE_VIC => _currentNetwork == NetworkType.Viction,
-                DATA_TYPE_TR => true,
-                _ => false
-            };
-        }
-
-        private void InitChestRewardIfNotExisted(string type) {
-            if (!_chestReward.ContainsKey(type)) {
-                _chestReward.Add(type, new float[DATA_TYPE_AMOUNT]);
-            }
-        }
-
-        private void InitPendingChestRewardIfNotExisted(string type) {
-            if (!_pendingChestReward.ContainsKey(type)) {
-                _pendingChestReward.Add(type, new float[DATA_TYPE_AMOUNT]);
+                DispatchEvent(d => d.OnRewardBalanceChanged?.Invoke(e.Type.Type, scope, e.Value));
             }
         }
 
         #endregion
 
-        #region GET REWARD OF SPECIFY NETWORK
-        
-        private float GetChestRewardByNetwork(string type, NetworkType network) {
-            var n = ConvertNetworkTypeToDataIndex(network);
-            return GetChestRewardByNetwork(type, n);
+        #region GET REWARD
+
+        public float GetChestRewardByNetwork(IRewardType type, DataType network) {
+            return ScopeValue(type.Name, network);
         }
 
-        private float GetChestRewardByNetwork(string type, int dataIndex) {
-            if (_chestReward.ContainsKey(type)) {
-                return _chestReward[type][dataIndex];
-            }
-            return 0;
+        private float GetChestReward(string type) {
+            return GetCurrent(type)?.Value ?? 0;
         }
 
-        public float GetChestRewardByNetwork(BlockRewardType type, NetworkType network) {
-            if (type == BlockRewardType.Other) {
-                return 0;
-            }
-            var t = RewardUtils.ConvertToBlockRewardType(type);
-            return GetChestRewardByNetwork(t, network);
-        }
-
-        public float GetChestRewardByNetwork(IRewardType type, NetworkSymbol network) {
-            var dataIndex = ConvertDataTypeToDataIndex(network.Name);
-            return GetChestRewardByNetwork(type.Name, dataIndex);
-        }
-
-        #endregion
-
-        #region GET REWARD OF CURRENT NETWORK
-
-        public float GetChestReward(string type) {
-            if (_chestReward.ContainsKey(type)) {
-                var n = ConvertDataTypeToDataIndex(DATA_TYPE_TR);
-                return _chestReward[type][n];
-            }
-            return 0;
-        }
-        
         public float GetChestReward(BlockRewardType type) {
             if (type == BlockRewardType.Other) {
                 return 0;
@@ -182,17 +124,13 @@ namespace App {
             var t = RewardUtils.ConvertToBlockRewardType(type);
             return GetChestReward(t);
         }
-        public float GetChestReward(BlockRewardType type, string dataType) {
+
+        public float GetChestReward(BlockRewardType type, DataType dataType) {
             if (type == BlockRewardType.Other) {
                 return 0;
             }
             var t = RewardUtils.ConvertToBlockRewardType(type);
-            
-            if (_chestReward.ContainsKey(t)) {
-                var n = ConvertDataTypeToDataIndex(dataType);
-                return _chestReward[t][n];
-            }
-            return 0;
+            return ScopeValue(t, dataType);
         }
 
         public float GetChestReward(IRewardType type) {
@@ -207,58 +145,35 @@ namespace App {
         public float GetSenRewardAndDeposit() {
             return GetChestReward(BlockRewardType.Senspark) + GetChestReward(BlockRewardType.SensparkDeposited);
         }
-        
-        public float GetBcoinRewardAndDeposit(string network) {
+
+        public float GetBcoinRewardAndDeposit(DataType network) {
             return GetChestReward(BlockRewardType.BCoin, network) + GetChestReward(BlockRewardType.BCoinDeposited, network);
         }
-        
-        public float GetSenRewardAndDeposit(string network) {
+
+        public float GetSenRewardAndDeposit(DataType network) {
             return GetChestReward(BlockRewardType.Senspark, network) + GetChestReward(BlockRewardType.SensparkDeposited, network);
         }
-        
+
         public float GetRock() {
-            var t = RewardUtils.ConvertToBlockRewardType(BlockRewardType.Rock);
-            return GetChestReward(t);
+            return GetChestReward(BlockRewardType.Rock);
         }
-        
-        #endregion
 
-        #region SET REWARD OF SPECIFY NETWORK
+        // Bridge balance sống ở scope BP (chain-agnostic). Hook cho spending phase sau — Wallet UI đọc thẳng
+        // rewards array, không qua getter này. Generic GetChestReward(Bcoin/SenBridge) sẽ trả 0 (không có scope current/TR).
+        public float GetBcoinBridge() {
+            return ScopeValue(RewardUtils.ConvertToBlockRewardType(BlockRewardType.BcoinBridge), DataType.BP);
+        }
 
-        private void SetChestRewardByNetwork(string type, float value, NetworkType network) {
-            // Set cho network nhưng cũng phải set cho TR
-            InitChestRewardIfNotExisted(type);
-            
-            var n = ConvertNetworkTypeToDataIndex(network);
-            _chestReward[type][n] = value;
-
-            n = ConvertDataTypeToDataIndex(DATA_TYPE_TR);
-            _chestReward[type][n] = value;
+        public float GetSenBridge() {
+            return ScopeValue(RewardUtils.ConvertToBlockRewardType(BlockRewardType.SenBridge), DataType.BP);
         }
 
         #endregion
 
-        #region SET REWARD OF CURRENT NETWORK
-        
-        public void SetChestReward(string type, float value) {
-            // Set cho TR nhưng cũng phải set cho current network
-            InitChestRewardIfNotExisted(type);
-            
-            var n = ConvertNetworkTypeToDataIndex(_currentNetwork);
-            _chestReward[type][n] = value;
+        #region SET REWARD
 
-            // Riêng với BLCoin thì không cần set vào TR, vì BLCoin sẽ có 2 đồng là TR và network
-            if (type == nameof(BlockRewardType.BLCoin))
-                return;
-            n = ConvertDataTypeToDataIndex(DATA_TYPE_TR);
-            _chestReward[type][n] = value;
-
-
-        }
-
-        public void SetChestReward(IRewardType type, float value) {
-            SetChestReward(type.Name, value);
-            DispatchEvent(e => e.OnRewardChanged?.Invoke(type.Type, value));
+        private void SetChestReward(string type, float value) {
+            Ensure(type, _currentDataType).Value = value;
         }
 
         public void SetChestReward(BlockRewardType type, float value) {
@@ -267,53 +182,22 @@ namespace App {
             }
             var n = RewardUtils.ConvertToBlockRewardType(type);
             SetChestReward(n, value);
-            DispatchEvent(e => e.OnRewardChanged?.Invoke(type, value));
+            DispatchEvent(e => e.OnRewardBalanceChanged?.Invoke(type, _currentDataType, value));
         }
 
         #endregion
 
-        #region ADJUST REWARD BY SPECIFY NETWORK
+        #region ADJUST REWARD
 
-        private float AdjustChestRewardByNetwork(string type, float addValue, NetworkType network) {
-            // Set cho network nhưng cũng phải set cho TR
-            InitChestRewardIfNotExisted(type);
-            
-            var n = ConvertNetworkTypeToDataIndex(network);
-            var val = _chestReward[type][n] + addValue;
-            _chestReward[type][n] = val;
-
-            n = ConvertDataTypeToDataIndex(DATA_TYPE_TR);
-            _chestReward[type][n] = val;
-                
-            return val;
-        }
-
-        #endregion
-
-        #region ADJUST REWARD BY CURRENT NETWORK
-        
-        public float AdjustChestReward(string type, float addValue) {
-            // Set cho TR nhưng cũng phải set cho current network
-            InitChestRewardIfNotExisted(type);
-
-            var n = ConvertNetworkTypeToDataIndex(_currentNetwork);
-            var val = _chestReward[type][n] + addValue;
-            _chestReward[type][n] = val;
-
-            // Riêng với BLCoin thì không cần set vào TR, vì BLCoin sẽ có 2 đồng là TR và network
-            if (type != nameof(BlockRewardType.BCoin)) {
-                n = ConvertDataTypeToDataIndex(DATA_TYPE_TR);
-                _chestReward[type][n] = val;
-            }
-            
-     
-
-            return val;
+        private float AdjustChestReward(string type, float addValue) {
+            var b = Ensure(type, _currentDataType);
+            b.Value += addValue;
+            return b.Value;
         }
 
         public float AdjustChestReward(IRewardType type, float addValue) {
             var result = AdjustChestReward(type.Name, addValue);
-            DispatchEvent(e => e.OnRewardChanged?.Invoke(type.Type, result));
+            DispatchEvent(e => e.OnRewardBalanceChanged?.Invoke(type.Type, _currentDataType, result));
             return result;
         }
 
@@ -323,69 +207,16 @@ namespace App {
             }
             var name = RewardUtils.ConvertToBlockRewardType(type);
             var result = AdjustChestReward(name, addValue);
-            DispatchEvent(e => e.OnRewardChanged?.Invoke(type, result));
+            DispatchEvent(e => e.OnRewardBalanceChanged?.Invoke(type, _currentDataType, result));
             return result;
         }
 
         #endregion
 
-        #region GET CLAIM PENDING OF SPECIFY NETWORK
-        
-        private float GetClaimPendingRewardByNetwork(string type, NetworkType networkType) {
-            var n = ConvertNetworkTypeToDataIndex(networkType);
-            return GetClaimPendingRewardByNetwork(type, n);
-        }
-        
-        private float GetClaimPendingRewardByNetwork(string type, int dataIndex) {
-            if (_pendingChestReward.ContainsKey(type)) {
-                return _pendingChestReward[type][dataIndex];
-            }
-            return 0;
-        }
+        #region GET CLAIM PENDING
 
-        public float GetClaimPendingRewardByNetwork(BlockRewardType type, NetworkType networkType) {
-            if (type == BlockRewardType.Other) {
-                return 0;
-            }
-            var name = RewardUtils.ConvertToBlockRewardType(type);
-            return GetClaimPendingRewardByNetwork(name, networkType);
-        }
-
-        public float GetClaimPendingRewardByNetwork(IRewardType type, NetworkSymbol network) {
-            var dataIndex = ConvertDataTypeToDataIndex(network.Name);
-            return GetClaimPendingRewardByNetwork(type.Name, dataIndex);
-        }
-
-        #endregion
-
-        #region GET CLAIM PENDING OF CURRENT NETWORK
-        
-        public float GetClaimPendingReward(string type) {
-            if (_pendingChestReward.ContainsKey(type)) {
-                var n = ConvertDataTypeToDataIndex(DATA_TYPE_TR);
-                return _pendingChestReward[type][n];
-            }
-            return 0;
-        }
-
-        public IChestReward ParseChestReward(ISFSObject data) {
-            var rewards = new List<ITokenReward>();
-            var array = data.GetSFSArray("rewards");
-            for (var i = 0; i < array.Size(); ++i) {
-                var item = new TokenReward(array.GetSFSObject(i));
-                rewards.Add(item);
-            }
-            var result = new ChestReward(rewards);
-            InitNewChestReward(result);
-            return result;
-        }
-
-        public float GetClaimPendingReward(IRewardType type) {
-            return GetClaimPendingReward(type.Name);
-        }
-
-        public float GetClaimPendingReward(BlockRewardType type) {
-            return GetClaimPendingRewardByNetwork(type, _currentNetwork);
+        public float GetClaimPendingRewardByNetwork(IRewardType type, DataType network) {
+            return ScopePending(type.Name, network);
         }
 
         #endregion

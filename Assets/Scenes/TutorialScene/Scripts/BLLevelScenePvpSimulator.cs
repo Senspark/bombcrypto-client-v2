@@ -108,11 +108,14 @@ namespace Scenes.TutorialScene.Scripts {
 
         public StartCountDown StartCountDown => startCountDown;
 
+        private ISoundManager _soundManager;
+
         private void Awake() {
             Physics2D.simulationMode = SimulationMode2D.Script;
             Physics2D.gravity = Vector2.zero;
             _pvpStorageData = new PvpStorageData();
             _handle = new ObserverHandle();
+            _soundManager = ServiceLocator.Instance.Resolve<ISoundManager>();
         }
 
         public ICommandManager GetCommandManager(int slot) {
@@ -123,13 +126,14 @@ namespace Scenes.TutorialScene.Scripts {
             if (_levelView) {
                 return;
             }
-            SetPvpMapDetails("Tutorial", textPvpMapDetail.text, 0);
-            // _guiPvp.InitEmojiUi(new[] { 132, 133, 134, 135 });
-            LoadLevel();
-            InitForSimulator();
-            UpdateBoostersInfinity();
-            CreateSyncHeroes();
-            StartGame();
+            UniTask.Void(async () => {
+                SetPvpMapDetails("Tutorial", textPvpMapDetail.text, 0);
+                await LoadLevel();
+                InitForSimulator();
+                UpdateBoostersInfinity();
+                CreateSyncHeroes();
+                StartGame();
+            });
         }
 
         private void InitGui() {
@@ -143,7 +147,7 @@ namespace Scenes.TutorialScene.Scripts {
 
         private void OnDestroy() {
             DOTween.KillAll(true);
-            ServiceLocator.Instance.Resolve<ISoundManager>().StopMusic();
+            _soundManager.StopMusic();
             _handle.Dispose();
         }
 
@@ -357,7 +361,7 @@ namespace Scenes.TutorialScene.Scripts {
         //     bombable.SetSpawnLocation(hero.GetTileLocation);
         // }
 
-        public void LoadLevel() {
+        public async UniTask LoadLevel() {
             _levelView = BLevelViewPvp.Create(mapParent);
             var pvpModeCallback = new PvpModeCallback {
                 OnKick = OnKick,
@@ -368,7 +372,7 @@ namespace Scenes.TutorialScene.Scripts {
             _levelView.gameObject.SetLayer(mapParent.gameObject.layer);
 
             var now = new EpochTimeManager().Timestamp;
-            _levelView.Initialize(
+            await _levelView.Initialize(
                 _pvpHeroes,
                 _mapDetails,
                 new MatchData(

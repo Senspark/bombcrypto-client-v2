@@ -42,19 +42,21 @@ namespace Game.Dialog {
         private Canvas _canvas;
 
         private ISoundManager _soundManager;
-        private IPlayerStorageManager _playerStoreManager;
+        private IBHeroManager _playerStoreManager;
         private IBlockchainManager _blockchainManager;
         private IServerManager _serverManager;
         private IStorageManager _storeManager;
         private IChestRewardManager _chestRewardManager;
+        private ILogManager _logManager;
 
         private void Awake() {
             _soundManager = ServiceLocator.Instance.Resolve<ISoundManager>();
-            _playerStoreManager = ServiceLocator.Instance.Resolve<IPlayerStorageManager>();
+            _playerStoreManager = ServiceLocator.Instance.Resolve<IBHeroManager>();
             _blockchainManager = ServiceLocator.Instance.Resolve<IBlockchainManager>();
             _serverManager = ServiceLocator.Instance.Resolve<IServerManager>();
             _storeManager = ServiceLocator.Instance.Resolve<IStorageManager>();
             _chestRewardManager = ServiceLocator.Instance.Resolve<IChestRewardManager>();
+            _logManager = ServiceLocator.Instance.Resolve<ILogManager>();
         }
 
         private void Start() {
@@ -66,6 +68,7 @@ namespace Game.Dialog {
         }
         
         public async void ExchangeButtonPressed() {
+            _logManager.Log($"[ForgeDbg] ExchangeButtonPressed (_lstHeroesIdBurn null? {_lstHeroesIdBurn == null}, count={_lstHeroesIdBurn?.Length})");
             //Kiểm tra trước xem có hero có stake  nào bị burn ko
             var heroStakeCount =  CheckStakedBeforeBurn(_lstHeroesIdBurn);
             if (heroStakeCount > 0) {
@@ -86,27 +89,29 @@ namespace Game.Dialog {
                 var waiting = await DialogWaiting.Create();
                 waiting.Show(_canvas);
                 waiting.ShowLoadingAnim();
-                
+
                 try {
+                    _logManager.Log($"[ForgeDbg] PerformExchange begin, ids=[{string.Join(",", _lstHeroesIdBurn.Select(e => e.Id))}]");
                     var ids = _lstHeroesIdBurn.Select(e => e.Id).ToArray();
                     var tx = await _blockchainManager.CreateRock(ids);
-                    if (tx == "") {
+                    _logManager.Log($"[ForgeDbg] CreateRock done tx={tx}");
+                    if (string.IsNullOrEmpty(tx)) {
                         throw new Exception("Burn Failed");
                     }
-                    
-                    _storeManager.LastBurnHeroData = new BurnHeroData {
-                        LastListHeroIdBurn = _lstHeroesIdBurn,
-                        LastTx = tx,
-                    };
+
+                    _logManager.Log("[ForgeDbg] before RemoveBurnHeroes");
                     _playerStoreManager.RemoveBurnHeroes(_lstHeroesIdBurn);
-                    //await _blockchainManager.GetRockAmount();
-                    //await _serverManager.General.SyncHero(false);
-                    
-                    //destroy hero in map
-                    LevelScene.Instance.AddNewPlayersOrRefresh(_lstHeroesIdBurn);
-                    
-                    BurnHero();
+
+                    // SYNC_HERO_RESPONSE chỉ refresh storage (Inventory/Active Hero), không kill hero khỏi map.
+                    // Tự remove khỏi LevelScene; guard Instance vì forge có thể mở ngoài map.
+                    if (LevelScene.Instance) {
+                        LevelScene.Instance.RemoveHeroesFromMap(_lstHeroesIdBurn);
+                    }
+
+                    _logManager.Log("[ForgeDbg] before BurnHero");
+                    BurnHero(tx, _lstHeroesIdBurn);
                 } catch (Exception e) {
+                    _logManager.Log($"[ForgeDbg] PerformExchange EXCEPTION: {e}");
                     btnExchange.interactable = true;
                     DialogForge.ShowError(_canvas, e.Message);
                 } finally {
@@ -115,13 +120,16 @@ namespace Game.Dialog {
             });
         }
 
-        private async void BurnHero() {
+        private async void BurnHero(string tx, HeroId[] heroIds) {
             try {
-                await _serverManager.General.BurnHero();
+                _logManager.Log($"[ForgeDbg] BurnHero begin tx={tx}");
+                await _serverManager.General.BurnHero(tx, heroIds);
+                _logManager.Log("[ForgeDbg] BurnHero server done -> OnSuccessExchange");
                 OnSuccessExchange();
             } catch (Exception e) {
+                _logManager.Log($"[ForgeDbg] BurnHero EXCEPTION: {e}");
                 DialogForge.ShowInfo(_canvas, "Error", "Burn Hero failed\nPlease try again", "RETRY" , () => {
-                    BurnHero();
+                    BurnHero(tx, heroIds);
                 });
             }
         }
@@ -170,6 +178,9 @@ namespace Game.Dialog {
         }
 
         private void UpdateUIMaterial(float totalMaterials, int heroes) {
+            _logManager?.Log($"[ForgeDbg] UpdateUIMaterial materials={totalMaterials} heroes={heroes} " +
+                             $"(amountHeroes null? {!amountHeroes}, amountMaterials null? {!amountMaterials}, " +
+                             $"materialHero null? {!materialHero}, materialHeroEmpty null? {!materialHeroEmpty}, btnExchange null? {!btnExchange})");
             amountHeroes.text = $"{heroes}";
             amountMaterials.text = $"{totalMaterials}";
             amountMaterials.gameObject.SetActive(heroes != 0);
@@ -179,6 +190,7 @@ namespace Game.Dialog {
         }
 
         private void OnSuccessExchange() {
+            _logManager.Log($"[ForgeDbg] OnSuccessExchange begin (rockText null? {!rockText})");
             var rockAmount = _chestRewardManager.GetChestReward(BlockRewardType.Rock);
             rockText.text = Math.Truncate(rockAmount).ToString("N0");
 

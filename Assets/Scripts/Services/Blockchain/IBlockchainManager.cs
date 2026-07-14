@@ -67,6 +67,24 @@ namespace App {
         public int fusionFailAmount;
         public List<int> fusionSuccessHeroIds;
     }
+
+    [Serializable]
+    public class ClaimAndProcessResult {
+        public string txHash;
+        public HeroProcessTokenResult processResult;
+    }
+
+    [Serializable]
+    public class StakeResult {
+        public bool success;
+        public string txHash;
+    }
+
+    [Serializable]
+    public class BridgeTxResult {
+        public bool success;
+        public string txHash;
+    }
     
     [Serializable]
     public struct ProcessToken {
@@ -144,7 +162,7 @@ namespace App {
         Task<bool> Fusion(int[] mainHeroIds, int[] secondHeroIds);
         Task<bool> RepairShield(int idHeroS, int[] idHeroesBurn);
         Task<bool> GetNFT(int amount, int eventId, int nonce, string signature);
-        Task<string> ClaimToken(double amount, int tokenType, int nonce, string[] details, string signature,
+        Task<ClaimAndProcessResult> ClaimToken(double amount, int tokenType, int nonce, string[] details, string signature,
             string formatType, int waitConfirmations);
         Task<int> GetRockAmount();
         Task<string> CreateRock(int[] idHeroesBurn);
@@ -157,11 +175,16 @@ namespace App {
 
         Task<bool> Exchange_BuyBcoin(double amount, BuyBcoinCategory category);
         Task<ExchangeInfo> Exchange_GetInfo();
-        Task<bool> StakeToHero(int id, double amount, string tokenAddress, StakeHeroCategory category);
-        Task<bool> WithDrawFromHeroId(int id, double amount, string tokenAddress);
-        Task<double> GetStakeFromHeroId(int id, string tokenAddress);
-        Task<double> GetFeeFromHeroId(int id, string tokenAddress);
+        Task<StakeResult> StakeToHero(int id, double amount, StakeHeroCategory category);
+        Task<StakeResult> WithDrawFromHeroId(int id, double amount, StakeHeroCategory category);
+        Task<double> GetStakeFromHeroId(int id, StakeHeroCategory category);
+        Task<double> GetFeeFromHeroId(int id, StakeHeroCategory category);
         Task<bool> DepositTon(string invoice, double amount);
         Task<bool> DepositAirdrop(string invoice, string amount, string chainId);
+
+        Task<string> GetBridgeDeposited(string token);
+        Task<string> GetBridgeWithdrawn(string token);
+        Task<BridgeTxResult> BridgeDeposit(string token, string amountWei);
+        Task<BridgeTxResult> BridgeWithdraw(string token, string grossWei, string beforeWei, string signature);
     }
 }

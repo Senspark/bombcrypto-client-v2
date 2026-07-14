@@ -102,9 +102,9 @@ namespace Scenes.MarketplaceScene.Scripts {
                     await LoadData(CurrentContent.Type);
                 } catch (Exception e) {
                     if (e is ErrorCodeException) {
-                        DialogError.ShowError(canvasDialog, e.Message);    
+                        DialogError.ShowError(canvasDialog, e);    
                     } else {
-                        DialogOK.ShowError(canvasDialog, e.Message);
+                        DialogOK.ShowError(canvasDialog, e);
                     }
                 } finally {
                     waiting.End();
@@ -120,9 +120,9 @@ namespace Scenes.MarketplaceScene.Scripts {
                     await UpdateData(CurrentContent.Type);
                 } catch (Exception e) {
                     if (e is ErrorCodeException) {
-                        DialogError.ShowError(canvasDialog, e.Message);    
+                        DialogError.ShowError(canvasDialog, e);    
                     } else {
-                        DialogOK.ShowError(canvasDialog, e.Message);
+                        DialogOK.ShowError(canvasDialog, e);
                     }
                 } finally {
                     waiting.End();
@@ -210,9 +210,9 @@ namespace Scenes.MarketplaceScene.Scripts {
                 } catch (Exception e) {
                     waiting.End();
                     if (e is ErrorCodeException) {
-                        DialogError.ShowError(canvasDialog, e.Message);
+                        DialogError.ShowError(canvasDialog, e);
                     } else {
-                        DialogOK.ShowError(canvasDialog, e.Message);
+                        DialogOK.ShowError(canvasDialog, e);
                     }
                 } finally {
                     waiting.End();

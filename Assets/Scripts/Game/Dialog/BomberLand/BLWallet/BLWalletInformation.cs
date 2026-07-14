@@ -5,36 +5,49 @@ using UnityEngine;
 using UnityEngine.UI;
 
 namespace Game.Dialog.BomberLand.BLWallet {
+    public enum ClaimButtonMode { Withdraw, Waiting }
+
     public class BLWalletInformation : MonoBehaviour
     {
         [SerializeField]
         private Text contentText;
-        
+
         [SerializeField]
         private ScrollRect scrollRect;
-        
+
         [SerializeField]
         private Slider slider;
-        
+
         [SerializeField]
         private Image icon;
-        
+
         [SerializeField]
         private Button btDeposit;
-        
+
         [SerializeField]
         private Button btWithdraw;
-        
+
+        [SerializeField, CanBeNull]
+        private Text btWithdrawLabel;
+
         [SerializeField]
         private RectTransform rtContent;
-        
+
         private DataWallet _info;
-        
+        private ClaimButtonMode _claimMode = ClaimButtonMode.Withdraw;
+        private bool _claimInteractableOverride = true;
+
         [CanBeNull]
         private Action<DataWallet> _onDeposit = null;
-        
+
         [CanBeNull]
         private Action<DataWallet> _onWithdraw = null;
+
+        private void Awake() {
+            if (!btWithdrawLabel && btWithdraw) {
+                btWithdrawLabel = btWithdraw.GetComponentInChildren<Text>(true);
+            }
+        }
 
         public void UiApplyStyle(TypeMenuLeftWallet tab) {
             switch (tab) {
@@ -64,7 +77,23 @@ namespace Game.Dialog.BomberLand.BLWallet {
             }
             contentText.text = data == null ? "" : data.content;
             btDeposit.interactable = info.IsEnableDeposit;
-            btWithdraw.interactable = info.IsEnableWithdraw;
+            RefreshWithdrawInteractable();
+        }
+
+        public void SetClaimButton(ClaimButtonMode mode, bool interactable) {
+            _claimMode = mode;
+            _claimInteractableOverride = interactable;
+            if (btWithdrawLabel) {
+                btWithdrawLabel.text = mode switch {
+                    ClaimButtonMode.Waiting => "WAITING",
+                    _ => "WITHDRAW",
+                };
+            }
+            RefreshWithdrawInteractable();
+        }
+
+        private void RefreshWithdrawInteractable() {
+            btWithdraw.interactable = _info.IsEnableWithdraw && _claimInteractableOverride;
         }
         
         public void OnSliderValueChanged(float _) {

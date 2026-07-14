@@ -22,11 +22,11 @@ namespace Game.UI {
         private List<InventoryItem> _items;
         private Action<InventoryItem> _callBackDisplayHeroItem;
 
-        private IPlayerStorageManager _playerStore;
+        private IBHeroManager _playerStore;
         private List<PlayerData> _heroesIdBurn = new();
 
         private void Start() {
-            _playerStore = ServiceLocator.Instance.Resolve<IPlayerStorageManager>();
+            _playerStore = ServiceLocator.Instance.Resolve<IBHeroManager>();
         }
 
         public void Init(int targetNeedUpgrade, Action<InventoryItem> displayHeroItem) {

@@ -22,7 +22,7 @@ export const getCookieSettings = (
     isProd: boolean,
     apiHost: string,
 ): CookieSettings => {
-    const url = new URL(apiHost);
+    const url = new URL(apiHost, window.location.origin);
     const isSecure = url.protocol === 'https:';
 
     const domain = isSecure ? '.bombcrypto.io' : 'localhost';

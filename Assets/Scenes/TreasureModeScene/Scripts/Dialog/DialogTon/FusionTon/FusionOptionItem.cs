@@ -93,14 +93,14 @@ public class FusionOptionItem : MonoBehaviour
     private BlockRewardType _rewardType;
     
     private ISoundManager _soundManager;
-    private IPlayerStorageManager _playerStoreManager;
+    private IBHeroManager _playerStoreManager;
     private IServerManager _serverManager;
     private IChestRewardManager _chestRewardManager;
     private IStorageManager _storeManager;
     
     private void Awake() {
         _soundManager = ServiceLocator.Instance.Resolve<ISoundManager>();
-        _playerStoreManager = ServiceLocator.Instance.Resolve<IPlayerStorageManager>();
+        _playerStoreManager = ServiceLocator.Instance.Resolve<IBHeroManager>();
         _serverManager = ServiceLocator.Instance.Resolve<IServerManager>();
         _chestRewardManager = ServiceLocator.Instance.Resolve<IChestRewardManager>();
         _storeManager = ServiceLocator.Instance.Resolve<IStorageManager>();

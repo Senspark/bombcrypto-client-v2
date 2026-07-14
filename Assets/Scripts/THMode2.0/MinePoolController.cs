@@ -16,6 +16,9 @@ using UnityEngine.UI;
 public class MinePoolController : MonoBehaviour {
     [SerializeField]
     private MinePoolUi SL, L, E, SR, R, C;
+
+    [SerializeField]
+    private MinePoolUi Mega, SuperMega, Mystic, SuperMystic;
     
     [SerializeField]
     private RewardObjectThModeController rewardController;
@@ -28,35 +31,54 @@ public class MinePoolController : MonoBehaviour {
 
     [SerializeField]
     private Button buttonInOut;
-    
+
     [SerializeField]
     private Button buttonCover;
+
+    [SerializeField]
+    private RectTransform bottomBG;
+
+    [SerializeField]
+    private float bottomBGBaseHeight = 452.2f;
+
+    [SerializeField]
+    private float poolItemHeight = 35f;
     
-    private Vector2 minMaxX = new Vector2(50,-50);
+    private Vector2 minMaxX = new Vector2(135, 5);
     
     private readonly List<MinePoolUi> _minePoolUisList = new();
     private float _timeWait = 10f;
     private Coroutine _coroutine;
     
+    private IServerManager _serverManager;
     private ITHModeV2Manager _thModeV2Manager;
     private ISoundManager _soundManager;
     private IInputManager _inputManager;
+    private IBHeroManager _bHeroManager;
     private ObserverHandle _handle;
-    
+
     private PoolType _currentPoolType = PoolType.BCoin;
     private bool _containerOpen = false;
-    
+    private bool _showAllPools = false;
+
     private void Awake() {
-        _thModeV2Manager = ServiceLocator.Instance.Resolve<IServerManager>().ThModeV2Manager;
+        _serverManager = ServiceLocator.Instance.Resolve<IServerManager>();
+        _thModeV2Manager = _serverManager.ThModeV2Manager;
         _soundManager = ServiceLocator.Instance.Resolve<ISoundManager>();
         _inputManager = ServiceLocator.Instance.Resolve<IInputManager>();
+        _bHeroManager = ServiceLocator.Instance.Resolve<IBHeroManager>();
         SendPoolPosition();
         ChangePool(_currentPoolType);
+        RefreshVisiblePools();
         _handle = new ObserverHandle();
         _handle.AddObserver(_thModeV2Manager, new THModeObserver() {
             OnPoolChange = OnPoolChangeTrigger,
             OnJoinRoom = OnPoolChangeTrigger,
             OnReward = OnRewardTrigger
+        });
+        _handle.AddObserver(_serverManager, new ServerObserver {
+            OnActiveHero = OnActiveHeroChanged,
+            OnSyncHero = OnSyncHeroChanged,
         });
         // _thModeV2Manager.OnPoolChangeTrigger += OnPoolChangeTrigger;
         // _thModeV2Manager.OnJoinRoomTrigger += OnPoolChangeTrigger;
@@ -97,16 +119,30 @@ public class MinePoolController : MonoBehaviour {
     /// </summary>
     private void SendPoolPosition() {
         // Dùng từng biến Sl, L, E... thay vì array ngoài editor để tránh nhầm lẫn về thứ tự và rõ ràng hơn
-        _minePoolUisList.Add(C);
-        _minePoolUisList.Add(R);
-        _minePoolUisList.Add(SR);
-        _minePoolUisList.Add(E);
-        _minePoolUisList.Add(L);
-        _minePoolUisList.Add(SL);
-        
+        AddPoolUi(C, nameof(C));
+        AddPoolUi(R, nameof(R));
+        AddPoolUi(SR, nameof(SR));
+        AddPoolUi(E, nameof(E));
+        AddPoolUi(L, nameof(L));
+        AddPoolUi(SL, nameof(SL));
+        AddPoolUi(Mega, nameof(Mega));
+        AddPoolUi(SuperMega, nameof(SuperMega));
+        AddPoolUi(Mystic, nameof(Mystic));
+        AddPoolUi(SuperMystic, nameof(SuperMystic));
+
         var listPosition = _minePoolUisList.Select(p => p.PoolPosition).ToList();
-        
+
         _thModeV2Manager.SetPositionPool(listPosition);
+    }
+
+    private void AddPoolUi(MinePoolUi ui, string fieldName) {
+        if (ui) {
+            _minePoolUisList.Add(ui);
+        } else {
+            Debug.LogWarning(
+                $"MinePoolController: '{fieldName}' MinePoolUi field is unassigned in scene/prefab; " +
+                "that pool will not render. Wire it up in the Unity Editor.");
+        }
     }
     
     /// <summary>
@@ -158,12 +194,57 @@ public class MinePoolController : MonoBehaviour {
         if (_minePoolUisList.Count == 0) {
             return;
         }
-        for (int i = 0; i < pool.Count; i++) {
+        var count = Mathf.Min(pool.Count, _minePoolUisList.Count);
+        for (int i = 0; i < count; i++) {
             var maxPool = _thModeV2Manager.GetMaxPool(type, i);
             _minePoolUisList[i].UpdatePool((float)pool[i].RemainingReward, maxPool);
         }
     }
     
+    private void OnActiveHeroChanged(IPveHeroDangerous _, HeroId __, bool ___) {
+        RefreshVisiblePools();
+    }
+
+    private void OnSyncHeroChanged(ISyncHeroResponse _) {
+        RefreshVisiblePools();
+    }
+
+    /// <summary>
+    /// Ẩn pool UI cho các rarity mà account chưa có active hero.
+    /// Fallback: nếu chưa có active hero nào (hoặc _showAllPools = true) → hiện hết.
+    /// </summary>
+    private void RefreshVisiblePools() {
+        if (_minePoolUisList.Count == 0)
+            return;
+
+        var activeRarities = new HashSet<int>();
+        if (!_showAllPools) {
+            foreach (var p in _bHeroManager.GetActivePlayerData()) {
+                activeRarities.Add(p.rare);
+            }
+        }
+
+        var showAll = _showAllPools || activeRarities.Count == 0;
+        var visibleCount = 0;
+        for (int i = 0; i < _minePoolUisList.Count; i++) {
+            var visible = showAll || activeRarities.Contains(i);
+            _minePoolUisList[i].gameObject.SetActive(visible);
+            if (visible) visibleCount++;
+        }
+
+        if (bottomBG) {
+            var hidden = _minePoolUisList.Count - visibleCount;
+            var newHeight = bottomBGBaseHeight - hidden * poolItemHeight;
+            bottomBG.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, newHeight);
+        }
+    }
+
+    public void OnBtnShowAllPools(bool value) {
+        _soundManager.PlaySound(Audio.Tap);
+        _showAllPools = value;
+        RefreshVisiblePools();
+    }
+
     public void OnBtnInfo(bool value) {
         _soundManager.PlaySound(Audio.Tap);
         infoPanel.SetActive(value);

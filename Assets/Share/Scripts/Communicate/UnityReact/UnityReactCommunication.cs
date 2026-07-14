@@ -22,7 +22,7 @@ namespace Share.Scripts.Communicate.UnityReact {
     public class UnityReactCommunication: IUnityReactCommunication {
         public UnityReactCommunication(UnityEncryption encryption, ILogManager logManager, IMobileRequest mobileRequest, IPublicJwtSession jwtSession) {
             ReactToUnity = new ReactToUnity(encryption, logManager);
-            UnityToReact = Application.isEditor && !AppConfig.IsMobile()
+            UnityToReact = AppConfig.IsEditor && !AppConfig.IsMobile()
                 ? new EditorToReact(jwtSession)
                 : new UnityToReact(encryption, logManager, mobileRequest, jwtSession);
         }

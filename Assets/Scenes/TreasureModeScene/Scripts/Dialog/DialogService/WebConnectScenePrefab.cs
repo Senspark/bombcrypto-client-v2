@@ -20,9 +20,7 @@ namespace Scenes.TreasureModeScene.Scripts.Dialog.DialogService {
         public AssetReference dialogAlreadyLogin;
         public override Dictionary<Type, AssetReference> GetAllDialogUsed() {
             return new Dictionary<Type, AssetReference> {
-                { typeof(DialogChooseLoginMethod), dialogChooseLoginMethod },
                 { typeof(DialogChooseNetworkServer), dialogChooseNetworkServer },
-                { typeof(DialogConnectWallet), dialogConnectWallet },
                 { typeof(DialogLogInSenspark), dialogLoginSenspark },
                 { typeof(DialogRequestNewGuestAccount), dialogRequestNewGuestAccount},
                 { typeof(DialogMaintenance), dialogMaintenance },

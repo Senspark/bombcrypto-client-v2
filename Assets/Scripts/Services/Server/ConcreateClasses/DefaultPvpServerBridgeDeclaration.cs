@@ -183,7 +183,7 @@ namespace PvpMode.Services {
 
             public PvpOtherUserInfo(ISFSObject data) {
                 Rank = new PvpRankingItemResult(data.GetSFSObject("rank"));
-                Hero = DefaultPlayerStoreManager.GenerateOtherPlayerData(data.GetSFSObject("hero"));
+                Hero = BHeroManager.GenerateOtherPlayerData(data.GetSFSObject("hero"));
 
                 var equipments = data.GetSFSArray("equip_items");
                 EquipData = new EquipmentData[equipments.Count];

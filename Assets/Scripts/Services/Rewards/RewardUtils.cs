@@ -27,6 +27,8 @@ namespace App {
                 "RON_DEPOSITED" => BlockRewardType.RonDeposited,
                 "BAS_DEPOSITED" => BlockRewardType.BasDeposited,
                 "VIC_DEPOSITED" => BlockRewardType.VicDeposited,
+                "BCOIN_BRIDGE" => BlockRewardType.BcoinBridge,
+                "SEN_BRIDGE" => BlockRewardType.SenBridge,
                 _ => BlockRewardType.Other,
             };
         }
@@ -63,7 +65,23 @@ namespace App {
                 BlockRewardType.RonDeposited => "RON_DEPOSITED",
                 BlockRewardType.BasDeposited => "BAS_DEPOSITED",
                 BlockRewardType.VicDeposited => "VIC_DEPOSITED",
+                BlockRewardType.BcoinBridge => "BCOIN_BRIDGE",
+                BlockRewardType.SenBridge => "SEN_BRIDGE",
                 _ => throw new Exception($"Wrong Block Reward Type {type}")
+            };
+        }
+
+        public static string NetworkDisplayName(DataType network) {
+            return network switch {
+                DataType.BSC => "BNB",
+                DataType.POLYGON => "POLYGON",
+                DataType.TON => "TON",
+                DataType.SOL => "SOL",
+                DataType.RON => "RON",
+                DataType.BAS => "BAS",
+                DataType.VIC => "VIC",
+                DataType.BP => "BNB/POLYGON",
+                _ => "",
             };
         }
 
@@ -84,17 +102,17 @@ namespace App {
             };
         }
         
-        public static string GetDataTypeStarCore() {
+        public static DataType GetDataTypeStarCore() {
             if (AppConfig.IsRonin()) {
-                return nameof(DataType.RON);
+                return DataType.RON;
             }
             if (AppConfig.IsBase()) {
-                return nameof(DataType.BAS);
+                return DataType.BAS;
             }
             if (AppConfig.IsViction()) {
-                return nameof(DataType.VIC);
+                return DataType.VIC;
             }
-            return nameof(DataType.TR);
+            return DataType.TR;
         }
         
         public static NetworkType ConvertToNetworkType(string networkName) {
@@ -111,6 +129,15 @@ namespace App {
             };
         }
         
+        // Server login response trả DataType.name; GUEST resolve về TR (off-chain currency key dưới TR).
+        // Chuỗi lạ -> TR để không vỡ luồng login.
+        public static DataType ParseDataType(string dataType) {
+            if (string.IsNullOrEmpty(dataType) || dataType == "GUEST") {
+                return DataType.TR;
+            }
+            return Enum.TryParse<DataType>(dataType, out var result) ? result : DataType.TR;
+        }
+
         public static DataType ConvertNetworkToDatatype(NetworkType network) {
             return network switch {
                 NetworkType.Binance => DataType.BSC,

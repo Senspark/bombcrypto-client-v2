@@ -18,48 +18,8 @@ namespace Game.Dialog {
             senBtn.gameObject.SetActive(false);
         }
 
-        protected override void UpdateUI() {
-            base.UpdateUI();
-            var hero = ResetThisHero;
-            if (hero != null) {
-                senBtn.interactable = Controller.CanProcessUsingSen(hero);
-                senAmountTxt.text = Controller.SenFeeRepairShield(hero).ToString();
-            } else {
-                senBtn.interactable = false;
-                senAmountTxt.text = "--";
-            }
-        }
-
         public async void OnResetShieldBySenBtnClicked() {
-            SoundManager.PlaySound(Audio.Tap);
-            var hero = ResetThisHero;
-
-            void OnYes() {
-                senBtn.interactable = false;
-                var waiting = new WaitingUiManager(Canvas);
-                waiting.Begin();
-                UniTask.Void(async () => {
-                    try {
-                        var newData = await Controller.ProcessUsingSen(hero);
-                        OnResetCompleted(newData);
-                    } catch (Exception e) {
-                        senBtn.interactable = Controller.CanProcessUsingSen(hero);
-                        if (e is ErrorCodeException) {
-                            DialogError.ShowError(Canvas, e.Message);    
-                        } else {
-                            DialogForge.ShowError(Canvas, e.Message);
-                        }
-                    } finally {
-                        waiting.End();
-                    }
-                });
-            }
-
-            var fee = Controller.SenFeeRepairShield(hero);
-            var info = _languageManager.GetValue(LocalizeKey.ui_info_buy_repair_shield);
-            var str = string.Format(info, fee, "Sen");
-            var dialog = await DialogConfirm.Create();
-            dialog.SetInfo(str, "Yes", "No", OnYes, null).Show(Canvas);
+            // removed
         }
     }
 }

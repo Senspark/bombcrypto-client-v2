@@ -81,38 +81,74 @@ namespace Share.Scripts.Communicate {
                 return;
             }
 
-            // SYNC_BOMBERMAN_V3
+            // SYNC_BOMBERMAN_V4
             if (cmd == SFSDefine.SFSCommand.SYNC_HERO_RESPONSE) {
                 try {
-                    _logManager.Log($"RECEIVED: cmd({cmd}) value({value})");
+                    _logManager.Log($"RECEIVED: cmd({cmd})");
                     var serverManager = ServiceLocator.Instance.Resolve<IServerManager>();
                     serverManager.General.SyncHero(value);
                 } catch (Exception e) {
-                    _logManager.Log($"RECEIVED FAILED: cmd({cmd}) value({value})");
+                    _logManager.Log($"RECEIVED FAILED: cmd({cmd}) error={e.GetType().Name}: {e.Message}\n{e.StackTrace}");
                 }
                 return;
             }
-            
-            // SYNC_HOUSE_V3
+
+            // SYNC_HOUSE_V4
             if (cmd == SFSDefine.SFSCommand.SYNC_HOUSE_RESPONSE) {
                 try {
-                    _logManager.Log($"RECEIVED: cmd({cmd}) value({value})");
+                    _logManager.Log($"RECEIVED: cmd({cmd})");
                     var serverManager = ServiceLocator.Instance.Resolve<IServerManager>();
                     serverManager.General.SyncHouse(value);
                 } catch (Exception e) {
-                    _logManager.Log($"RECEIVED FAILED: cmd({cmd}) value({value})");
+                    _logManager.Log($"RECEIVED FAILED: cmd({cmd}) error={e.GetType().Name}: {e.Message}\n{e.StackTrace}");
                 }
                 return;
             }
-            
-            // SYNC_DEPOSITED_V3
+
+            // SYNC_DEPOSITED_V4
             if (cmd == SFSDefine.SFSCommand.SYNC_DEPOSIT_RESPONSE) {
                 try {
-                    _logManager.Log($"RECEIVED: cmd({cmd}) value({value})");
+                    _logManager.Log($"RECEIVED: cmd({cmd})");
                     var serverManager = ServiceLocator.Instance.Resolve<IServerManager>();
                     serverManager.General.SyncDeposited(value);
                 } catch (Exception e) {
-                    _logManager.Log($"RECEIVED FAILED: cmd({cmd}) value({value})");
+                    _logManager.Log($"RECEIVED FAILED: cmd({cmd}) error={e.GetType().Name}: {e.Message}\n{e.StackTrace}");
+                }
+                return;
+            }
+
+            // APPROVE_CLAIM_V4
+            if (cmd == SFSDefine.SFSCommand.APPROVE_CLAIM_RESPONSE) {
+                try {
+                    _logManager.Log($"RECEIVED: cmd({cmd})");
+                    var serverManager = ServiceLocator.Instance.Resolve<IServerManager>();
+                    serverManager.General.OnApproveClaimPush(value);
+                } catch (Exception e) {
+                    _logManager.Log($"RECEIVED FAILED: cmd({cmd}) error={e.GetType().Name}: {e.Message}\n{e.StackTrace}");
+                }
+                return;
+            }
+
+            // UPGRADE_SHIELD_LEVEL_V3 async result
+            if (cmd == SFSDefine.SFSCommand.UPGRADE_SHIELD_LEVEL_RESPONSE) {
+                try {
+                    _logManager.Log($"RECEIVED: cmd({cmd})");
+                    var serverManager = ServiceLocator.Instance.Resolve<IServerManager>();
+                    serverManager.General.OnUpgradeShieldLevelPush(value);
+                } catch (Exception e) {
+                    _logManager.Log($"RECEIVED FAILED: cmd({cmd}) error={e.GetType().Name}: {e.Message}\n{e.StackTrace}");
+                }
+                return;
+            }
+
+            // BHERO_STAKE_PUSH: server thông báo on-chain stake/unstake đã sync
+            if (cmd == SFSDefine.SFSCommand.BHERO_STAKE_PUSH) {
+                try {
+                    _logManager.Log($"RECEIVED: cmd({cmd})");
+                    var serverManager = ServiceLocator.Instance.Resolve<IServerManager>();
+                    serverManager.General.OnHeroStakePush(value);
+                } catch (Exception e) {
+                    _logManager.Log($"RECEIVED FAILED: cmd({cmd}) error={e.GetType().Name}: {e.Message}\n{e.StackTrace}");
                 }
                 return;
             }
@@ -138,7 +174,13 @@ namespace Share.Scripts.Communicate {
         public void OnConnectionError(string message) {}
         public void OnConnectionRetry() {}
         public void OnConnectionResume() {}
-        public void OnConnectionLost(string reason) {}
+        public void OnConnectionLost(string reason) {
+            try {
+                var serverManager = ServiceLocator.Instance.Resolve<IServerManager>();
+                serverManager.General.CancelPendingClaim(new ClaimConnectionLostException(reason));
+            } catch {
+            }
+        }
         public void OnLogin() {}
         public void OnLoginError(int code, string message) {}
         public void OnUdpInit(bool success) {}

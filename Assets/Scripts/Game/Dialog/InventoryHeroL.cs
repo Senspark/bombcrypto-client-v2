@@ -34,7 +34,7 @@ public class InventoryHeroL : MonoBehaviour {
     private Avatar avatar;
 
     private IStorageManager _storageManager;
-    private IPlayerStorageManager _playerStorageManager;
+    private IBHeroManager _bHeroManager;
     private IFeatureManager _featureManager;
 
     private PlayerData _hero;
@@ -51,7 +51,7 @@ public class InventoryHeroL : MonoBehaviour {
         _canvas = canvas;
         if (_storageManager == null) {
             _storageManager = ServiceLocator.Instance.Resolve<IStorageManager>();
-            _playerStorageManager = ServiceLocator.Instance.Resolve<IPlayerStorageManager>();
+            _bHeroManager = ServiceLocator.Instance.Resolve<IBHeroManager>();
             _featureManager = ServiceLocator.Instance.Resolve<IFeatureManager>();
         }
         content.SetActive(true);
@@ -66,7 +66,7 @@ public class InventoryHeroL : MonoBehaviour {
     }
 
     private void UpdateUi() {
-        var rarity = _playerStorageManager.GetHeroRarity(_hero);
+        var rarity = _bHeroManager.GetHeroRarity(_hero);
         var minStake = _storageManager.MinStakeHero.MinStakeLegacy[rarity];
         
         var amountBcoin = Math.Floor(_hero.stakeBcoin * 1e6) / 1e6;
@@ -75,44 +75,44 @@ public class InventoryHeroL : MonoBehaviour {
     }
 
 
+    private void OnEnable() {
+        EventManager<PlayerData>.AddUnique(StakeEvent.AfterStake, OnAfterStake);
+    }
+
+    private void OnDisable() {
+        EventManager<PlayerData>.RemoveUnique(StakeEvent.AfterStake, OnAfterStake);
+    }
+
     public void ShowDialogStake() {
         if (_isClicked) return;
         _isClicked = true;
         DialogStakeHeroesS.Create().ContinueWith(dialog => {
-            dialog.Show(_hero, _canvas, GetCallback());    
+            dialog.Show(_hero, _canvas, GetCallback());
         });
     }
-    
-    private StakeCallback.Callback GetCallback() {
-        var callback = new StakeCallback()
-            //call back nếu dialog bị stake bị tắt đi
-            .OnHide(
-                () => { _isClicked = false; })
-            
-            //call back nếu dialog unstake confirm bị tắt đi
-            .OnUnStakeHide(
-                () => { _isClicked = false; })
-            
-            //callback sau khi stake thành công => update lại ui
-            .OnStakeComplete(player => {
-                _isClicked = false;
-                EventManager<PlayerData>.Dispatcher(StakeEvent.AfterStake, player);
-                UpdateUi();
-                avatar.ChangeImage(player);
-                inventoryHeroS.Show(player, _canvas);
-                gameObject.SetActive(player.Shield == null);
 
-            })
-            //callback sau khi unstake thành công => update lại ui
-            .OnUnStakeComplete(player => {
-                _isClicked = false;
-                UpdateUi();
-                EventManager<PlayerData>.Dispatcher(StakeEvent.AfterStake, player);
-            })
-      
+    private StakeCallback.Callback GetCallback() {
+        // Sau refactor: stake/unstake không còn block UI. _isClicked reset qua Hide/UnStakeHide
+        // callback (dialog refactored cũng trigger Hide khi thành công). UI switch L↔S khi push
+        // BHERO_STAKE_PUSH đến → FarmingSceneStakeObserver dispatch StakeEvent.AfterStake → OnAfterStake.
+        return new StakeCallback()
+            .OnHide(() => { _isClicked = false; })
+            .OnUnStakeHide(() => { _isClicked = false; })
             .Create();
-        
-        return callback;
+    }
+
+    private void OnAfterStake(PlayerData player) {
+        if (_hero == null || player == null) return;
+        if (_hero.heroId.Id != player.heroId.Id) return;
+
+        _hero = player;
+        UpdateUi();
+        if (player.Shield != null) {
+            // Hero L vừa được gắn shield (stake đủ min) → switch sang view HeroS
+            avatar.ChangeImage(player);
+            inventoryHeroS.Show(player, _canvas);
+            gameObject.SetActive(false);
+        }
     }
 
     public void ShowFullText(bool show) {

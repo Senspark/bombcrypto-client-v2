@@ -24,7 +24,7 @@ namespace App {
 
         public void Log(string message = "", string memberName = "", string sourceFilePath = "",
             int sourceLineNumber = 0) {
-            if (!_enableLog && !Application.isEditor) {
+            if (!_enableLog && !AppConfig.IsEditor) {
                 return;
             }
             Debug.LogFormat(LogType.Log, LogOption.NoStacktrace, null, "LOG: {0}", message);

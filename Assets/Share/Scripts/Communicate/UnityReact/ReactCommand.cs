@@ -27,5 +27,7 @@ namespace Share.Scripts.Communicate.UnityReact {
         public const string IS_ANDROID_BROWSER = "IS_ANDROID_BROWSER";
         public const string REFRESH_JWT_TON = "REFRESH_JWT_TON";
 
+        public const string OPEN_GAME_MODE = "OPEN_GAME_MODE";
+
     }
 }

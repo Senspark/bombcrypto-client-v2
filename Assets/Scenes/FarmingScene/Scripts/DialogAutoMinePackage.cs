@@ -167,9 +167,9 @@ namespace Scenes.FarmingScene.Scripts {
                     Hide();
                 } catch (Exception e) {
                     if (e is ErrorCodeException) {
-                        DialogError.ShowError(DialogCanvas, e.Message);    
+                        DialogError.ShowError(DialogCanvas, e);    
                     } else {
-                        DialogOK.ShowError(DialogCanvas, e.Message);
+                        DialogOK.ShowError(DialogCanvas, e);
                     }
                 }
                 waiting.End();
@@ -192,7 +192,7 @@ namespace Scenes.FarmingScene.Scripts {
             var message = _languageManager.GetValue(LocalizeKey.info_not_enough);
             var acc = _userAccountManager.GetRememberedAccount();
             var tokenData =
-                _launchPadManager.GetData(new RewardType(_rewardType), NetworkSymbol.Convert(acc.network));
+                _launchPadManager.GetData(new RewardType(_rewardType), RewardUtils.ConvertNetworkToDatatype(acc.network));
             var str = string.Format(message, tokenData.displayName);
             DialogOK.ShowInfo(DialogCanvas, title, str);
         }

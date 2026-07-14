@@ -13,6 +13,7 @@ import HeroDesignAbi from './Data/Abi/HeroDesignAbi.json';
 import HouseTokenAbi from './Data/Abi/HouseTokenAbi.json';
 import HouseDesignAbi from './Data/Abi/HouseDesignAbi.json';
 import DepositAbi from './Data/Abi/DepositAbi.json';
+import DepositBridgeAbi from './Data/Abi/DepositBridgeAbi.json';
 import AirDropAbi from './Data/Abi/AirDropAbi.json';
 import ClaimManagerAbi from './Data/Abi/ClaimManagerAbi.json';
 import CoinExchangeAbi from './Data/Abi/CoinExchangeAbi.json';
@@ -34,6 +35,7 @@ export default class BlockChainData implements IBlockchainData {
     hero_extended_address: string;
     house_token_address: string;
     deposit_address: string;
+    deposit_bridge_address: string;
     air_drop_address: string;
     claim_manager_address: string;
     exchange_event_address: string;
@@ -47,6 +49,7 @@ export default class BlockChainData implements IBlockchainData {
     house_token_abi: JSON = {} as JSON;
     house_design_abi: JSON = {} as JSON;
     deposit_abi: JSON = {} as JSON;
+    deposit_bridge_abi: JSON = {} as JSON;
     air_drop_abi: JSON = {} as JSON;
     claim_manager_abi: JSON = {} as JSON;
     exchange_event_abi: JSON = {} as JSON;
@@ -77,6 +80,7 @@ export default class BlockChainData implements IBlockchainData {
         this.hero_extended_address = address.HeroExtendedAddress;
         this.house_token_address = address.HouseTokenAddress;
         this.deposit_address = address.DepositAddress;
+        this.deposit_bridge_address = address.DepositBridgeAddress;
         this.air_drop_address = address.AirDropAddress;
         this.claim_manager_address = address.ClaimManagerAddress;
         this.exchange_event_address = address.CoinExchangeAddress;
@@ -97,6 +101,7 @@ export default class BlockChainData implements IBlockchainData {
         this.house_token_abi = JSON.parse(JSON.stringify(HouseTokenAbi));
         this.house_design_abi = JSON.parse(JSON.stringify(HouseDesignAbi));
         this.deposit_abi = JSON.parse(JSON.stringify(DepositAbi));
+        this.deposit_bridge_abi = JSON.parse(JSON.stringify(DepositBridgeAbi));
         this.air_drop_abi = JSON.parse(JSON.stringify(AirDropAbi));
         this.claim_manager_abi = JSON.parse(JSON.stringify(ClaimManagerAbi));
         this.exchange_event_abi = JSON.parse(JSON.stringify(CoinExchangeAbi));

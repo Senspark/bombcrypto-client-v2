@@ -142,7 +142,7 @@ namespace Game.UI {
                 var sen = _chestRewardManager.GetChestReward(BlockRewardType.Senspark);
                 if (sen < _claimFee) {
                     var msg = _languageManager.GetValue(LocalizeKey.info_not_enough);
-                    DialogOK.ShowError(_dialogCanvas, string.Format(msg, "SEN"));
+                    DialogOK.ShowErrorMsgOnly(_dialogCanvas, string.Format(msg, "SEN"));
                     return;
                 }
             }

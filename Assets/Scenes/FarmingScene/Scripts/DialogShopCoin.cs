@@ -154,7 +154,7 @@ namespace Scenes.FarmingScene.Scripts {
 
             var input = _category == BuyBcoinCategory.UsdtAmount ? inputUsdt : inputBcoin;
             if (!double.TryParse(input.text, out var amount) || amount <= 0) {
-                DialogOK.ShowError(DialogCanvas, "Invalid value");
+                DialogOK.ShowErrorMsgOnly(DialogCanvas, "Invalid value");
                 return;
             }
             double.TryParse(inputBcoin.text, out var bcoin);
@@ -170,9 +170,9 @@ namespace Scenes.FarmingScene.Scripts {
                     StartSyncing();
                 } catch (Exception e) {
                     if (e is ErrorCodeException) {
-                        DialogError.ShowError(DialogCanvas, e.Message);    
+                        DialogError.ShowError(DialogCanvas, e);    
                     } else {
-                        DialogOK.ShowError(DialogCanvas, e.Message);
+                        DialogOK.ShowError(DialogCanvas, e);
                     }
                 }
                 waiting.End();

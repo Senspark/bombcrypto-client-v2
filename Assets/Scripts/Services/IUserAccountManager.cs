@@ -220,7 +220,7 @@ namespace App {
                     platform = Platform.IOSNative;
                     break;
                 default:
-                    platform = Application.isEditor ? Platform.Editor : Platform.WebOther;
+                    platform = AppConfig.IsEditor ? Platform.Editor : Platform.WebOther;
                     break;
             }
             return platform;

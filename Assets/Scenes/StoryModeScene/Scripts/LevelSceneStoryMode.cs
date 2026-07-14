@@ -123,8 +123,8 @@ namespace Scenes.StoryModeScene.Scripts {
         // Đổi hàm Start thành StartGame
         // Không tự động Start khi load Scene nữa
         // Mà sẽ gọi sau khi SetStoryMapDetails
-        private void StartGame() {
-            LoadLevel();
+        private async UniTaskVoid StartGame() {
+            await LoadLevel();
             TrackUseBoosterAtLevelStart();
             Pause = false;
         }
@@ -213,7 +213,7 @@ namespace Scenes.StoryModeScene.Scripts {
             _totalPlayingTime = totalPlayingTime;
         }
 
-        private void LoadLevel() {
+        private async UniTask LoadLevel() {
             var path = $"Prefabs/Levels/levelStoryMode";
             var prefab = Resources.Load<LevelViewStoryMode>(path);
             _levelView = Instantiate(prefab, transform);
@@ -238,7 +238,7 @@ namespace Scenes.StoryModeScene.Scripts {
 
             //TODO:
             var offset = 0; //GuiPlayer.SetSafeArea();
-            _levelView.Initialize(_storyModeHero, _storyMapDetails, _bossSkillDetails, _analytics,
+            await _levelView.Initialize(_storyModeHero, _storyMapDetails, _bossSkillDetails, _analytics,
                 offset,
                 storyModeCallback,
                 _isTesting);
@@ -571,7 +571,7 @@ namespace Scenes.StoryModeScene.Scripts {
                         Pause = false;
                         GoToLevelMenu();
                     } catch (Exception e) {
-                        DialogOK.ShowError(canvasDialog, e.Message);
+                        DialogOK.ShowError(canvasDialog, e);
                     }
                     waiting.End();
                 });

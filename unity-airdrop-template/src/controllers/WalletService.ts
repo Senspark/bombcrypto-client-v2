@@ -51,26 +51,27 @@ export default class WalletService {
     private _isProd = false;
 
     async updateWalletAddress(walletAddress: string | undefined) {
-        this._logger.log(`${TAG} updateWalletAddress to ${walletAddress}`);
-        
+        const normalized = walletAddress?.toLowerCase();
+        this._logger.log(`${TAG} updateWalletAddress to ${normalized}`);
+
         // User logout khỏi Wallet
-        if (!walletAddress && this._walletAddress) {
+        if (!normalized && this._walletAddress) {
             this._notificationService.showError("You're logging out of your wallet. Please log in again.");
             return;
         }
 
         // User đổi sang Account khác trên cùng Wallet
-        if (walletAddress && this._walletAddress && walletAddress != this._walletAddress) {
-            this._walletAddress = walletAddress!;
-            this._notificationService.show("Account change", `You're connect to different account: ${walletAddress}`, 5);
+        if (normalized && this._walletAddress && normalized != this._walletAddress) {
+            this._walletAddress = normalized;
+            this._notificationService.show("Account change", `You're connect to different account: ${normalized}`, 5);
             return;
         }
 
-        if (walletAddress) {
+        if (normalized) {
             // User Login lần đầu
             if (!this._walletAddress) {
-                this._logger.log(`${TAG} Wallet address ${this._walletAddress} updated to ${walletAddress}`);
-                this._walletAddress = walletAddress!;
+                this._logger.log(`${TAG} Wallet address ${this._walletAddress} updated to ${normalized}`);
+                this._walletAddress = normalized;
                 this._notificationService.show('Wallet connected', `Welcome to Bomcrypto, ${this._walletAddress}`, 2, 'success');
             }
 

@@ -232,7 +232,7 @@ namespace Game.Dialog {
                     }
                 } catch (Exception e) {
                     var msg = $"{e.Message}. Please try again later.";
-                    DialogOK.ShowError(DialogCanvas, msg);
+                    DialogOK.ShowErrorMsgOnly(DialogCanvas, msg);
                 } finally {
                     waiting.End();
                 }

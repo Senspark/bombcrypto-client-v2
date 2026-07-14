@@ -2,11 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-using Analytics.Modules;
-
 using App;
-
-using CustomSmartFox;
 
 using Cysharp.Threading.Tasks;
 
@@ -16,9 +12,7 @@ using Senspark;
 
 using Services.WebGL;
 
-using Share.Scripts;
 using Share.Scripts.Communicate;
-using Share.Scripts.Communicate.UnityReact;
 
 using UnityEngine;
 
@@ -29,9 +23,7 @@ namespace Scenes.ConnectScene.Scripts.Connectors {
 
         private readonly IUserAccountManager _userAccountManager;
         private readonly ILogManager _logManager;
-        private readonly IExtResponseEncoder _encoder;
         private readonly IMasterUnityCommunication _unityCommunication;
-        private readonly IAnalyticsModuleLogin _analytics;
         private readonly ITaskDelay _taskDelay;
         private readonly IWebGLBridgeUtils _webGLBridgeUtils;
 
@@ -43,23 +35,19 @@ namespace Scenes.ConnectScene.Scripts.Connectors {
         private TaskCompletionSource<UserAccount> _completion;
 
         public SolanaConnectController(
-            IExtResponseEncoder encoder,
             IMasterUnityCommunication unityCommunication,
             IUserAccountManager userAccountManager,
             ILogManager logManager,
             IWebGLBridgeUtils webGLBridgeUtils,
-            IAnalyticsModuleLogin analytics,
             ITaskDelay taskDelay,
             Canvas canvasDialog,
             bool isProduction
         ) {
             _isProduction = isProduction;
             _userAccountManager = userAccountManager;
-            _encoder = encoder;
             _unityCommunication = unityCommunication;
             _logManager = logManager;
             _webGLBridgeUtils = webGLBridgeUtils;
-            _analytics = analytics;
             _taskDelay = taskDelay;
             _canvasDialog = canvasDialog;
             _stackStates = new Stack<StateType>();
@@ -121,12 +109,8 @@ namespace Scenes.ConnectScene.Scripts.Connectors {
 
         private void Completed() {
             _logManager.Log("Login account completed");
-            var lt = GetAnalyticsLoginType(_userAccount);
-            _analytics.TrackAction(ActionType.ChooseLogin, lt);
             _completion.SetResult(_userAccount);
         }
-
-
 
         private void ToWaitAniLogo() {
             UniTask.Void(async () => {
@@ -148,7 +132,6 @@ namespace Scenes.ConnectScene.Scripts.Connectors {
                 ApplyState(StateType.Done);
             }
             var ctrl = new ConnectThirdPartyController(
-                _encoder,
                 _unityCommunication,
                 _logManager,
                 _webGLBridgeUtils,
@@ -226,24 +209,12 @@ namespace Scenes.ConnectScene.Scripts.Connectors {
             }
             _logManager.Log($"UserAccount: {JsonConvert.SerializeObject(acc)}");
         }
-        
-        private Analytics.Modules.LoginType GetAnalyticsLoginType(UserAccount usr) {
-            var lt = usr.loginType switch {
-                LoginType.UsernamePassword => Analytics.Modules.LoginType.Senspark,
-                LoginType.Guest => Analytics.Modules.LoginType.Guest,
-                LoginType.Apple => Analytics.Modules.LoginType.Apple,
-                _ => Analytics.Modules.LoginType.Unknown
-            };
-            return lt;
-        }
 
         private enum StateType {
             WaitAniLogo,
             CheckAcceptTerms,
             CheckRemember,
             ChooseLoginMethod,
-            LoginFacebook,
-            LoginApple,
             LoginGuest,
             LoginSenspark,
             LoginTelegram,

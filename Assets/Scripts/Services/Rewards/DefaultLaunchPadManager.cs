@@ -1,12 +1,12 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Cysharp.Threading.Tasks;
+using Game.UI;
 using Senspark;
-using Newtonsoft.Json;
 using Services.Rewards;
-using UnityEngine;
+
 using UnityEngine.Assertions;
 
 namespace App {
@@ -14,7 +14,7 @@ namespace App {
         private class RewardType : IRewardType {
             public BlockRewardType Type { get; }
             public string Name { get; }
-            
+
             public RewardType(BlockRewardType type, string name) {
                 Type = type;
                 Name = name;
@@ -25,36 +25,19 @@ namespace App {
         private readonly IChestRewardManager _chestRewardManager;
         private readonly IBlockchainStorageManager _blockchainStorageManager;
         private readonly NetworkType _networkType;
-        private readonly ICacheRequestManager _cacheRequestManager;
         private List<TokenData> _data;
 
-        private readonly string _getBasePath;
-        private readonly string _getFilePath;
-        
         private const float HOLD_WALLET_COIN = 5;
-        private const string RemoteFolder = "LaunchPad";
-        private const string JsonFile = "data.json";
-        
-        private readonly List<string> _iconNameTonUsed = new List<string>() {
-            "BL_COIN",
-            "TON_DEPOSITED",
-            "BOMBERMAN",
-            "BCOIN_DEPOSITED"
-        };
+        private const string ResourcePath = "LaunchPadResource";
 
         public DefaultLaunchPadManager(
             ILogManager logManager,
             IChestRewardManager chestRewardManager,
-            IBlockchainStorageManager blockchainStorageManager,
-            ICacheRequestManager cacheRequestManager
+            IBlockchainStorageManager blockchainStorageManager
         ) {
             _logManager = logManager;
             _chestRewardManager = chestRewardManager;
             _blockchainStorageManager = blockchainStorageManager;
-            _cacheRequestManager = cacheRequestManager;
-
-            _getBasePath = Path.Combine(Application.streamingAssetsPath, RemoteFolder);
-            _getFilePath = Path.Combine(_getBasePath, JsonFile);
         }
 
         public Task<bool> Initialize() {
@@ -64,45 +47,36 @@ namespace App {
         public void Destroy() {
         }
 
-        public async Task SyncRemoteData() {
+        public UniTask SyncRemoteData() {
             if (_data != null) {
-                return;
+                return UniTask.CompletedTask;
             }
 
-            var jsonPath = _getFilePath;
-            var data = await GetTextFile(jsonPath);
-            var result = JsonConvert.DeserializeObject<TokenData[]>(data);
-            Assert.IsNotNull(result);
+            var resource = UnityEngine.Resources.Load<LaunchPadResource>(ResourcePath);
+            Assert.IsNotNull(resource);
 
-            _data = new List<TokenData>(result);
-            foreach (var r in result) {
-                // icon -> sprite
-                var iconName = r.iconName;
-                if (!string.IsNullOrEmpty(iconName)) {
-                    try {
-                        if(AppConfig.IsTon() && !IsIconUseForTon(iconName)) {
-                            continue;
-                        }
-                        var iconPath = Path.Combine(_getBasePath, $"{iconName}.png");
-                        r.icon = await Utils.LoadImageFromPath(iconPath);
-                    } catch (Exception e) {
-                        // ignore because of unity main thread
-                        _logManager.Log(e.Message);
-                    }
-                }
+            var tokens = LaunchPadTokenTable.Build();
+            foreach (var token in tokens) {
+                token.icon = resource.GetIcon(token.tokenName, token.networkSymbol);
             }
+            var missing = resource.GetMissingIcons();
+            if (missing.Count > 0) {
+                _logManager.Log($"[LaunchPad] Thiếu icon chưa gán trong LaunchPadResource: {string.Join(", ", missing)}");
+            }
+            _data = tokens;
+            return UniTask.CompletedTask;
         }
 
-        public bool CanShowInLaunchPad(IRewardType type, NetworkSymbol symbol) {
+        public bool CanShowInLaunchPad(IRewardType type, DataType symbol) {
             var token = GetData(type, symbol);
             return token != null && token.displayOnLaunchPad;
         }
 
         public bool CanShowInLaunchPad(ITokenReward type) {
-            return CanShowInLaunchPad(type.Type, new NetworkSymbol(type.Network));
+            return CanShowInLaunchPad(type.Type, RewardUtils.ParseDataType(type.Network));
         }
 
-        public bool CanClaim(IRewardType type, NetworkSymbol symbol, float rewardValue) {
+        public bool CanClaim(IRewardType type, DataType symbol, float rewardValue) {
             var minValue = GetMinValueToClaim(type, symbol);
             if (minValue == 0) {
                 minValue = float.Epsilon;
@@ -121,71 +95,48 @@ namespace App {
                     return walletBcoin >= HOLD_WALLET_COIN || walletSen >= HOLD_WALLET_COIN;
                 }
                 
-                var fee = token.claimFee;
-                if (fee == null) {
-                    return true;
-                }
-                var currency = _chestRewardManager.GetChestReward(fee.tokenName);
-                return fee.IsTrue(currency);
+                return true;
             } catch (Exception) {
                 return false;
             }
         }
 
-        public (float, string) GetClaimFee(IRewardType type, NetworkSymbol symbol) {
+        public (float, string) GetClaimFee(IRewardType type, DataType symbol) {
             var token = GetData(type, symbol);
-            
-            var fee = token.claimFee;
-            if (fee == null) {
+            if (!token.useTax) {
                 return (0, null);
             }
-            var feeName = fee.tokenName;
-            var feeToken = GetData(feeName, symbol);
-            var currency = feeToken.displayName;
-            
-            if (token.useTax) {
-                var claimAmount = _chestRewardManager.GetChestReward(type);
-                var tax = GetTaxValue(claimAmount);
-                return (claimAmount * tax, currency);
-            }
-            return (fee.value, currency);
+            var claimAmount = _chestRewardManager.GetChestReward(type);
+            var tax = GetTaxValue(claimAmount);
+            return (claimAmount * tax, token.displayName);
         }
 
         public TokenData GetCurrentNetworkData(BlockRewardType type) {
-            var tokenName = RewardUtils.ConvertToBlockRewardType(type);
-            var network = NetworkSymbol.Convert(_networkType);
-            return GetData(tokenName, network);
+            var network = RewardUtils.ConvertNetworkToDatatype(_networkType);
+            return GetData(type, network);
         }
 
-        public TokenData GetData(IRewardType type, NetworkSymbol symbol) {
-            var tokenName = type.Name;
-            return GetData(tokenName, symbol);
+        public TokenData GetData(IRewardType type, DataType symbol) {
+            return GetData(type.Type, symbol);
         }
 
         public TokenData GetData(ITokenReward type) {
-            var tokenName = type.Type.Name;
             var network = type.Network;
-            return GetData(tokenName, new NetworkSymbol(network));
+            return GetData(type.Type.Type, RewardUtils.ParseDataType(network));
         }
 
-        public TokenData GetData(BlockRewardType type, NetworkSymbol symbol) {
-            var tokenName = RewardUtils.ConvertToBlockRewardType(type);
-            return GetData(tokenName, symbol);
-        }
-
-        public TokenData GetData(string tokenName, NetworkSymbol symbol) {
-            var result = _data.FirstOrDefault(e => e.tokenName == tokenName && e.NetworkSymbol == symbol);
-            return result;
+        public TokenData GetData(BlockRewardType type, DataType symbol) {
+            return _data.FirstOrDefault(e => e.tokenName == type && e.networkSymbol == symbol);
         }
 
         public List<TokenData> GetForceDisplayTokens() {
             var list = _data.Where(e =>
                 //DevHoang: Add new airdrop
-                e.networkSymbol != "TON" && 
-                e.networkSymbol != "SOL" &&
-                e.networkSymbol != "RON" &&
-                e.networkSymbol != "BAS" &&
-                e.networkSymbol != "VIC" &&
+                e.networkSymbol != DataType.TON &&
+                e.networkSymbol != DataType.SOL &&
+                e.networkSymbol != DataType.RON &&
+                e.networkSymbol != DataType.BAS &&
+                e.networkSymbol != DataType.VIC &&
                 e.alwaysDisplay).ToList();
             return list;
         }
@@ -193,14 +144,14 @@ namespace App {
         public List<TokenData> GetForceDisplayTokensTelegram() {
             var list = _data.Where(e =>
                 e.code == 18 || // StarCore - TR
-                (e.networkSymbol == "TON" &&
+                (e.networkSymbol == DataType.TON &&
                 e.alwaysDisplay)
             ).ToList();
             return list;
         }
         public List<TokenData> GetForceDisplayTokensSolana() {
             var list = _data.Where(e =>
-                (e.networkSymbol == "SOL" &&
+                (e.networkSymbol == DataType.SOL &&
                  e.alwaysDisplay ||
                  e.code == 18) // StarCore - TR
             ).ToList();
@@ -209,7 +160,7 @@ namespace App {
         
         public List<TokenData> GetForceDisplayTokensRonin() {
             var list = _data.Where(e =>
-                    (e.networkSymbol == "RON" &&
+                    (e.networkSymbol == DataType.RON &&
                      e.alwaysDisplay)
             ).ToList();
             return list;
@@ -217,7 +168,7 @@ namespace App {
         
         public List<TokenData> GetForceDisplayTokensBase() {
             var list = _data.Where(e =>
-                    (e.networkSymbol == "BAS" &&
+                    (e.networkSymbol == DataType.BAS &&
                      e.alwaysDisplay)
             ).ToList();
             return list;
@@ -225,19 +176,18 @@ namespace App {
         
         public List<TokenData> GetForceDisplayTokensViction() {
             var list = _data.Where(e =>
-                (e.networkSymbol == "VIC" &&
+                (e.networkSymbol == DataType.VIC &&
                  e.alwaysDisplay)
             ).ToList();
             return list;
         }
         
-        public IRewardType CreateRewardType(string tokenType) {
-            var blockType = RewardUtils.ConvertToBlockRewardType(tokenType);
-            return new RewardType(blockType, tokenType);
+        public IRewardType CreateRewardType(BlockRewardType type) {
+            var name = RewardUtils.ConvertToBlockRewardType(type);
+            return new RewardType(type, name);
         }
 
-        private float GetMinValueToClaim(IRewardType type, NetworkSymbol symbol) {
-            var tokenName = type.Name;
+        private float GetMinValueToClaim(IRewardType type, DataType symbol) {
             var token = GetData(type, symbol);
             return token.minValueToClaim;
         }
@@ -248,18 +198,6 @@ namespace App {
                 < 80f => 0.06f,
                 _ => 0.03f
             };
-        }
-        
-        private async Task<string> GetTextFile(string path) {
-            if (Utils.IsUrl(path)) {
-                var (code, res) = await _cacheRequestManager.GetWebResponse(SFSDefine.SFSCommand.GET_LAUNCH_PAD_DATA, path);
-                return res;
-            }
-            return await File.ReadAllTextAsync(path);
-        }
-
-        private bool IsIconUseForTon(string iconName) {
-            return _iconNameTonUsed.Contains(iconName);
         }
     }
 }

@@ -43,7 +43,7 @@ namespace Reconnect.View {
             _waiting.End();
             _waiting = null;
             if (!successful) {
-                DialogOK.ShowErrorAndKickToConnectScene(_canvas, "Failed to reconnect");
+                DialogOK.ShowErrorMsgOnlyAndKickToConnectScene(_canvas, "Failed to reconnect");
             }
             return Task.CompletedTask;
         }

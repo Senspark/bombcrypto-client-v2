@@ -12,6 +12,8 @@ using Scenes.TreasureModeScene.Scripts.Solana.Server_Response;
 
 namespace Server.Models {
     public class HeroDetails : IHeroDetails {
+        public const int SupportedSkinMax = 66;
+
         public string Details => _details;
         public int Id { get; protected set; }
         public int Rarity { get; }
@@ -185,7 +187,17 @@ namespace Server.Models {
             Rarity = (int)((detailsInt >> 40) & n5Bits);
             Level = (int)((detailsInt >> 45) & n5Bits);
             Color = (int)((detailsInt >> 50) & n5Bits);
-            Skin = (int)((detailsInt >> 55) & n5Bits);
+            var lowBitSkin = (int)((detailsInt >> 55) & n5Bits);
+            var highBitSkin = (int)((detailsInt >> 250) & n5Bits);
+            var rawSkin = (highBitSkin << 5) | lowBitSkin;
+            if (rawSkin > SupportedSkinMax) {
+                UnityEngine.Debug.LogWarning(
+                    $"HeroDetails: skin {rawSkin} exceeds SupportedSkinMax ({SupportedSkinMax}); " +
+                    "falling back to default skin 0. Art assets for this skin index have not shipped.");
+                Skin = 0;
+            } else {
+                Skin = rawSkin;
+            }
             Stamina = (int)((detailsInt >> 60) & n5Bits);
             Speed = (int)((detailsInt >> 65) & n5Bits);
             BombSkin = (int)((detailsInt >> 70) & n5Bits);

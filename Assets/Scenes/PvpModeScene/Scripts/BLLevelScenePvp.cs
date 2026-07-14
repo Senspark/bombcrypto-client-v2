@@ -184,8 +184,8 @@ namespace Scenes.PvpModeScene.Scripts {
         // Đổi hàm Start thành StartPvpGame
         // Không tự động Start khi load Scene nữa
         // Mà sẽ gọi sau khi SetPvpMapDetails
-        private void StartPvpGame() {
-            StartGame();
+        private async UniTask StartPvpGame() {
+            await StartGame();
             var bombable = _levelView.EntityManager.PlayerManager.GetPlayerBySlot(Slot).Bombable;
             _guiPvp.SetQuantityBomb(bombable.CountAvailableBomb());
             _ready = true;
@@ -418,13 +418,13 @@ namespace Scenes.PvpModeScene.Scripts {
                         : new WaitingReconnectView(canvasDialog)
                 )).ToArray());
             _pvpReconnectStrategy.Start();
-            
-            StartPvpGame();
+
+            StartPvpGame().Forget();
         }
 
-        private void StartGame() {
+        private async UniTask StartGame() {
             _notificationManager.CancelSeasonAlreadyNotification();
-            LoadLevel();
+            await LoadLevel();
             CreateSyncHeroes();
             if (IsCountDownEnabled) {
                 _pause = true;
@@ -533,7 +533,7 @@ namespace Scenes.PvpModeScene.Scripts {
             }
         }
 
-        private void LoadLevel() {
+        private async UniTask LoadLevel() {
             _levelView = BLevelViewPvp.Create(mapParent);
             var pvpModeCallback = new PvpModeCallback {
                 OnKick = OnKick,
@@ -541,7 +541,7 @@ namespace Scenes.PvpModeScene.Scripts {
                 OnPlayerEndInJail = OnPlayerEndInJail,
                 OnUpdateItem = OnUpdateItem,
             };
-            _levelView.Initialize(
+            await _levelView.Initialize(
                 _matchInfo.Info.Select(item => item.Hero).ToArray(),
                 _mapInfo,
                 _matchData,

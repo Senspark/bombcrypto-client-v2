@@ -54,7 +54,7 @@ namespace Scenes.FarmingScene.Scripts {
         private CharacterItemCallback _characterItemCallback;
         private ISoundManager _audioManager;
         private IHouseStorageManager _houseStoreManager;
-        private IPlayerStorageManager _playerStoreManager;
+        private IBHeroManager _playerStoreManager;
         
         private float _timeProcess = 0;
         private float _houseCharge;
@@ -63,7 +63,7 @@ namespace Scenes.FarmingScene.Scripts {
         private void Awake() {
             _audioManager = ServiceLocator.Instance.Resolve<ISoundManager>();
             _houseStoreManager = ServiceLocator.Instance.Resolve<IHouseStorageManager>();
-            _playerStoreManager = ServiceLocator.Instance.Resolve<IPlayerStorageManager>();
+            _playerStoreManager = ServiceLocator.Instance.Resolve<IBHeroManager>();
         }
 
         private void Update() {
@@ -82,11 +82,13 @@ namespace Scenes.FarmingScene.Scripts {
         
         //Update lại ui của hero này sau khi stake xong
         private void OnStakeEvent(PlayerData player) {
+            if (PlayerData == null || player == null) return;
+            if (PlayerData.heroId.Id != player.heroId.Id) return;
             PlayerData = player;
             avatar.ChangeImage(player);
             if (haveStakeImg != null)
                 haveStakeImg.gameObject.SetActive(ThisHeroHaveAnyStake());
-            
+
             energyBar.UpdateUi(player);
 
         }

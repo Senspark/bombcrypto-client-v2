@@ -153,9 +153,9 @@ namespace Scenes.ShopScene.Scripts {
                 await InitSubSegmentAvatar();
             } catch (Exception e) {
                 if (e is ErrorCodeException) {
-                    DialogError.ShowError(canvasDialog, e.Message);    
+                    DialogError.ShowError(canvasDialog, e);    
                 } else {
-                    DialogOK.ShowError(canvasDialog, e.Message);
+                    DialogOK.ShowError(canvasDialog, e);
                 }
             } 
         }
@@ -164,7 +164,7 @@ namespace Scenes.ShopScene.Scripts {
             try {
                 var chestData = await _serverRequester.GetGachaChestShop();
                 if (chestData == null) {
-                    DialogOK.ShowError(canvasDialog, "Chest Data is undefined!");
+                    DialogOK.ShowErrorMsgOnly(canvasDialog, "Chest Data is undefined!");
                     return;
                 }
                 chestData = RemoveChestWithoutPrices(chestData);
@@ -180,7 +180,7 @@ namespace Scenes.ShopScene.Scripts {
                 }
             } catch (Exception e) {
                 frameShop.UiHideChest();
-                DialogOK.ShowError(canvasDialog, "Load Chest error: " + e.Message);
+                DialogOK.ShowErrorMsgOnly(canvasDialog, "Load Chest error: " + e.Message);
                 Debug.LogWarning(e.StackTrace);
             }
         }
@@ -243,7 +243,7 @@ namespace Scenes.ShopScene.Scripts {
                     RequestGetFreeGem);
             } catch (Exception e) {
                 frameShop.UiHideGem();
-                DialogOK.ShowError(canvasDialog, "Load Gem error: " + e.Message);
+                DialogOK.ShowErrorMsgOnly(canvasDialog, "Load Gem error: " + e.Message);
                 Debug.LogWarning(e.StackTrace);
             }
         }
@@ -266,7 +266,7 @@ namespace Scenes.ShopScene.Scripts {
                 }
             } catch (Exception e) {
                 frameShop.UiHideGem();
-                DialogOK.ShowError(canvasDialog, "Load Gem error: " + e.Message);
+                DialogOK.ShowErrorMsgOnly(canvasDialog, "Load Gem error: " + e.Message);
                 Debug.LogWarning(e.StackTrace);
             }
         }
@@ -279,7 +279,7 @@ namespace Scenes.ShopScene.Scripts {
                 frameShop.UiInitGoldData(_itemManager, goldData, RequestBuyGold, RequestGetFreeGold);
             } catch (Exception e) {
                 frameShop.UiHideTab(TypeMenuLeftShop.Gold);
-                DialogOK.ShowError(canvasDialog, "Load Gold error: " + e.Message);
+                DialogOK.ShowErrorMsgOnly(canvasDialog, "Load Gold error: " + e.Message);
                 Debug.LogWarning(e.StackTrace);
             }
         }
@@ -294,7 +294,7 @@ namespace Scenes.ShopScene.Scripts {
                 }
             } catch (Exception e) {
                 frameShop.UiHideSwapGem();
-                DialogOK.ShowError(canvasDialog, "LoadSwapGem error: " + e.Message);
+                DialogOK.ShowErrorMsgOnly(canvasDialog, "LoadSwapGem error: " + e.Message);
                 Debug.LogWarning(e.StackTrace);
             }
         }
@@ -305,7 +305,7 @@ namespace Scenes.ShopScene.Scripts {
                     RequestBuyCostume);
             } catch (Exception e) {
                 frameShop.UiHideTab(TypeMenuLeftShop.Hero);
-                DialogOK.ShowError(canvasDialog, "Load Hero error: " + e.Message);
+                DialogOK.ShowErrorMsgOnly(canvasDialog, "Load Hero error: " + e.Message);
                 Debug.LogWarning(e.StackTrace);
             }
         }
@@ -316,7 +316,7 @@ namespace Scenes.ShopScene.Scripts {
                     RequestBuyCostume);
             } catch (Exception e) {
                 frameShop.UiHideTab(TypeMenuLeftShop.Costume);
-                DialogOK.ShowError(canvasDialog, "Load Costume error: " + e.Message);
+                DialogOK.ShowErrorMsgOnly(canvasDialog, "Load Costume error: " + e.Message);
                 Debug.LogWarning(e.StackTrace);
             }
         }
@@ -327,7 +327,7 @@ namespace Scenes.ShopScene.Scripts {
                     RequestBuyEmoji);
             } catch (Exception e) {
                 frameShop.UiHideTab(TypeMenuLeftShop.Emoji);
-                DialogOK.ShowError(canvasDialog, "Load Emoji error: " + e.Message);
+                DialogOK.ShowErrorMsgOnly(canvasDialog, "Load Emoji error: " + e.Message);
                 Debug.LogWarning(e.StackTrace);
             }
         }
@@ -338,7 +338,7 @@ namespace Scenes.ShopScene.Scripts {
                     RequestBuyAvatar);
             } catch (Exception e) {
                 frameShop.UiHideTab(TypeMenuLeftShop.Avatar);
-                DialogOK.ShowError(canvasDialog, "Load Avatar error: " + e.Message);
+                DialogOK.ShowErrorMsgOnly(canvasDialog, "Load Avatar error: " + e.Message);
                 Debug.LogWarning(e.StackTrace);
             }
         }
@@ -393,9 +393,9 @@ namespace Scenes.ShopScene.Scripts {
                         TrackBuyGachaChest(dataChest, price, null, TrackResult.Error);
                         waiting.End();
                         if (e is ErrorCodeException) {
-                            DialogError.ShowError(canvasDialog, e.Message);    
+                            DialogError.ShowError(canvasDialog, e);    
                         } else {
-                            DialogOK.ShowError(canvasDialog, e.Message);
+                            DialogOK.ShowError(canvasDialog, e);
                         }
                     } finally {
                         waiting.End();
@@ -409,18 +409,7 @@ namespace Scenes.ShopScene.Scripts {
         private void RequestBuyGem(IAPGemItemData dataGem) {
             var waiting = new WaitingUiManager(canvasDialog);
             waiting.Begin();
-            
-            var data = new SFSObject();
-            data.PutUtfString("Name Iap pack", dataGem.ItemName);
-            data.PutUtfString("Amount", dataGem.ItemPrice);
-            data.PutFloat("Gem receive", dataGem.GemReceive);
-            data.PutFloat("Gem bonus", dataGem.GemsBonus);
-            #if UNITY_IOS
-            data.PutUtfString("Platform", "IOS");
-            #else
-            data.PutUtfString("Platform", "Android");
-            #endif
-            
+
             UniTask.Void(async () => {
                 try {
                     var restored = await IapHelper.TryRestore(_itemManager, _serverManager, _analytics, canvasDialog);
@@ -436,7 +425,6 @@ namespace Scenes.ShopScene.Scripts {
                             await _serverManager.General.GetChestReward();
                             var gemData = await _itemManager.GetGemItemsAsync();
                             ReloadSubSegmentGem(gemData);
-                            _serverManager.General.SendMessageSlack(":dollar: User Buy IAP :white_check_mark:", data);
                             break;
                         }
                         case PurchaseState.Cancel:
@@ -448,9 +436,8 @@ namespace Scenes.ShopScene.Scripts {
                             throw new ArgumentOutOfRangeException();
                     }
                 } catch (Exception e) {
-                    _serverManager.General.SendMessageSlack(":dollar: User Buy IAP :x:", data);
                     var message = $"Purchase failed. Please try to buy again.";
-                    DialogOK.ShowError(canvasDialog, message);
+                    DialogOK.ShowErrorMsgOnly(canvasDialog, message);
                 } finally {
                     waiting.End();
                 }
@@ -481,7 +468,7 @@ namespace Scenes.ShopScene.Scripts {
                     _analytics.TrackAds(AdsCategory.GetGemToAds, adsResult);
                 }
                 _logManager.Log($"Can't get free reward");
-                DialogOK.ShowError(canvasDialog, e.Message);
+                DialogOK.ShowError(canvasDialog, e);
             } finally {
                 waiting.End();
             }
@@ -511,7 +498,7 @@ namespace Scenes.ShopScene.Scripts {
                     _analytics.TrackAds(AdsCategory.GetGoldToAds, adsResult);
                 }
                 _logManager.Log($"Can't get free reward");
-                DialogOK.ShowError(canvasDialog, e.Message);
+                DialogOK.ShowError(canvasDialog, e);
             } finally {
                 waiting.End();
             }
@@ -562,9 +549,9 @@ namespace Scenes.ShopScene.Scripts {
                     } catch (Exception e) {
                         Logger.LogEditorError(e);
                         if (e is ErrorCodeException) {
-                            DialogError.ShowError(canvasDialog, e.Message);
+                            DialogError.ShowError(canvasDialog, e);
                         } else {
-                            DialogOK.ShowError(canvasDialog, e.Message);
+                            DialogOK.ShowError(canvasDialog, e);
                         }
                     } finally {
                         waiting.End();
@@ -622,9 +609,9 @@ namespace Scenes.ShopScene.Scripts {
                     } catch (Exception e) {
                         Logger.LogEditorError(e);
                         if (e is ErrorCodeException) {
-                            DialogError.ShowError(canvasDialog, e.Message);
+                            DialogError.ShowError(canvasDialog, e);
                         } else {
-                            DialogOK.ShowError(canvasDialog, e.Message);
+                            DialogOK.ShowError(canvasDialog, e);
                         }
                     } finally {
                         waiting.End();
@@ -679,9 +666,9 @@ namespace Scenes.ShopScene.Scripts {
                     } catch (Exception e) {
                         Logger.LogEditorError(e);
                         if (e is ErrorCodeException) {
-                            DialogError.ShowError(canvasDialog, e.Message);
+                            DialogError.ShowError(canvasDialog, e);
                         } else {
-                            DialogOK.ShowError(canvasDialog, e.Message);
+                            DialogOK.ShowError(canvasDialog, e);
                         }
                     } finally {
                         waiting.End();
@@ -732,9 +719,9 @@ namespace Scenes.ShopScene.Scripts {
                     } catch (Exception e) {
                         TrackBuyGold(dataGold, gemSpending.gemLock, gemSpending.gemUnlock, TrackResult.Error);
                         if (e is ErrorCodeException) {
-                            DialogError.ShowError(canvasDialog, e.Message);    
+                            DialogError.ShowError(canvasDialog, e);    
                         } else {
-                            DialogOK.ShowError(canvasDialog, e.Message);
+                            DialogOK.ShowError(canvasDialog, e);
                         }
                     } finally {
                         waiting.End();

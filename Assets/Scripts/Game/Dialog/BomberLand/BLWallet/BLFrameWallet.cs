@@ -40,7 +40,8 @@ namespace Game.Dialog.BomberLand.BLWallet {
         private BLWalletSegmentItem _firstWithDraw = null;
         
         public Action OnClickSomeWhere { set; private get; }
-        public Action<BLWalletSegmentItem> OnClaim { set; private get; } 
+        public Action<BLWalletSegmentItem> OnClaim { set; private get; }
+        public Action<DataWallet> OnSelectionChanged { set; private get; }
         
         protected void Awake() {
             frameWalletInformation.gameObject.SetActive(false);
@@ -206,6 +207,7 @@ namespace Game.Dialog.BomberLand.BLWallet {
             }
             frameWalletInformation.gameObject.SetActive(true);
             frameWalletInformation.DisplayInfo(info);
+            OnSelectionChanged?.Invoke(info);
         }
 
         public BLWalletSegmentItem GetCurrentSegment() {
@@ -215,10 +217,16 @@ namespace Game.Dialog.BomberLand.BLWallet {
         public void SetOnDeposit(Action<DataWallet> onDeposit) {
             frameWalletInformation.SetOnDeposit(onDeposit);
         }
-        
+
         public void SetOnWithdraw(Action<DataWallet> onWithdraw) {
             frameWalletInformation.SetOnWithdraw(onWithdraw);
         }
+
+        public void SetClaimButton(ClaimButtonMode mode, bool interactable) {
+            frameWalletInformation.SetClaimButton(mode, interactable);
+        }
+
+        public BLWalletSegmentItem CurrentSelection => _currentSlotSelect;
 
         public void OnClaimButtonClicked() {
             OnClaim?.Invoke(_currentSlotSelect);

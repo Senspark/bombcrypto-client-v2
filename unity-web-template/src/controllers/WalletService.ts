@@ -96,8 +96,8 @@ export default class WalletService {
             ]);
             if (Array.isArray(result) && result.length === 2) {
                 if(this._walletAddress == null) {
-                    this._walletAddress = result[0];
-                }                
+                    this._walletAddress = (result[0] as string).toLowerCase();
+                }
                 if(this._chainId == null){
                     this._chainId = result[1];
                 }
@@ -116,17 +116,18 @@ export default class WalletService {
         if (!walletAddress) {
             return;
         }
-        this._userChangeWalletAddress = walletAddress;
+        const normalized = walletAddress.toLowerCase();
+        this._userChangeWalletAddress = normalized;
 
         if (this._stopUpdateWalletInfo) {
             this._logger.log(`${TAG} updateWalletAddress: ignored`);
             return;
         }
 
-        this._logger.log(`${TAG} updateWalletAddress to ${walletAddress}`);
-        this._walletAddress = walletAddress!;
+        this._logger.log(`${TAG} updateWalletAddress to ${normalized}`);
+        this._walletAddress = normalized;
         // Update LoginModal with new wallet address
-        LoginModal.setAddress(walletAddress);
+        LoginModal.setAddress(normalized);
     }
 
     updateWalletProvider(walletProvider: Provider) {
@@ -209,6 +210,10 @@ export default class WalletService {
         this._stopUpdateWalletInfo = true;
     }
 
+    resumeUpdateWalletInfo() {
+        this._stopUpdateWalletInfo = false;
+    }
+
     getWalletProvider(): BrowserProvider | null {
         return this._etherProvider;
     }
@@ -247,11 +252,11 @@ export default class WalletService {
     }
 
     setWalletAddress(walletAddress: string | null) {
-        this._walletAddress = walletAddress;
+        this._walletAddress = walletAddress?.toLowerCase() ?? null;
     }
 
     setUserChangeWalletAddress(walletAddress: string | null) {
-        this._userChangeWalletAddress = walletAddress;
+        this._userChangeWalletAddress = walletAddress?.toLowerCase() ?? null;
     }
 
     setChain(networkType: SupportedNetwork) {
@@ -277,13 +282,24 @@ export default class WalletService {
             return;
         }
         try {
-            // await this._etherProvider.send('wallet_requestPermissions', [{eth_accounts: {}}]);
-            // await this._etherProvider.send('wallet_revokePermissions',  [{ eth_accounts: {} }]);
             await this._etherProvider.send('eth_requestAccounts', []);
-            this._switchNetworkFunc?.();
-            // request network
         } catch (e) {
             this._logger.errors(`${TAG} connectWallet error:`, e);
+            return;
+        }
+
+        // AppKit's switchNetwork doesn't reliably auto-add missing networks via
+        // wallet_addEthereumChain. Use our own forceSwapChain (it falls back to
+        // wallet_addEthereumChain on 4902).
+        const networkType = this.currentNetworkType;
+        const rpc = networkType ? getRpc(networkType, this._isProd) : undefined;
+        if (!rpc) {
+            this._switchNetworkFunc?.();
+            return;
+        }
+        const swapped = await forceSwapChain(this._logger, this._etherProvider, rpc);
+        if (!swapped) {
+            this._logger.error(`${TAG} Failed to swap to ${rpc.chainName} during connect`);
         }
     }
 
@@ -323,7 +339,7 @@ export default class WalletService {
                 this._logger.log(`Waiting for update wallet address`);
                 await sleep(1000);
             }
-            this._walletAddress = addressOnMetaMask;
+            this._walletAddress = addressOnMetaMask?.toLowerCase() ?? null;
         }
         return this._walletAddress;
     }
@@ -392,11 +408,19 @@ export default class WalletService {
                 return undefined;
             }
 
+            const loggedInNetworkType = this.currentNetworkType;
+            const loggedInRpc = loggedInNetworkType ? getRpc(loggedInNetworkType, isProd) : undefined;
+            if (!loggedInRpc) {
+                logger.error(`${TAG} No RPC config for chainId ${loggedInNetwork.dec}`);
+                showError("Unsupported network. Please check your wallet connection.");
+                return undefined;
+            }
+
             const network = getSupportedNetworkFromChainId(walletNetwork.dec, isProd);
             if (!network || (network !== 'ronin' && network !== 'base' && network !== 'vic')) {
                 logger.error(`${TAG} Unsupported network: ${network}. Only 'Ronin', 'Base' and 'Vic' are supported.`);
 
-                const swapped = await forceSwapChain(logger, provider, loggedInNetwork);
+                const swapped = await forceSwapChain(logger, provider, loggedInRpc);
                 if (!swapped) {
                     showError(`Failed to switch to Ronin or Base network.`);
                     return undefined;
@@ -404,7 +428,7 @@ export default class WalletService {
             } else {
                 if (loggedInNetwork.dec != walletNetwork.dec) {
                     logger.error(`${TAG} Network mismatch: expected ${loggedInNetwork.dec}, got ${walletNetwork.dec}`);
-                    const swapped = await forceSwapChain(logger, provider, loggedInNetwork);
+                    const swapped = await forceSwapChain(logger, provider, loggedInRpc);
                     if (!swapped) {
                         showError(`Failed to switch to previous network.`);
                         return undefined;
@@ -436,6 +460,24 @@ export default class WalletService {
         }
     }
 
+    /**
+     * Sau khi AppKit connect xong, ví thật có thể đang ở chain khác với chain
+     * AppKit nghĩ. AppKit's switchNetwork không reliably auto-add network thiếu,
+     * nên ta tự reconcile bằng forceSwapChain (có fallback wallet_addEthereumChain).
+     */
+    async ensureCorrectChain(): Promise<void> {
+        if (!this._etherProvider) return;
+        const networkType = this.currentNetworkType;
+        if (!networkType) return;
+        const rpc = getRpc(networkType, this._isProd);
+        if (!rpc) return;
+
+        const actualChain = await getChainId(this._logger, this._etherProvider);
+        if (actualChain && actualChain.dec === rpc.chainId) return;
+
+        await forceSwapChain(this._logger, this._etherProvider, rpc);
+    }
+
     async forceSwapChain() {
         const provider = this._etherProvider;
         const logger = this._logger;
@@ -453,9 +495,16 @@ export default class WalletService {
                 showError("No chainId found. Please check your wallet connection.");
                 return false;
             }
-            const swapped = await forceSwapChain(logger, provider, chosenChainId);
+            const chosenNetworkType = this.currentNetworkType;
+            const chosenRpc = chosenNetworkType ? getRpc(chosenNetworkType, this._isProd) : undefined;
+            if (!chosenRpc) {
+                logger.error(`${TAG} No RPC config for chainId ${chosenChainId.dec}`);
+                showError("Unsupported network. Please check your wallet connection.");
+                return false;
+            }
+            const swapped = await forceSwapChain(logger, provider, chosenRpc);
             if (!swapped) {
-                showError(`Failed to switch to ${chosenChainId} network.`);
+                showError(`Failed to switch to ${chosenRpc.chainName} network.`);
                 return false;
             }
             return true;
@@ -513,6 +562,12 @@ export default class WalletService {
     private onUserSelectOtherChain(chainIdHex: string) {
         this._logger.log(`${TAG} onUserSelectOtherChain ${chainIdHex}`);
         this.updateChainId(chainIdHex, undefined);
+        // ethers v6 BrowserProvider caches its network on first use and throws
+        // NETWORK_ERROR after a chain switch. Recreate so reads work again.
+        if (this._walletProvider) {
+            this._etherProvider = new BrowserProvider(this._walletProvider);
+            setBrowserProvider(this._etherProvider);
+        }
     }
 
     private async generateStringToSign(nonceString: string): Promise<string> {

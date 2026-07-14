@@ -105,9 +105,9 @@ namespace Game.Dialog {
                     waitingPanel.gameObject.SetActive(false);
                 } catch (Exception e) when (!_cancellation.IsCancellationRequested) {
                     if (e is ErrorCodeException) {
-                        DialogError.ShowError(DialogCanvas, e.Message);    
+                        DialogError.ShowError(DialogCanvas, e);    
                     } else {
-                        DialogOK.ShowError(DialogCanvas, e.Message);
+                        DialogOK.ShowError(DialogCanvas, e);
                     }
                 }
             }, _cancellation.Token);
@@ -205,7 +205,7 @@ namespace Game.Dialog {
                             await _serverManager.General.ConfirmClaimAirDrop(ev.CodeName);
                             DialogOK.ShowInfo(DialogCanvas, "Successfully");
                         } else {
-                            DialogOK.ShowError(DialogCanvas, "Claim failed, please try again later");    
+                            DialogOK.ShowErrorMsgOnly(DialogCanvas, "Claim failed, please try again later");    
                         }
                     } else {
                         DialogOK.ShowInfo(DialogCanvas, "Successfully");
@@ -213,9 +213,9 @@ namespace Game.Dialog {
                   
                 } catch (Exception e) {
                     if (e is ErrorCodeException) {
-                        DialogError.ShowError(DialogCanvas, e.Message);    
+                        DialogError.ShowError(DialogCanvas, e);    
                     } else {
-                        DialogOK.ShowError(DialogCanvas, e.Message);
+                        DialogOK.ShowError(DialogCanvas, e);
                     }
                 }
                 waiting.End();

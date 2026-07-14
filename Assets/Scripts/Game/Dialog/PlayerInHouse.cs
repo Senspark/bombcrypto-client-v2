@@ -3,6 +3,7 @@ using App;
 using Engine.Components;
 using Engine.Entities;
 using Engine.Utils;
+using Senspark;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
@@ -109,7 +110,16 @@ namespace Game.Dialog {
                 face = faceUpdown;
             }
 
-            var sprites = resource.GetSpriteMoving(_playerType, _playerColor, face, _playerRarity);
+            PlayMovingClip(face);
+        }
+
+        private async void PlayMovingClip(FaceDirection face) {
+            // Thân hero qua IHeroSpriteLoader (path-load) thay cho dict AnimationResource.
+            var loader = ServiceLocator.Instance.Resolve<IHeroSpriteLoader>();
+            var sprites = await loader.LoadClip(_playerType, _playerColor, face, _playerRarity);
+            if (!animation) {
+                return;
+            }
             animation.StartLoop(sprites, face == FaceDirection.Left);
         }
 

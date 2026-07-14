@@ -92,7 +92,7 @@ export function getSupportedNetworkFromChainId(chainId: number | undefined | nul
 export const BNB_MAINNET_RPC: NetworkRpc = {
     chainId: 56,
     chainIdHex: '0x38',
-    chainName: 'Binance Smart Chain Mainnet',
+    chainName: 'BNB Smart Chain Mainnet',
     rpcUrl: 'https://bsc-dataseed.binance.org/',
     currencySymbol: 'BNB',
     decimals: 18,
@@ -113,7 +113,7 @@ export const POLYGON_MAINNET_RPC: NetworkRpc = {
     chainId: 137,
     chainIdHex: '0x89',
     chainName: 'Polygon Mainnet',
-    rpcUrl: 'https://polygon-mainnet.infura.io/',
+    rpcUrl: 'https://polygon-rpc.com/',
     currencySymbol: 'POL',
     decimals: 18,
     blockExplorerUrl: 'https://polygonscan.com/'

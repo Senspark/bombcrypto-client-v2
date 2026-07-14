@@ -79,6 +79,7 @@ namespace Services.Server.Handlers {
             if (!_enableLog) {
                 return;
             }
+            if (cmd == "PING_PONG") return;
             var message = $"SEND EXTENSION: {cmd} {data.ToJson()}";
             Debug.Log(message);
         }

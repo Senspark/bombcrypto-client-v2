@@ -11,6 +11,7 @@ import AirDrop from "./Module/AirDrop.ts";
 import ClaimManager from "./Module/ClaimManager.ts";
 import CoinExchange from "./Module/CoinExchange.ts";
 import BHeroStake from "./Module/BHeroStake.ts";
+import DepositBridge from "./Module/DepositBridge.ts";
 import {createRpcTokens} from "./Module/Utils/RpcTokens.ts";
 import {setToken} from "./Module/Utils/Storage.ts";
 import {getBalance} from "./Module/Utils/RpcTokens.ts";
@@ -61,7 +62,8 @@ export class ContractManager {
         );
         this._claimManager = new ClaimManager(
             config.claim_manager_address,
-            config.claim_manager_abi
+            config.claim_manager_abi,
+            this._bheroToken
         );
         this._exchange = new CoinExchange(
             config.exchange_event_address,
@@ -74,6 +76,12 @@ export class ContractManager {
             this._sensparkToken,
             config.hero_stake_address,
             config.hero_stake_abi
+        );
+        this._depositBridge = new DepositBridge(
+            config.deposit_bridge_address,
+            config.deposit_bridge_abi,
+            this._bcoinToken,
+            this._sensparkToken
         );
 
         setToken("bcoin", this._bcoinToken);
@@ -97,6 +105,7 @@ export class ContractManager {
     private readonly _claimManager: ClaimManager;
     private readonly _exchange: CoinExchange;
     private readonly _heroStake: BHeroStake;
+    private readonly _depositBridge: DepositBridge;
 
     async getBalance(param: string): Promise<string> {
         const data = JSON.parse(param) as { category: number, walletAddress: string };
@@ -173,9 +182,8 @@ export class ContractManager {
         return JSON.stringify(await this._bheroToken.claim(data.walletAddress));
     }
 
-    async processTokenRequests(args: string): Promise<string> {
-        const data = JSON.parse(args) as { walletAddress: string };
-        return JSON.stringify(await this._bheroToken.processTokenRequests(data.walletAddress));
+    async processTokenRequests(_args: string): Promise<string> {
+        return JSON.stringify(await this._bheroToken.processTokenRequests());
     }
 
     async processTokenRequestsV2(args: string): Promise<string> {
@@ -310,17 +318,22 @@ export class ContractManager {
             details: string,
             signature: string,
             formatType: string,
-            waitConfirmations: number
+            waitConfirmations: number,
+            walletAddress: string
         };
-        return await this._claimManager.claimTokens(
+        // Returns JSON {txHash, processResult|null}. For Hero tokenType, processResult holds
+        // the BHero.processTokenRequests outcome; for non-Hero claims it's null.
+        const result = await this._claimManager.claimTokensAndProcess(
             data.tokenType,
             data.amount,
             data.nonce,
             data.details,
             data.signature,
             data.formatType,
-            data.waitConfirmations
+            data.waitConfirmations,
+            data.walletAddress
         );
+        return JSON.stringify(result);
     }
 
     async canUseVoucher(args: string): Promise<string> {
@@ -345,8 +358,8 @@ export class ContractManager {
     }
 
     async withdrawFromHeroIdV2(args: string): Promise<string> {
-        const data = JSON.parse(args) as { id: number, amount: number, tokenAddress: string };
-        return JSON.stringify(await this._heroStake.withdrawV2(data.id, data.amount, data.tokenAddress));
+        const data = JSON.parse(args) as { id: number, amount: number, category: number };
+        return JSON.stringify(await this._heroStake.withdrawV2(data.id, data.amount, data.category));
     }
 
     async stakeToHeroV2(args: string): Promise<string> {
@@ -354,22 +367,45 @@ export class ContractManager {
             walletAddress: string,
             id: number,
             amount: number,
-            tokenAddress: string,
             category: number
         };
-        return JSON.stringify(await this._heroStake.depositV2(data.walletAddress, data.id, data.amount, data.tokenAddress, data.category));
+        return JSON.stringify(await this._heroStake.depositV2(data.walletAddress, data.id, data.amount, data.category));
     }
 
     async getStakeFromHeroIdV2(args: string): Promise<string> {
-        const data = JSON.parse(args) as { id: number, tokenAddress: string };
-        return await this._heroStake.getCoinBalanceV2(data.id, data.tokenAddress);
+        const data = JSON.parse(args) as { id: number, category: number };
+        return await this._heroStake.getCoinBalanceV2(data.id, data.category);
     }
 
     async getFeeFromHeroIdV2(args: string): Promise<string> {
-        const data = JSON.parse(args) as { id: number, tokenAddress: string };
-        return await this._heroStake.getWithdrawFeeV2(data.id, data.tokenAddress);
+        const data = JSON.parse(args) as { id: number, category: number };
+        return await this._heroStake.getWithdrawFeeV2(data.id, data.category);
     }
 
+
+    // ── Cross-chain DepositBridge (Phase 7c) ──
+    // Reads return wei as a decimal string; deposit/withdraw return JSON {success, txHash}.
+    async getBridgeDeposited(args: string): Promise<string> {
+        const data = JSON.parse(args) as { walletAddress: string, token: string };
+        return await this._depositBridge.getDeposited(data.walletAddress, data.token);
+    }
+
+    async getBridgeWithdrawn(args: string): Promise<string> {
+        const data = JSON.parse(args) as { walletAddress: string, token: string };
+        return await this._depositBridge.getWithdrawn(data.walletAddress, data.token);
+    }
+
+    async bridgeDeposit(args: string): Promise<string> {
+        const data = JSON.parse(args) as { walletAddress: string, token: string, amountWei: string };
+        return JSON.stringify(await this._depositBridge.deposit(data.walletAddress, data.token, data.amountWei));
+    }
+
+    async bridgeWithdraw(args: string): Promise<string> {
+        const data = JSON.parse(args) as {
+            walletAddress: string, token: string, grossWei: string, beforeWei: string, signature: string
+        };
+        return JSON.stringify(await this._depositBridge.withdraw(data.token, data.grossWei, data.beforeWei, data.signature));
+    }
 
     // Test method
     async test(param: string): Promise<string> {

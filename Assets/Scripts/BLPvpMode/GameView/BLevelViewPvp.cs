@@ -12,6 +12,8 @@ using BomberLand.Manager;
 
 using CreativeSpore.SuperTilemapEditor;
 
+using Cysharp.Threading.Tasks;
+
 using Engine.Activity;
 using Engine.Collision;
 using Engine.Entities;
@@ -79,7 +81,7 @@ namespace BLPvpMode.GameView {
             _directionInputProcess = new DirectionInputProcess();
         }
 
-        public void Initialize(
+        public async UniTask Initialize(
             IMatchHeroInfo[] heroes,
             IMapInfo mapDetail,
             IMatchData matchData,
@@ -134,6 +136,9 @@ namespace BLPvpMode.GameView {
 
             //Player Manager
             manager.PlayerManager = new DefaultPlayerManager(manager, startLocation.transform, mapDetail, heroes);
+            // Phải await: spawn player render hero async qua IHeroSpriteLoader. Trước decouple dict đồng bộ nên
+            // Players[slot] có ngay; giờ phải đợi spawn xong mới đọc được (UpdateState / camera target).
+            await manager.PlayerManager.FirstInitPlayerPvp();
 
             // Not call LevelManager.CreateItems, because Item information will be sent when brick destroyed.
             // manager.LevelManager.CreateItems(pvpMapDetail);

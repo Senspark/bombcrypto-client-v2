@@ -32,14 +32,12 @@ namespace Scenes.ConnectScene.Scripts.Connectors {
         private readonly IWebGLBridgeUtils _webGLBridgeUtils;
         private readonly List<ServerAddress.Info> _svAddresses;
         private readonly IMasterUnityCommunication _unityCommunication;
-        private readonly IExtResponseEncoder _encoder;
         private readonly Canvas _canvasDialog;
         private readonly Action<UserAccount> _resolveCb;
         private readonly Action _rejectCb;
         private readonly ThirdPartyLogin _loginType;
 
         public ConnectThirdPartyController(
-            IExtResponseEncoder encoder,
             IMasterUnityCommunication unityCommunication,
             ILogManager logManager,
             IWebGLBridgeUtils webGLBridgeUtils,
@@ -52,7 +50,6 @@ namespace Scenes.ConnectScene.Scripts.Connectors {
             _logManager = logManager;
             _webGLBridgeUtils = webGLBridgeUtils;
             _unityCommunication = unityCommunication;
-            _encoder = encoder;
 
             _svAddresses = svAddresses;
             _resolveCb = resolve;
@@ -79,7 +76,7 @@ namespace Scenes.ConnectScene.Scripts.Connectors {
             var isProd = ServerAddress.IsMainServerAddress(sv.Address);
             UniTask.Void(async () => {
                 try {
-                    var auth = new DefaultAuthManager(_logManager, new NullSignManager(), _encoder, _unityCommunication, isProd);
+                    var auth = new DefaultAuthManager(_logManager, _unityCommunication, isProd);
                     var res = await auth.GetUserLoginDataByThirdParty(_loginType);
                     var loginType = _loginType switch {
                         ThirdPartyLogin.Apple => LoginType.Apple,
@@ -110,7 +107,7 @@ namespace Scenes.ConnectScene.Scripts.Connectors {
                     Completed(acc);
                 } catch (Exception e) {
                     _logManager.Log(e.Message);
-                    await DialogOK.ShowErrorAsync(_canvasDialog, e.Message,
+                    await DialogOK.ShowErrorAsync(_canvasDialog, e,
                         new DialogOK.Optional { WaitUntilHidden = true }
                     );
                     Canceled();

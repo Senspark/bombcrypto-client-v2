@@ -7,6 +7,8 @@ using Engine.Utils;
 using Game.Dialog;
 using Game.Dialog.BomberLand.BLGacha;
 
+using Senspark;
+
 using UnityEngine;
 
 namespace GroupMainMenu {
@@ -63,9 +65,14 @@ namespace GroupMainMenu {
             bomb.gameObject.SetActive(true);
         }        
         
-        private void PlayAnimationHero(int heroId) {
+        private async void PlayAnimationHero(int heroId) {
             var playerType = UIHeroData.ConvertFromHeroId(heroId);
-            var sprites = animationResource.GetSpriteIdle(playerType, PlayerColor.HeroTr, FaceDirection.Down);
+            // Thân hero qua IHeroSpriteLoader (path-load) thay cho dict AnimationResource.
+            var loader = ServiceLocator.Instance.Resolve<IHeroSpriteLoader>();
+            var sprites = await loader.LoadClip(playerType, PlayerColor.HeroTr, FaceDirection.Down);
+            if (!icon) {
+                return;
+            }
             icon.StartLoop(sprites);
         }
 

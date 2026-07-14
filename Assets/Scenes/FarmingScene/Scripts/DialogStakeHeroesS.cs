@@ -58,7 +58,7 @@ public class DialogStakeHeroesS : Dialog {
     //private Action _callBackHide, _callBackHideForResult, _callbackPerform, _callbackAfterUnStake, _callbackAfterStake;
     private IBlockchainManager _blockchainManager;
     private IServerManager _serverManager;
-    private IPlayerStorageManager _playerStoreManager;
+    private IBHeroManager _playerStoreManager;
     private IStorageManager _storageManager;
     private ISoundManager _soundManager;
     private INetworkConfig _networkConfig;
@@ -68,8 +68,6 @@ public class DialogStakeHeroesS : Dialog {
     private double _minValue;
     private bool _isLoadDataSuccess, _isInit;
     private RewardType _currentTokenType = RewardType.BCOIN;
-    private string _bcoinAddress;
-    private string _senAddress;
     private StakeCallback.Callback _callback;
 
     public static UniTask<DialogStakeHeroesS> Create() {
@@ -100,14 +98,12 @@ public class DialogStakeHeroesS : Dialog {
             return;
         _blockchainManager = ServiceLocator.Instance.Resolve<IBlockchainManager>();
         _serverManager = ServiceLocator.Instance.Resolve<IServerManager>();
-        _playerStoreManager = ServiceLocator.Instance.Resolve<IPlayerStorageManager>();
+        _playerStoreManager = ServiceLocator.Instance.Resolve<IBHeroManager>();
         _storageManager = ServiceLocator.Instance.Resolve<IStorageManager>();
         _networkConfig = ServiceLocator.Instance.Resolve<INetworkConfig>();
         _logManager = ServiceLocator.Instance.Resolve<ILogManager>();
         _soundManager = ServiceLocator.Instance.Resolve<ISoundManager>();
 
-        _bcoinAddress = _networkConfig.BlockchainConfig.CoinTokenAddress;
-        _senAddress = _networkConfig.BlockchainConfig.SensparkTokenAddress;
         swapTokenButton.SetChangeTokenCallback(currentType => { _currentTokenType = currentType; });
     }
 
@@ -142,8 +138,8 @@ public class DialogStakeHeroesS : Dialog {
         senFullText.text = senWalletText.text;
 
         //Update current staked in this hero
-        _currentBcoinStake = await _blockchainManager.GetStakeFromHeroId(_hero.heroId.Id, _bcoinAddress);
-        _currentSenStake = await _blockchainManager.GetStakeFromHeroId(_hero.heroId.Id, _senAddress);
+        _currentBcoinStake = await _blockchainManager.GetStakeFromHeroId(_hero.heroId.Id, StakeHeroCategory.Bcoin);
+        _currentSenStake = await _blockchainManager.GetStakeFromHeroId(_hero.heroId.Id, StakeHeroCategory.Sen);
         bcoinStakeText.text = _currentBcoinStake.ToString("0.#########", CultureInfo.InvariantCulture);
         bcoinStakeFullText.text = bcoinStakeText.text;
         senStakeText.text = _currentSenStake.ToString("0.#########", CultureInfo.InvariantCulture);
@@ -192,36 +188,29 @@ public class DialogStakeHeroesS : Dialog {
             //Hiệu ứng 3 chấm loading
             IsProcessing(true);
 
-            var result1 = await Stake(value);
-            var result2 = true;
-            if (result1) {
-                //Đợi 30s trước khi gọi lên server
-                await WebGLTaskDelay.Instance.Delay(30 * 1000);
-                result2 = await _serverManager.Pve.CheckBomberStake(_hero.heroId);
+            var result = await Stake(value);
+            if (!result.success) {
+                IsProcessing(false);
+                return;
             }
 
-            _hero = _playerStoreManager.GetPlayerDataFromId(_hero.heroId);
-            var heroData = new HeroDataSuccess();
-
-            heroData.PlayerData = _hero;
-            heroData.Level = _hero.level.ToString();
-            heroData.HeroId = _hero.heroId.Id.ToString();
-            heroData.CurrentShield =
-                _hero.Shield != null ? _hero.Shield.CurrentAmount.ToString() : "0";
-            heroData.TotalShield = _hero.Shield != null ? _hero.Shield.TotalAmount.ToString() : "0";
-            
-            _callback.Hide = null;
-            var dialogStakingResult = await DialogStakingResult.Create();
-            dialogStakingResult.Show(result1 && result2, heroData, DialogCanvas, _callback.Hide);
+#if UNITY_EDITOR
+            // Editor không tương tác được với blockchain → yêu cầu server push fake
+            // BHERO_STAKE_PUSH với state hiện tại để FarmingSceneStakeObserver hiển thị
+            // DialogStakingResult.
+            _serverManager.Pve.RequestFakeStakePush(_hero.heroId);
+#else
+            // Production: trigger server fetch fresh stake từ ap-blockchain bằng txHash → push BHERO_STAKE_PUSH.
+            if (!string.IsNullOrEmpty(result.txHash)) {
+                _serverManager.Pve.RefreshHeroStake(_hero.heroId, result.txHash);
+            }
+#endif
 
             IsProcessing(false);
 
-            //Tắt dialog select confirm vì đã stake
+            // Đóng dialog ngay sau khi tx on-chain success — không block UI chờ server.
             _callback.StakeOrUnStakeComplete?.Invoke();
-
-            //Gọi callback stake thành công
-            _callback.StakeComplete?.Invoke(_hero);
-            
+            _callback.Hide?.Invoke();
             Hide();
         }
     }
@@ -263,11 +252,9 @@ public class DialogStakeHeroesS : Dialog {
         return true;
     }
 
-    private async Task<bool> Stake(double value) {
-        var currentTokenAddress = _currentTokenType == RewardType.BCOIN ? _bcoinAddress : _senAddress;
+    private async Task<StakeResult> Stake(double value) {
         var category = _currentTokenType == RewardType.BCOIN ? StakeHeroCategory.Bcoin : StakeHeroCategory.Sen;
-        var result = await _blockchainManager.StakeToHero(_hero.heroId.Id, value, currentTokenAddress, category);
-        return result;
+        return await _blockchainManager.StakeToHero(_hero.heroId.Id, value, category);
     }
 
     #endregion
@@ -318,7 +305,7 @@ public class DialogStakeHeroesS : Dialog {
     private async Task<DataUnStake> GetDataUnStake(double valueUnStake) {
         var dataUnStake = new DataUnStake();
         var currenStake = _currentTokenType == RewardType.BCOIN ? _currentBcoinStake : _currentSenStake;
-        var currenTokenAddress = _currentTokenType == RewardType.BCOIN ? _bcoinAddress : _senAddress;
+        var category = _currentTokenType == RewardType.BCOIN ? StakeHeroCategory.Bcoin : StakeHeroCategory.Sen;
 
         dataUnStake.PlayerData = _hero;
         //Current stake
@@ -330,7 +317,7 @@ public class DialogStakeHeroesS : Dialog {
         _logManager.Log($"valueWantUnStake {valueUnStake}");
 
         //fee
-        var fee = await _blockchainManager.GetFeeFromHeroId(_hero.heroId.Id, currenTokenAddress);
+        var fee = await _blockchainManager.GetFeeFromHeroId(_hero.heroId.Id, category);
         dataUnStake.Fee = fee.ToString(CultureInfo.InvariantCulture);
         _logManager.Log($"fee {fee}");
 
@@ -363,17 +350,25 @@ public class DialogStakeHeroesS : Dialog {
 
     private void ChangeToProcessing(bool isProcess, bool isShowAnim) {
         _isProcessing = isProcess;
-        if (isShowAnim) {
-            if (_isProcessing) {
-                DialogWaiting.Create().ContinueWith(d => {
-                    _dialogWaiting = d;
-                    d.Show(DialogCanvas);
-                    d.ShowLoadingAnim();
-                });
-            } else {
-                if (_dialogWaiting != null) {
-                    _dialogWaiting.Hide();
+        if (!isShowAnim) return;
+
+        if (_isProcessing) {
+            DialogWaiting.Create().ContinueWith(d => {
+                // Race: IsProcessing(false) có thể chạy xong trước khi Create resolve
+                // (flow stake mới không còn 30s wait). Trong trường hợp đó, hide ngay
+                // để không có DialogWaiting orphan mãi trên screen.
+                if (!_isProcessing) {
+                    d.Hide();
+                    return;
                 }
+                _dialogWaiting = d;
+                d.Show(DialogCanvas);
+                d.ShowLoadingAnim();
+            });
+        } else {
+            if (_dialogWaiting != null) {
+                _dialogWaiting.Hide();
+                _dialogWaiting = null;
             }
         }
     }

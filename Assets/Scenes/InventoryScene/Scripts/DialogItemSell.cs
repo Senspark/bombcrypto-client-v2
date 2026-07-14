@@ -144,9 +144,9 @@ namespace Scenes.InventoryScene.Scripts {
                     Debug.LogException(e);
 #endif
                     if (e is ErrorCodeException) {
-                        await DialogError.ShowError(DialogCanvas, e.Message, ()=>{  _isClicked = false;});
+                        await DialogError.ShowError(DialogCanvas, e, ()=>{  _isClicked = false;});
                     } else {
-                        DialogOK.ShowError(DialogCanvas, e.Message, ()=>{  _isClicked = false;});
+                        DialogOK.ShowError(DialogCanvas, e, ()=>{  _isClicked = false;});
                     }
                 }
             });

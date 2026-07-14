@@ -1,3 +1,5 @@
+using App;
+
 using UnityEngine;
 
 namespace Utils {
@@ -144,7 +146,7 @@ namespace Utils {
          public static  Rect GetSafeArea() {
             var safeArea = Screen.safeArea;
 
-            if (Application.isEditor && Sim != SimDevice.None) {
+            if (AppConfig.IsEditor && Sim != SimDevice.None) {
                 var nsa = new Rect(0, 0, Screen.width, Screen.height);
 
                 switch (Sim) {

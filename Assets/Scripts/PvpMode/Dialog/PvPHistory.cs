@@ -100,7 +100,7 @@ namespace PvpMode.Dialogs {
                     var result = await _serverManager.Pvp.GetPvpHistory();
                     SetHistoryListInfo(result.HistoryList);
                 } catch (Exception e) {
-                    DialogError.ShowError(DialogCanvas, e.Message, OnCloseButtonClicked);
+                    DialogError.ShowError(DialogCanvas, e, OnCloseButtonClicked);
                 }
                 HideWaiting();
             }, _cancellationTokenSource.Token);

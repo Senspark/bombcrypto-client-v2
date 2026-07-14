@@ -156,7 +156,7 @@ namespace Game.Dialog {
             }
             catch (Exception e) {
                 _logManager.Log($"ERROR: {e.Message}");
-                DialogError.ShowError(DialogCanvas, "Some thing wrong\n Please try again later");
+                DialogError.ShowErrorMsgOnly(DialogCanvas, "Some thing wrong\n Please try again later");
                 _dialogWaiting.Hide();
             }
         }

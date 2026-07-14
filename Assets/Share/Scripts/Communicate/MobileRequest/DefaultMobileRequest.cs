@@ -15,7 +15,7 @@ namespace Share.Scripts.Communicate {
         private readonly IMobileRequest _mobileRequest;
         
         public DefaultMobileRequest(IJwtSession jwtSession, ILogManager logManager) {
-            if (AppConfig.IsMobile() || Application.isEditor) {
+            if (AppConfig.IsMobile() || AppConfig.IsEditor) {
                 _mobileRequest = new MobileRequest(jwtSession, logManager);
             } 
             else {

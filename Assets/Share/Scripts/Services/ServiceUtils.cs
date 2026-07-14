@@ -44,7 +44,8 @@ namespace Share.Scripts.Services {
         public static bool IsInitialized => _initializedBaseServices;
 
         private static bool _initializedBaseServices;
-        private static readonly List<IService> DestroyAfterUseServices = new();
+        private static readonly List<IService> PerSessionServices = new();
+        private static bool _quitHookRegistered;
         private static bool _initializedAnalytics;
         private static bool _initializedRemoteConfig;
 
@@ -53,8 +54,12 @@ namespace Share.Scripts.Services {
                 return;
             }
             _initializedRemoteConfig = true;
-            var logManager = new DefaultLogManager(enableLog);
-            await logManager.Initialize();
+#if UNITY_EDITOR
+            ILogManager logManager = new FileLoggingLogManager(enableLog);
+#else
+            ILogManager logManager = new DefaultLogManager(enableLog);
+#endif
+            await logManager.Initialize(0f);
             ServiceLocator.Instance.Provide(logManager);
 #if UNITY_WEBGL || UNITY_STANDALONE
             var remoteConfig = new NullRemoteConfig();
@@ -133,8 +138,8 @@ namespace Share.Scripts.Services {
         /// </summary>
         public static async Task InitializeBaseServices(bool production, bool enableLog) {
             if (_initializedBaseServices) {
-                DestroyAfterUseServices.ForEach(e => e.Destroy());
-                DestroyAfterUseServices.Clear();
+                PerSessionServices.ForEach(e => e.Destroy());
+                PerSessionServices.Clear();
                 return;
             }
             _initializedBaseServices = true;
@@ -200,6 +205,7 @@ namespace Share.Scripts.Services {
                 await s.Initialize();
                 ServiceLocator.Instance.Provide(s);
             }
+            EnsureQuitHook();
         }
 
         /// <summary>
@@ -224,13 +230,13 @@ namespace Share.Scripts.Services {
 
 
             // Game Services
-            var networkConfig = new DefaultNetworkConfig(production, networkType);
+            var networkConfig = new DefaultNetworkConfig(networkType);
             var apiManager = new DefaultApiManager(networkConfig, logManager, production);
-            var gameDataRemoteManager = new DefaultGameDataRemoteManager(logManager, networkConfig);
             var storeManager = new DefaultStoreManager(dataManager);
             var houseStoreManager = new DefaultHouseStoreManager(dataManager, analytics);
-            var playerStoreManager = new DefaultPlayerStoreManager(houseStoreManager);
-            var chestRewardManager = new DefaultChestRewardManager(networkType);
+            var playerStoreManager = new BHeroManager(houseStoreManager);
+            // Mặc định TR; current DataType được set từ data_type của login response (SvGameLoginHandler).
+            var chestRewardManager = new DefaultChestRewardManager();
             var claimTokenServerBridge = new DefaultClaimTokenServerBridge(networkType);
 
 
@@ -246,17 +252,18 @@ namespace Share.Scripts.Services {
                 : new TaskNone();
             
             var serverNotifyManger = new DefaultServerNotifyManager(logManager);
+            var dedupServerRequester = new DedupServerRequester();
             var serverManager = new GameServerManager(enableLog, serverConfig, logManager, storeManager,
                 playerStoreManager, houseStoreManager, chestRewardManager, claimTokenServerBridge, taskDelay,
-                taskTonManager, onBoardingManager, userAccountManager, unityCommunication, encoder, serverNotifyManger);
+                taskTonManager, onBoardingManager, userAccountManager, unityCommunication, encoder, serverNotifyManger,
+                dedupServerRequester);
             var pvpBoosterManager = new PvpMode.Manager.DefaultBoosterManager();
             var storyModeManager = new DefaultStoryModeManager(storeManager, playerStoreManager, languageManager,
                 serverManager, chestRewardManager);
             var blockchainStorageManager = new DefaultBlockchainStorageManager(networkType);
-            var informationManager = new DefaultInformationManager(logManager, serverManager.CacheRequestManager);
+            var informationManager = new DefaultInformationManager(logManager);
             var launchpadManager =
-                new DefaultLaunchPadManager(logManager, chestRewardManager, blockchainStorageManager,
-                    serverManager.CacheRequestManager);
+                new DefaultLaunchPadManager(logManager, chestRewardManager, blockchainStorageManager);
             var airDropManager = new DefaultAirDropManager(logManager);
             var pveManager = new DefaultPveModeManager(networkType);
             var equipmentManager = new DefaultEquipmentManager();
@@ -278,8 +285,8 @@ namespace Share.Scripts.Services {
             var gachaChestItemManager = new UniqueGachaChestItemManager();
 
             // Need Gacha Chest Item Manager
-            var serverRequester = new NewServerRequester(logManager, serverManager, 
-                gachaChestItemManager, serverManager, chestRewardManager);
+            var serverRequester = new NewServerRequester(logManager, serverManager,
+                gachaChestItemManager, serverManager, chestRewardManager, dedupServerRequester);
             var inventoryManager = new InventoryManager(gachaChestItemManager, chestNameManager,
                 logManager, serverRequester, userAccountManager);
 
@@ -311,7 +318,6 @@ namespace Share.Scripts.Services {
                 languageManager,
                 apiManager,
                 informationManager,
-                gameDataRemoteManager,
                 storeManager,
                 playerStoreManager,
                 houseStoreManager,
@@ -360,7 +366,7 @@ namespace Share.Scripts.Services {
                 taskTonManager,
                 dailyTaskManager,
                 serverNotifyManger,
-                clientLogManager
+                clientLogManager,
             };
 
             foreach (var s in services) {
@@ -368,7 +374,7 @@ namespace Share.Scripts.Services {
                 ServiceLocator.Instance.Provide(s);
             }
 
-            DestroyAfterUseServices.AddRange(services);
+            PerSessionServices.AddRange(services);
         }
 
         public static async Task InitializeAccount(
@@ -396,16 +402,15 @@ namespace Share.Scripts.Services {
             acc.loginType = acc.isUserFi ? LoginType.Wallet : acc.loginType;
 #endif
             var featureManager = new DefaultFeatureManager(acc);
-            var signManager = new NewSignManager(logManager);
             var authManager = new DefaultAuthManager(
                 logManager,
-                signManager,
-                new NullEncoder(logManager),
                 unityCommunication,
                 production);
 
 #if UNITY_EDITOR
-            blockchainManager = new EditorBlockchainManager(accountManager, simulated);
+            blockchainManager = simulated
+                ? new NullBlockchainManager()
+                : new EditorBlockchainManager(accountManager);
             claimManager = new MobileClaimManager();
 #elif UNITY_WEBGL
             if (acc.loginType == LoginType.UsernamePassword) {
@@ -424,7 +429,7 @@ namespace Share.Scripts.Services {
 #endif
             var autoUpdateBlockchainManager = new AutoUpdateBlockchainManager(blockchainManager,
                 blockchainStorageManager, storeManager, featureManager);
-            var claimTokenManager = new DefaultClaimTokenManager(serverManager, autoUpdateBlockchainManager,
+            var claimTokenManager = new PolygonClaimTokenManager(serverManager, autoUpdateBlockchainManager,
                 chestRewardManager);
 
             IUnityAdsManager ads;
@@ -449,7 +454,20 @@ namespace Share.Scripts.Services {
                 ServiceLocator.Instance.Provide(s);
             }
 
-            DestroyAfterUseServices.AddRange(services);
+            PerSessionServices.AddRange(services);
+        }
+
+        private static void EnsureQuitHook() {
+            if (_quitHookRegistered) {
+                return;
+            }
+            _quitHookRegistered = true;
+            Application.quitting += OnApplicationQuitting;
+        }
+
+        private static void OnApplicationQuitting() {
+            PerSessionServices.Clear();
+            ServiceLocator.Instance.Dispose();
         }
     }
 }

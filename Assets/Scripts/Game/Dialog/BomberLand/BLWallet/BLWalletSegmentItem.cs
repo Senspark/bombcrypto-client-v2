@@ -66,7 +66,7 @@ namespace Game.Dialog.BomberLand.BLWallet {
                 pendingLbl.text = App.Utils.FormatBcoinValue(data.PendingValue);
             }
             if (data.RefTokenData != null) {
-                lbNetwork.text = data.RefTokenData.networkSymbolDisplayName;
+                lbNetwork.text = RewardUtils.NetworkDisplayName(data.RefTokenData.networkSymbol);
             }
         }
 

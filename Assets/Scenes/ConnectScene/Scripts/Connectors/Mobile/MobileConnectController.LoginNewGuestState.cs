@@ -14,7 +14,6 @@ namespace Scenes.ConnectScene.Scripts.Connectors.Mobile {
                     _stateData.UnityCommunicate,
                     _stateData.LogManager,
                     _stateData.UserAccountManager,
-                    _stateData.Analytics,
                     _stateData.ServerAddresses,
                     OnResolve,
                     OnReject,

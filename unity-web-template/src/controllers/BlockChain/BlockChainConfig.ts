@@ -77,6 +77,11 @@ export class BlockChainConfig{
         this.actions.set(BlockChainCommand.STAKE_TO_HERO_V2, this._contractManager.stakeToHeroV2.bind(this._contractManager));
         this.actions.set(BlockChainCommand.GET_STAKE_FROM_HERO_ID_V2, this._contractManager.getStakeFromHeroIdV2.bind(this._contractManager));
         this.actions.set(BlockChainCommand.GET_FEE_FROM_HERO_ID_V2, this._contractManager.getFeeFromHeroIdV2.bind(this._contractManager));
+
+        this.actions.set(BlockChainCommand.BRIDGE_GET_DEPOSITED, this._contractManager.getBridgeDeposited.bind(this._contractManager));
+        this.actions.set(BlockChainCommand.BRIDGE_GET_WITHDRAWN, this._contractManager.getBridgeWithdrawn.bind(this._contractManager));
+        this.actions.set(BlockChainCommand.BRIDGE_DEPOSIT, this._contractManager.bridgeDeposit.bind(this._contractManager));
+        this.actions.set(BlockChainCommand.BRIDGE_WITHDRAW, this._contractManager.bridgeWithdraw.bind(this._contractManager));
     }
     
     public async callAction(actionName: string, param: string): Promise<string | null> {
@@ -85,6 +90,10 @@ export class BlockChainConfig{
             const action = this.actions.get(actionName);
             if (action) {
                 const result = await action.call(this, param);
+                if (result == null || result === "") {
+                    this._logger.error(`${TAG} Action ${actionName} returned empty/null (param=${param})`);
+                    return null;
+                }
                 return this._aesHelper.encrypt(result);
             } else {
                 this._logger.error(`${TAG} Action ${actionName} not found`);
@@ -92,7 +101,10 @@ export class BlockChainConfig{
             }
         }
         catch (e) {
-            this._logger.error(`${TAG} ${e}`);
+            const detail = e instanceof Error
+                ? `${e.message}\n${e.stack?.substring(0, 300) ?? ""}`
+                : JSON.stringify(e);
+            this._logger.error(`${TAG} Action ${actionName} failed (param=${param}): ${detail}`);
             return null;
         }
     }

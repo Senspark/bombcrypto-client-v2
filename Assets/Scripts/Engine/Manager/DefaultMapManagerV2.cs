@@ -441,7 +441,7 @@ namespace Engine.Manager {
                 return;
             }
 
-            var playStore = ServiceLocator.Instance.Resolve<IPlayerStorageManager>();
+            var playStore = ServiceLocator.Instance.Resolve<IBHeroManager>();
 
             for (var i = 0; i < _col; i++) {
                 for (var j = 0; j < _row; j++) {
@@ -466,7 +466,7 @@ namespace Engine.Manager {
         }
 
         public async UniTask LoadMap() {
-            var playStore = ServiceLocator.Instance.Resolve<IPlayerStorageManager>();
+            var playStore = ServiceLocator.Instance.Resolve<IBHeroManager>();
             var mapRaw = new TileType[_col, _row];
             for (var i = 0; i < _col; i++) {
                 for (var j = 0; j < _row; j++) {

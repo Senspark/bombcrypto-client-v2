@@ -10,11 +10,12 @@ namespace Utils {
             Canvas dialogCanvas,
             IBlockchainManager blockchainManager,
             IServerManager serverManager,
-            bool notify, 
-            bool setBuyHero = false
+            bool notify,
+            bool setBuyHero = false,
+            bool forceFresh = false
         ) {
             var resultProcessToken = await blockchainManager.ProcessTokenRequests();
-            await serverManager.General.SyncHero(notify, setBuyHero);
+            await serverManager.General.SyncHero(notify, setBuyHero, forceFresh);
 
             if (!resultProcessToken.result) {
                 throw new Exception("Process token failed");

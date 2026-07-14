@@ -1,7 +1,9 @@
+using System;
+
 using JetBrains.Annotations;
 
 namespace Senspark {
-    public interface IServiceLocator {
+    public interface IServiceLocator : IDisposable {
         /// <summary>
         /// Registers a service.
         /// </summary>

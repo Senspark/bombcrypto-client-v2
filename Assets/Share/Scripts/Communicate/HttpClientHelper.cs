@@ -71,7 +71,7 @@ public static class HttpClientHelper
         }
         catch (HttpRequestException e)
         {
-            Debug.LogError($"Request error: {e.Message}");
+            Debug.LogError($"Request error: {url} {e.Message}");
             return default;
         }
     }

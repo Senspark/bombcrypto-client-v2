@@ -1,21 +1,30 @@
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Game.Dialog;
 using Sfs2X.Entities.Data;
 
 namespace App.BomberLand {
+    public enum DepositSyncTarget { Both, Old, Bridge }
+
     public interface IGeneralServerBridge : IServerManagerDelegate {
         Task<IHeroPower[]> GetHeroPower();
-        Task<ISyncHeroResponse> SyncHero(bool notifyNewIds, bool isBuyHero = false);
+        Task<ISyncHeroResponse> SyncHero(bool notifyNewIds, bool isBuyHero = false, bool forceFresh = false);
         ISyncHeroResponse SyncHero(ISFSObject data);
         Task<ISyncHouseResponse> SyncHouse();
         ISyncHouseResponse SyncHouse(ISFSObject data);
         Task<IChestReward> GetChestReward();
         Task<bool> ReactiveHouse(int houseId);
         Task<IApproveClaimResponse> ApproveClaim(int code);
+        void OnApproveClaimPush(ISFSObject data);
+        void OnUpgradeShieldLevelPush(ISFSObject data);
+        void OnHeroStakePush(ISFSObject data);
+        void CancelPendingClaim(Exception reason);
         Task<float> ConfirmApproveClaimSuccess(int code);
-        Task<IChestReward> SyncDeposited();
+        Task<IChestReward> SyncDeposited(DepositSyncTarget target = DepositSyncTarget.Both);
         IChestReward SyncDeposited(ISFSObject data);
+        Task<BridgeWithdrawResult> RequestCrosschainBridgeWithdraw(int blockRewardType, double amount, bool allIn, string chain);
+        Task ConfirmCrosschainBridgeDeposit(int blockRewardType);
         Task<IAutoMinePackages> GetAutoMinePrice();
         Task<IChestReward> BuyAutoMine(string packageName, BlockRewardType blockRewardType);
         Task<IRockPackage> BuyRockPack(string packageName, BlockRewardType rewardType);
@@ -50,9 +59,8 @@ namespace App.BomberLand {
         Task GetRockPackConfig();
         Task GetRentHousePackageConfig();
         Task<ITreasureHuntConfigResponse> GetTreasureHuntDataConfig();
-        void SendMessageSlack(string title, SFSObject info);
         Task<IBurnHeroConfig> GetBurnHeroConfig();
-        Task BurnHero();
+        Task BurnHero(string tx, HeroId[] heroIds);
         Task<IUpgradeShieldConfig> GetUpgradeShieldConfig();
         Task<IUpgradeShieldResponse> UpgradeLevelShield(HeroId heroId);
         void UpdateUserReward(ISFSObject data);
