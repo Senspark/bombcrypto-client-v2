@@ -31,6 +31,12 @@ namespace Scenes.FarmingScene.Scripts {
         public InformationData RefInfo;
         public bool IsEnableDeposit;
         public bool IsEnableWithdraw;
+        public bool IsBridge;
+        public bool BridgeBalanceKnown;
+        public string BridgeSymbol;
+        public string BridgeDepositChain;
+        public string BridgeWithdrawChain;
+        public Sprite BridgeIcon;
     }
 
     public class BLDialogReward : Dialog {
@@ -42,6 +48,12 @@ namespace Scenes.FarmingScene.Scripts {
 
         [SerializeField]
         private BLFrameWallet[] frameWallets;
+
+        [SerializeField]
+        private Sprite bcoinBridgeIcon;
+
+        [SerializeField]
+        private Sprite senBridgeIcon;
 
         private IBlockchainManager _blockchainManager;
         private IServerManager _serverManager;
@@ -67,6 +79,9 @@ namespace Scenes.FarmingScene.Scripts {
         private bool _bridgeWithdrawInFlight;
         private double _bridgeFeePercent = 5;
         private bool _bridgeFeeLoaded;
+        private List<DataWallet> _bridgeRows;
+        private List<DataWallet> _bridgeDepositBase;
+        private List<DataWallet> _bridgeWithdrawBase;
 
         public static UniTask<BLDialogReward> Create() {
             return ServiceLocator.Instance.Resolve<IPrefabLoaderManager>().Instantiate<BLDialogReward>();
@@ -215,7 +230,7 @@ namespace Scenes.FarmingScene.Scripts {
                     }
                     addedData.Add(data);
                     // Add Data
-                    DataWallet d;
+                    DataWallet d = default;
                     d.RefTokenData = data;
                     d.RefTokenReward = t;
                     d.RefRewardType = rewardType;
@@ -253,7 +268,7 @@ namespace Scenes.FarmingScene.Scripts {
                         var n = RewardUtils.ConvertToNetworkType(data.networkSymbol.ToString());
                         claimValue += _heroAmount[n].GetTotal();
                     }
-                    DataWallet d;
+                    DataWallet d = default;
                     d.RefTokenData = data;
                     d.RefTokenReward = new TokenReward(RewardUtils.ConvertToBlockRewardType(data.tokenName), data.networkSymbol.ToString());
                     d.RefRewardType = rewardType;
@@ -312,40 +327,98 @@ namespace Scenes.FarmingScene.Scripts {
         }
 
         private void BridgeWithdrawFlow(DataWallet wallet) {
-            var (serverType, _) = BridgeIds(wallet.RefRewardType.Type);
+            if (_bridgeWithdrawInFlight) return;
+            var (serverType, symbol) = BridgeIds(wallet.RefRewardType.Type);
+            var withdrawChain = wallet.BridgeWithdrawChain;
             UniTask.Void(async () => {
-                var feePercent = await GetBridgeFeePercentAsync();
+                var waiting = await ShowDialogWaiting();
+                float? withdrawable;
+                double feePercent;
+                try {
+                    // The cached amount can be stale (e.g. the user withdrew on another
+                    // device), so re-read on-chain before confirming what they'll withdraw.
+                    _blockchainManager.InvalidateBridgeRead(wallet.BridgeDepositChain, wallet.BridgeSymbol);
+                    _blockchainManager.InvalidateBridgeRead(wallet.BridgeWithdrawChain, wallet.BridgeSymbol);
+                    withdrawable = await TryReadBridgeWithdrawable(wallet);
+                    feePercent = await GetBridgeFeePercentAsync();
+                } finally {
+                    waiting.Hide();
+                }
                 if (!this) return;
-                var dialog = await DialogBridgeWithdrawAmount.Create();
+
+                if (!withdrawable.HasValue) {
+                    DialogOK.ShowInfo(DialogCanvas, "Info", "Cannot read balance right now");
+                    return;
+                }
+                wallet.ClaimValue = withdrawable.Value;
+                ApplyBridgeWithdrawable(wallet);
+                if (wallet.ClaimValue <= 0) {
+                    DialogOK.ShowInfo(DialogCanvas, "Info", "Nothing to withdraw");
+                    return;
+                }
+
+                var net = wallet.ClaimValue * (100 - feePercent) / 100;
+                var networkName = withdrawChain == DialogBridgeAmount.ChainBsc ? "BNB Chain" : "Polygon";
+                var desc = $"Withdraw {wallet.ClaimValue:0.####} {symbol}\n" +
+                           $"Network: {networkName}\n" +
+                           $"You receive ~ {net:0.####} (fee {feePercent}%)";
+                var confirm = await DialogConfirm.Create();
                 if (!this) return;
-                dialog.Show(DialogBridgeAmount.Mode.Withdraw, wallet.RefTokenData, BridgeNetworkName(),
-                    wallet.ClaimValue, feePercent, LoginChainString(), DialogCanvas,
-                    (amount, isMax, chain) => ExecuteBridgeWithdraw(wallet, serverType, amount, isMax, chain));
+                confirm.SetInfo(desc, "Confirm", "Cancel",
+                        () => ExecuteBridgeWithdraw(wallet, serverType, symbol, withdrawChain), null)
+                    .Show(DialogCanvas);
             });
         }
 
-        private void ExecuteBridgeWithdraw(DataWallet wallet, int serverType, double amount, bool allIn,
-            string chain) {
+        private void ApplyBridgeWithdrawable(DataWallet wallet) {
+            if (_bridgeRows == null) return;
+            var idx = _bridgeRows.FindIndex(r => r.BridgeSymbol == wallet.BridgeSymbol
+                && r.BridgeDepositChain == wallet.BridgeDepositChain
+                && r.BridgeWithdrawChain == wallet.BridgeWithdrawChain);
+            if (idx < 0) return;
+            var d = _bridgeRows[idx];
+            d.ClaimValue = wallet.ClaimValue;
+            d.IsEnableWithdraw = d.ClaimValue > 0;
+            d.BridgeBalanceKnown = true;
+            _bridgeRows[idx] = d;
+            ApplyBridgeTabs();
+        }
+
+        private void ExecuteBridgeWithdraw(DataWallet wallet, int serverType, string symbol, string withdrawChain) {
             if (_bridgeWithdrawInFlight) return;
             _bridgeWithdrawInFlight = true;
             UniTask.Void(async () => {
                 var waiting = await ShowDialogWaiting();
                 try {
-                    var res = await _serverManager.General.RequestCrosschainBridgeWithdraw(serverType, amount, allIn, chain);
+                    var enabled = await _blockchainManager.GetBridgeWithdrawEnabled(withdrawChain);
                     if (!this) return;
-
-                    var netWei = string.IsNullOrEmpty(res.NetWei) ? "0" : res.NetWei;
-                    var net = (double)BigInteger.Parse(netWei) / 1e18;
-                    var dialog = await DialogBCoinReward.Create();
+                    if (!enabled) {
+                        DialogOK.ShowInfo(DialogCanvas, "Info", "Withdraw is currently disabled");
+                        return;
+                    }
+                    var res = await _serverManager.General.RequestCrosschainBridgeWithdraw(serverType, withdrawChain);
                     if (!this) return;
-                    dialog.SetReward(wallet.RefTokenData, net, DialogCanvas).Show(DialogCanvas);
-
-                    ShowBridgeTxDialog(res);
+                    if (res.Code != 0 || string.IsNullOrEmpty(res.Signature)) {
+                        DialogOK.ShowInfo(DialogCanvas, "Info", "Cannot withdraw right now");
+                        return;
+                    }
+                    var tx = await _blockchainManager.BridgeWithdraw(withdrawChain, symbol, res.OtherDeposited,
+                        res.Deadline, res.Signature);
+                    if (!this) return;
+                    if (tx.success) {
+                        FireBridgeNotify(BridgeNotifyKind.WithdrawDone, serverType, withdrawChain, tx.txHash);
+                        var reward = await DialogBCoinReward.Create();
+                        if (!this) return;
+                        reward.SetReward(new TokenData { displayName = symbol, icon = wallet.BridgeIcon }, tx.net, DialogCanvas)
+                            .Show(DialogCanvas);
+                    } else {
+                        DialogOK.ShowInfo(DialogCanvas, "Info", "Withdraw Failed");
+                    }
                 } catch (Exception e) {
                     if (this) DialogOK.ShowError(DialogCanvas, e);
                 } finally {
                     _bridgeWithdrawInFlight = false;
-                    if (this) UpdateAllTokensUI();
+                    if (this) RefreshBridgeRow(wallet);
                     waiting.Hide();
                 }
             });
@@ -363,40 +436,6 @@ namespace Scenes.FarmingScene.Scripts {
                 if (this) _logManager.Log($"[Bridge] fee config load failed, using default {_bridgeFeePercent}%: {e.Message}");
             }
             return _bridgeFeePercent;
-        }
-
-        private string LoginChainString() {
-            return _networkConfig.NetworkType == NetworkType.Polygon
-                ? DialogBridgeAmount.ChainPolygon
-                : DialogBridgeAmount.ChainBsc;
-        }
-
-        private void ShowBridgeTxDialog(BridgeWithdrawResult res) {
-            if (res == null || string.IsNullOrEmpty(res.TxHash)) return;
-            var url = BridgeExplorerUrl(res.Chain, res.TxHash);
-            var pending = string.Equals(res.Status, "pending", StringComparison.OrdinalIgnoreCase);
-            var desc = pending
-                ? "Your withdraw is processing on-chain and will settle shortly."
-                : "Withdraw completed on-chain.";
-            UniTask.Void(async () => {
-                var dialog = await DialogConfirm.Create();
-                if (!this) return;
-                dialog.SetInfo(desc, "View Tx", "OK",
-                        () => { if (!string.IsNullOrEmpty(url)) Application.OpenURL(url); }, null)
-                    .Show(DialogCanvas);
-            });
-        }
-
-        private static string BridgeExplorerUrl(string chain, string txHash) {
-            var isBsc = string.Equals(chain, DialogBridgeAmount.ChainBsc, StringComparison.OrdinalIgnoreCase)
-                || string.Equals(chain, "BNB", StringComparison.OrdinalIgnoreCase);
-            string host;
-            if (AppConfig.IsProduction) {
-                host = isBsc ? "https://bscscan.com" : "https://polygonscan.com";
-            } else {
-                host = isBsc ? "https://testnet.bscscan.com" : "https://amoy.polygonscan.com";
-            }
-            return $"{host}/tx/{txHash}";
         }
 
         private static (int serverType, string symbol) BridgeIds(BlockRewardType type) {
@@ -544,11 +583,121 @@ namespace Scenes.FarmingScene.Scripts {
             frameWallet.ApplyUiTab(TypeMenuLeftWallet.Mine, tokensList, nftList);
             frameWallet.SetOnDeposit(OnDeposit);
             frameWallet.SetOnWithdraw(OnWithdraw);
+            if (SupportsBridge) {
+                AppendBridgeRows(depositList, withdrawList);
+            }
+        }
+
+        private static bool SupportsBridge =>
+            !AppConfig.IsTon() && !AppConfig.IsSolana() && !AppConfig.IsRonin()
+            && !AppConfig.IsBase() && !AppConfig.IsViction() && !AppConfig.IsAirDrop();
+
+        private void AppendBridgeRows(List<DataWallet> depositBase, List<DataWallet> withdrawBase) {
+            var specs = new[] {
+                ("BCOIN", BlockRewardType.BcoinBridge, bcoinBridgeIcon, DialogBridgeAmount.ChainBsc, DialogBridgeAmount.ChainPolygon),
+                ("BCOIN", BlockRewardType.BcoinBridge, bcoinBridgeIcon, DialogBridgeAmount.ChainPolygon, DialogBridgeAmount.ChainBsc),
+                ("SEN", BlockRewardType.SenBridge, senBridgeIcon, DialogBridgeAmount.ChainBsc, DialogBridgeAmount.ChainPolygon),
+                ("SEN", BlockRewardType.SenBridge, senBridgeIcon, DialogBridgeAmount.ChainPolygon, DialogBridgeAmount.ChainBsc),
+            };
+            var bridgeRows = new List<DataWallet>();
+            foreach (var (symbol, type, icon, depositChain, withdrawChain) in specs) {
+                // Bridge-specific info still lives in InformationTable as BCOIN_BRIDGE /
+                // SEN_BRIDGE — look it up by the bridge reward type. It's a single entry
+                // per token, so its network label is irrelevant to the match.
+                var info = _informationManager.GetTokenData(
+                    new TokenReward(RewardUtils.ConvertToBlockRewardType(type), depositChain));
+                bridgeRows.Add(new DataWallet {
+                    IsBridge = true,
+                    BridgeBalanceKnown = false,
+                    BridgeSymbol = symbol,
+                    BridgeIcon = icon,
+                    BridgeDepositChain = depositChain,
+                    BridgeWithdrawChain = withdrawChain,
+                    RefRewardType = _launchPadManager.CreateRewardType(type),
+                    RefInfo = info,
+                    IsEnableDeposit = true,
+                    IsEnableWithdraw = false,
+                });
+            }
+            _bridgeRows = bridgeRows;
+            _bridgeDepositBase = depositBase;
+            _bridgeWithdrawBase = withdrawBase;
+            ApplyBridgeTabs();
+
+            UniTask.Void(async () => {
+                for (var i = 0; i < bridgeRows.Count; i++) {
+                    var d = bridgeRows[i];
+                    var withdrawable = await TryReadBridgeWithdrawable(d);
+                    if (!this) return;
+                    if (withdrawable.HasValue) {
+                        d.ClaimValue = withdrawable.Value;
+                        d.IsEnableWithdraw = d.ClaimValue > 0;
+                        d.BridgeBalanceKnown = true;
+                        bridgeRows[i] = d;
+                    }
+                }
+                if (!this) return;
+                ApplyBridgeTabs();
+            });
+        }
+
+        private async UniTask<float?> TryReadBridgeWithdrawable(DataWallet row) {
+            try {
+                var deposited = await _blockchainManager.GetBridgeDeposited(row.BridgeDepositChain, row.BridgeSymbol);
+                var withdrawn = await _blockchainManager.GetBridgeWithdrawn(row.BridgeWithdrawChain, row.BridgeSymbol);
+                return Withdrawable(deposited, withdrawn);
+            } catch (Exception e) {
+                if (this) _logManager.Log($"[Bridge] read failed {row.BridgeSymbol} {row.BridgeDepositChain}->{row.BridgeWithdrawChain}: {e.Message}");
+                return null;
+            }
+        }
+
+        private void RefreshBridgeRow(DataWallet wallet) {
+            if (_bridgeRows == null) return;
+            var idx = _bridgeRows.FindIndex(r => r.BridgeSymbol == wallet.BridgeSymbol
+                && r.BridgeDepositChain == wallet.BridgeDepositChain
+                && r.BridgeWithdrawChain == wallet.BridgeWithdrawChain);
+            if (idx < 0) return;
+            UniTask.Void(async () => {
+                var withdrawable = await TryReadBridgeWithdrawable(_bridgeRows[idx]);
+                if (!this) return;
+                var d = _bridgeRows[idx];
+                if (withdrawable.HasValue) {
+                    d.ClaimValue = withdrawable.Value;
+                    d.IsEnableWithdraw = d.ClaimValue > 0;
+                    d.BridgeBalanceKnown = true;
+                }
+                _bridgeRows[idx] = d;
+                ApplyBridgeTabs();
+            });
+        }
+
+        private void ApplyBridgeTabs() {
+            var deposit = new List<DataWallet>(_bridgeDepositBase);
+            deposit.AddRange(_bridgeRows);
+            frameWallet.ApplyUiTab(TypeMenuLeftWallet.Deposit, deposit, null);
+            var withdraw = new List<DataWallet>(_bridgeWithdrawBase);
+            withdraw.AddRange(_bridgeRows);
+            frameWallet.ApplyUiTab(TypeMenuLeftWallet.Withdraw, withdraw, null);
+        }
+
+        private static float Withdrawable(string depositedWei, string withdrawnWei) {
+            var dep = BigInteger.Parse(string.IsNullOrEmpty(depositedWei) ? "0" : depositedWei);
+            var wd = BigInteger.Parse(string.IsNullOrEmpty(withdrawnWei) ? "0" : withdrawnWei);
+            var diff = dep - wd;
+            if (diff < 0) {
+                diff = 0;
+            }
+            return (float)((double)diff / 1e18);
         }
 
         private void OnDeposit(DataWallet dataWallet) {
             try {
                 _soundManager.PlaySound(Audio.Tap);
+                if (dataWallet.IsBridge) {
+                    OpenBridgeDepositDialog(dataWallet);
+                    return;
+                }
                 _controller.ThrowIfCannotDeposit(dataWallet);
                 var t = dataWallet.RefRewardType.Type;
                 if (AppConfig.IsAirDrop()) {
@@ -569,30 +718,40 @@ namespace Scenes.FarmingScene.Scripts {
         }
 
         private void OpenBridgeDepositDialog(DataWallet wallet) {
-            var (symbol, category) = BridgeDepositIds(wallet.RefRewardType.Type);
+            var (_, symbol) = BridgeIds(wallet.RefRewardType.Type);
+            var depositChain = wallet.BridgeDepositChain;
+            var category = BridgeCategory(symbol, depositChain);
             UniTask.Void(async () => {
                 var available = await _blockchainManager.GetBalance(category);
                 if (!this) return;
+                var networkName = depositChain == DialogBridgeAmount.ChainBsc ? "BNB Chain" : "Polygon";
                 var dialog = await DialogBridgeAmount.Create();
                 if (!this) return;
-                dialog.Show(DialogBridgeAmount.Mode.Deposit, wallet.RefTokenData, BridgeNetworkName(), available,
-                    0, LoginChainString(), DialogCanvas,
-                    (amount, _, _) => ExecuteBridgeDeposit(wallet, symbol, category, amount));
+                dialog.Show(DialogBridgeAmount.Mode.Deposit, symbol, networkName, available,
+                    0, depositChain, DialogCanvas,
+                    (amount, _, _) => ExecuteBridgeDeposit(wallet, symbol, category, depositChain, amount));
             });
         }
 
         private void ExecuteBridgeDeposit(DataWallet wallet, string symbol, RpcTokenCategory category,
-            double amount) {
+            string depositChain, double amount) {
             UniTask.Void(async () => {
                 var waiting = await ShowDialogWaiting();
                 try {
+                    var enabled = await _blockchainManager.GetBridgeDepositEnabled(depositChain);
+                    if (!this) return;
+                    if (!enabled) {
+                        DialogOK.ShowInfo(DialogCanvas, "Info", "Deposit is currently disabled");
+                        return;
+                    }
                     var nano = new BigInteger(Math.Floor(amount * 1e9));
                     var amountWei = (nano * BigInteger.Pow(10, 9)).ToString();
-                    var res = await _blockchainManager.BridgeDeposit(symbol, amountWei);
+                    var (serverType, _) = BridgeIds(wallet.RefRewardType.Type);
+                    FireBridgeNotify(BridgeNotifyKind.DepositPrepare, serverType, depositChain);
+                    var res = await _blockchainManager.BridgeDeposit(depositChain, symbol, amountWei);
                     if (!this) return;
                     if (res.success) {
-                        var (serverType, _) = BridgeIds(wallet.RefRewardType.Type);
-                        await _serverManager.General.ConfirmCrosschainBridgeDeposit(serverType);
+                        FireBridgeNotify(BridgeNotifyKind.DepositDone, serverType, depositChain, res.txHash);
                         await App.Utils.WaitForBalanceChange(category, _blockchainManager, _blockchainStorageManager);
                         if (!this) return;
                         DialogOK.ShowInfo(DialogCanvas, "Info", "Deposit Successfully");
@@ -602,27 +761,30 @@ namespace Scenes.FarmingScene.Scripts {
                 } catch (Exception e) {
                     if (this) DialogOK.ShowError(DialogCanvas, e);
                 } finally {
-                    if (this) UpdateAllTokensUI();
+                    if (this) RefreshBridgeRow(wallet);
                     waiting.Hide();
                 }
             });
         }
 
-        private string BridgeNetworkName() {
-            return _networkConfig.NetworkType switch {
-                NetworkType.Binance => "BNB Chain",
-                NetworkType.Polygon => "Polygon",
-                var n => n.ToString()
-            };
+        // Best-effort bridge activity report — fire-and-forget so it never blocks the on-chain flow. A dropped
+        // notify just means the indexer's idle sweep picks up the activity a little later.
+        private void FireBridgeNotify(string kind, int serverType, string chain, string txHash = null) {
+            UniTask.Void(async () => {
+                try {
+                    await _serverManager.General.NotifyCrosschainBridge(kind, serverType, chain, txHash);
+                } catch (Exception e) {
+                    if (this) _logManager.Log($"[Bridge-notify] {kind} failed: {e.Message}");
+                }
+            });
         }
 
-        private (string symbol, RpcTokenCategory category) BridgeDepositIds(BlockRewardType type) {
-            var isSen = type == BlockRewardType.SenBridge;
-            var isBinance = _networkConfig.NetworkType == NetworkType.Binance;
-            var category = isSen
-                ? (isBinance ? RpcTokenCategory.SenBsc : RpcTokenCategory.SenPolygon)
-                : (isBinance ? RpcTokenCategory.Bcoin : RpcTokenCategory.Bomb);
-            return (isSen ? "SEN" : "BCOIN", category);
+        private static RpcTokenCategory BridgeCategory(string symbol, string chain) {
+            var isBsc = chain == DialogBridgeAmount.ChainBsc;
+            if (symbol == "SEN") {
+                return isBsc ? RpcTokenCategory.SenBsc : RpcTokenCategory.SenPolygon;
+            }
+            return isBsc ? RpcTokenCategory.Bcoin : RpcTokenCategory.Bomb;
         }
 
         private void OnWithdraw(DataWallet dataWallet) {

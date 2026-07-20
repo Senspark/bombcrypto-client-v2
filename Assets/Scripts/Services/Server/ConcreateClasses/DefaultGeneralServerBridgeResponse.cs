@@ -75,10 +75,6 @@ namespace App.BomberLand {
             return new BridgeWithdrawResult(data);
         }
 
-        private void OnCrosschainBridgeConfirmDeposit(ISFSObject data) {
-            ParseChestReward(data);
-        }
-        
         private IAutoMinePackages OnGetAutoMinePrice(ISFSObject data) {
             var packageDetail = new AutoMinePackage(data);
             _storageManager.AutoMinePackages = packageDetail.Packages;

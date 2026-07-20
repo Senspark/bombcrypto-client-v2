@@ -80,7 +80,6 @@ namespace App {
                 DataType.RON => "RON",
                 DataType.BAS => "BAS",
                 DataType.VIC => "VIC",
-                DataType.BP => "BNB/POLYGON",
                 _ => "",
             };
         }

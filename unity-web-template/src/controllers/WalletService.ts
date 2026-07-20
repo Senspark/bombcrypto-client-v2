@@ -516,6 +516,53 @@ export default class WalletService {
         }
     }
 
+    /**
+     * Switch the wallet to an explicit network (not necessarily the login chain)
+     * and only resolve once MetaMask actually reports it. Used by cross-chain
+     * bridge writes, which must run on the target chain then restore the login
+     * chain. MetaMask emits `chainChanged` asynchronously and ethers'
+     * BrowserProvider caches its network, so a naive switch leaves a stale
+     * BSC-bound provider — the write would then broadcast on the wrong chain.
+     * We poll `eth_chainId` and rebind a fresh provider until it settles.
+     */
+    async switchToNetwork(network: SupportedNetwork): Promise<boolean> {
+        const provider = this._etherProvider;
+        if (!provider) {
+            this._logger.error(`${TAG} switchToNetwork: Ether provider is not set`);
+            return false;
+        }
+        const rpc = getRpc(network, this._isProd);
+        if (!rpc) {
+            this._logger.error(`${TAG} switchToNetwork: no RPC config for ${network}`);
+            return false;
+        }
+        const actual = await getChainId(this._logger, provider);
+        if (actual && actual.dec === rpc.chainId) return true;
+
+        const ok = await forceSwapChain(this._logger, provider, rpc);
+        if (!ok) return false;
+        return await this.confirmChain(rpc.chainId);
+    }
+
+    // Wait until MetaMask reports the target chain, rebinding a fresh
+    // BrowserProvider each poll so a stale cached network can't survive.
+    private async confirmChain(targetChainId: number): Promise<boolean> {
+        for (let i = 0; i < 15; i++) {
+            if (this._walletProvider) {
+                this._etherProvider = new BrowserProvider(this._walletProvider);
+                setBrowserProvider(this._etherProvider);
+            }
+            const current = this._etherProvider ? await getChainId(this._logger, this._etherProvider) : null;
+            if (current && current.dec === targetChainId) {
+                this._chainId = { dec: targetChainId, hex: '0x' + targetChainId.toString(16) };
+                return true;
+            }
+            await new Promise((r) => setTimeout(r, 300));
+        }
+        this._logger.error(`${TAG} switchToNetwork: chain did not settle to ${targetChainId}`);
+        return false;
+    }
+
     getBlockExplorerUrl(txHash: string): string {
         const network = this.currentNetworkType;
         if (network) {

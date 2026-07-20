@@ -67,5 +67,6 @@ public static partial class SFSDefine {
         public const string Config = "config";
         public const string CurrentStep = "current_step";
         public const string Chain = "chain";
+        public const string Kind = "kind";
     }
 }

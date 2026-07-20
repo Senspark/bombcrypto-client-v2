@@ -134,6 +134,17 @@ namespace Scenes.FarmingScene.Scripts {
             OnConfirmBtnClicked();
         }
 
+        // Best-effort bridge activity report — fire-and-forget so it never blocks the deposit flow.
+        private void FireBridgeNotify(string kind, int serverType, string chain, string txHash = null) {
+            UniTask.Void(async () => {
+                try {
+                    await _serverManager.General.NotifyCrosschainBridge(kind, serverType, chain, txHash);
+                } catch (Exception e) {
+                    UnityEngine.Debug.LogWarning($"[Bridge-notify] {kind} failed: {e.Message}");
+                }
+            });
+        }
+
         public void OnConfirmBtnClicked() {
             _soundManager.PlaySound(Audio.Tap);
 
@@ -149,8 +160,13 @@ namespace Scenes.FarmingScene.Scripts {
                     bool success;
                     if (_isBridge) {
                         var amountWei = (new BigInteger(_depositValue) * BigInteger.Pow(10, 18)).ToString();
-                        var res = await _blockChainManager.BridgeDeposit(_bridgeSymbol, amountWei);
+                        var chain = _networkType == NetworkType.Polygon ? "POLYGON" : "BSC";
+                        // Server bridge block-reward-type codes (match BLDialogReward.BridgeIds): BCOIN=29, SEN=30.
+                        var serverType = _bridgeSymbol == "SEN" ? 30 : 29;
+                        FireBridgeNotify(BridgeNotifyKind.DepositPrepare, serverType, chain);
+                        var res = await _blockChainManager.BridgeDeposit(chain, _bridgeSymbol, amountWei);
                         success = res.success;
+                        if (success) FireBridgeNotify(BridgeNotifyKind.DepositDone, serverType, chain, res.txHash);
                     } else {
                         var category = _depositType switch {
                             RpcTokenCategory.Bcoin or RpcTokenCategory.Bomb => 0,

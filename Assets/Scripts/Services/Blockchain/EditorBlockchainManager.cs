@@ -228,35 +228,47 @@ namespace App {
             return (await Call("GET_FEE_FROM_HERO_ID_V2", new { id, category = (int)category }, false)).Value<double>();
         }
 
-        public override async Task<string> GetBridgeDeposited(string token) {
-            return (await Call("BRIDGE_GET_DEPOSITED", new { walletAddress = Wallet, token }, false)).ToString();
+        public override async Task<string> GetBridgeDeposited(string chain, string token) {
+            return (await Call("BRIDGE_GET_DEPOSITED", new { walletAddress = Wallet, token }, false, NetworkOf(chain))).ToString();
         }
 
-        public override async Task<string> GetBridgeWithdrawn(string token) {
-            return (await Call("BRIDGE_GET_WITHDRAWN", new { walletAddress = Wallet, token }, false)).ToString();
+        public override async Task<string> GetBridgeWithdrawn(string chain, string token) {
+            return (await Call("BRIDGE_GET_WITHDRAWN", new { walletAddress = Wallet, token }, false, NetworkOf(chain))).ToString();
         }
 
-        public override async Task<BridgeTxResult> BridgeDeposit(string token, string amountWei) {
-            var r = await Call("BRIDGE_DEPOSIT", new { walletAddress = Wallet, token, amountWei }, true);
+        public override async Task<bool> GetBridgeDepositEnabled(string chain) {
+            return (await Call("BRIDGE_GET_DEPOSIT_ENABLED", null, false, NetworkOf(chain))).Value<bool>();
+        }
+
+        public override async Task<bool> GetBridgeWithdrawEnabled(string chain) {
+            return (await Call("BRIDGE_GET_WITHDRAW_ENABLED", null, false, NetworkOf(chain))).Value<bool>();
+        }
+
+        public override async Task<BridgeTxResult> BridgeDeposit(string chain, string token, string amountWei) {
+            var r = await Call("BRIDGE_DEPOSIT", new { walletAddress = Wallet, token, amountWei }, true, NetworkOf(chain));
             return ParseTx(r);
         }
 
-        public override async Task<BridgeTxResult> BridgeWithdraw(string token, string grossWei, string beforeWei,
-            string signature) {
+        public override async Task<BridgeTxResult> BridgeWithdraw(string chain, string token, string otherDeposited,
+            long deadline, string signature) {
             var r = await Call("BRIDGE_WITHDRAW",
-                new { walletAddress = Wallet, token, grossWei, beforeWei, signature }, true);
+                new { walletAddress = Wallet, token, otherDeposited, deadline, signature }, true, NetworkOf(chain));
             return ParseTx(r);
         }
 
-        private async Task<JToken> Call(string command, object param, bool needKey) {
-            var jo = await PostGame(command, param, needKey);
+        private static string NetworkOf(string chain) {
+            return (chain ?? "").ToUpperInvariant() == "POLYGON" ? "amoy" : "bsctestnet";
+        }
+
+        private async Task<JToken> Call(string command, object param, bool needKey, string networkOverride = null) {
+            var jo = await PostGame(command, param, needKey, networkOverride);
             return jo["result"];
         }
 
-        private async Task<JObject> PostGame(string command, object param, bool needKey) {
+        private async Task<JObject> PostGame(string command, object param, bool needKey, string networkOverride = null) {
             LoadConfig();
             var body = new JObject {
-                ["network"] = NetworkName,
+                ["network"] = networkOverride ?? NetworkName,
                 ["command"] = command,
                 ["param"] = param != null ? JObject.FromObject(param) : new JObject(),
             };
@@ -282,6 +294,7 @@ namespace App {
             return new BridgeTxResult {
                 txHash = result?["txHash"]?.ToString() ?? "",
                 success = status != null && status.Type == JTokenType.Integer && (int)status == 1,
+                net = result?["net"]?.Value<double>() ?? 0,
             };
         }
     }

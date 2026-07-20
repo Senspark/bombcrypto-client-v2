@@ -182,7 +182,7 @@ namespace Game.Dialog.BomberLand.BLWallet {
                             }
                             break;
                     }
-                    slot.UiSetSelect(true);    
+                    slot.UiSetSelect(true);
                 } else {
                     slot.UiSetSelect(false);
                 }

@@ -72,7 +72,9 @@ namespace Game.Dialog.BomberLand.BLWallet {
         public void DisplayInfo(DataWallet info) {
             _info = info;
             var data = info.RefInfo;
-            if (info.RefTokenData != null) {
+            if (info.IsBridge && info.BridgeIcon) {
+                icon.sprite = info.BridgeIcon;
+            } else if (info.RefTokenData != null) {
                 icon.sprite = info.RefTokenData.icon;
             }
             contentText.text = data == null ? "" : data.content;

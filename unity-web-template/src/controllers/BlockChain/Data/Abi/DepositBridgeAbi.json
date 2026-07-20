@@ -12,8 +12,8 @@
   {
     "inputs": [
       { "internalType": "address", "name": "token", "type": "address" },
-      { "internalType": "uint256", "name": "gross", "type": "uint256" },
-      { "internalType": "uint256", "name": "totalWithdrawBefore", "type": "uint256" },
+      { "internalType": "uint256", "name": "otherDeposited", "type": "uint256" },
+      { "internalType": "uint256", "name": "deadline", "type": "uint256" },
       { "internalType": "bytes", "name": "signature", "type": "bytes" }
     ],
     "name": "withdraw",
@@ -54,5 +54,33 @@
     "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }],
     "stateMutability": "view",
     "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "depositEnabled",
+    "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "withdrawEnabled",
+    "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      { "indexed": true, "internalType": "address", "name": "user", "type": "address" },
+      { "indexed": true, "internalType": "address", "name": "token", "type": "address" },
+      { "indexed": false, "internalType": "uint256", "name": "amount", "type": "uint256" },
+      { "indexed": false, "internalType": "uint256", "name": "net", "type": "uint256" },
+      { "indexed": false, "internalType": "uint256", "name": "otherDeposited", "type": "uint256" },
+      { "indexed": false, "internalType": "uint256", "name": "deadline", "type": "uint256" },
+      { "indexed": false, "internalType": "uint256", "name": "withdrawnTotal", "type": "uint256" }
+    ],
+    "name": "Withdraw",
+    "type": "event"
   }
 ]

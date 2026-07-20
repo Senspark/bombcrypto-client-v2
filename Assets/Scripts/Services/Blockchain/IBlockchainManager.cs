@@ -84,6 +84,9 @@ namespace App {
     public class BridgeTxResult {
         public bool success;
         public string txHash;
+        // Net token amount received (after fee), read from the on-chain Withdraw
+        // event by the web/editor layer. 0 for deposit / failure.
+        public double net;
     }
     
     [Serializable]
@@ -182,9 +185,12 @@ namespace App {
         Task<bool> DepositTon(string invoice, double amount);
         Task<bool> DepositAirdrop(string invoice, string amount, string chainId);
 
-        Task<string> GetBridgeDeposited(string token);
-        Task<string> GetBridgeWithdrawn(string token);
-        Task<BridgeTxResult> BridgeDeposit(string token, string amountWei);
-        Task<BridgeTxResult> BridgeWithdraw(string token, string grossWei, string beforeWei, string signature);
+        Task<string> GetBridgeDeposited(string chain, string token);
+        Task<string> GetBridgeWithdrawn(string chain, string token);
+        void InvalidateBridgeRead(string chain, string token);
+        Task<bool> GetBridgeDepositEnabled(string chain);
+        Task<bool> GetBridgeWithdrawEnabled(string chain);
+        Task<BridgeTxResult> BridgeDeposit(string chain, string token, string amountWei);
+        Task<BridgeTxResult> BridgeWithdraw(string chain, string token, string otherDeposited, long deadline, string signature);
     }
 }

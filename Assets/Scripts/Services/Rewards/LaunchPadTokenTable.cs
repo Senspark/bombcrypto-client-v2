@@ -156,16 +156,6 @@ namespace Services.Rewards {
                     code = 28, sortOrder = 6, tokenName = BlockRewardType.BLCoin, displayName = "STAR CORE",
                     displayOnLaunchPad = true, alwaysDisplay = true, networkSymbol = DataType.VIC
                 },
-                new() {
-                    code = 29, sortOrder = 7, tokenName = BlockRewardType.BcoinBridge, displayName = "BCOIN BRIDGE",
-                    displayOnLaunchPad = true, alwaysDisplay = true, enableClaim = true, enableDeposit = true,
-                    minValueToClaim = 1, networkSymbol = DataType.BP
-                },
-                new() {
-                    code = 30, sortOrder = 8, tokenName = BlockRewardType.SenBridge, displayName = "SEN BRIDGE",
-                    displayOnLaunchPad = true, alwaysDisplay = true, enableClaim = true, enableDeposit = true,
-                    minValueToClaim = 1, networkSymbol = DataType.BP
-                },
             };
         }
     }

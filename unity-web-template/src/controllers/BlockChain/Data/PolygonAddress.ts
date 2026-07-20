@@ -54,10 +54,9 @@ export default class PolygonAddress implements IBlockchainAddress {
     }
 
     get DepositBridgeAddress(): string {
-        // Mainnet DepositBridge is deployed in Phase 8; testnet (Amoy) proxy only for now.
         return this._production
-            ? ""
-            : "0xD60Cb1E57f1AB0C281C95Db82eb37C9fe835F2D4";
+            ? "0xD84E8aCAcE2Bddb2Da8975340E83A165dA51FFc3"
+            : "0x97D80e2914bcBd6F957eE804c7B6fe844A0A1cd7";
     }
 
     get AirDropAddress(): string {

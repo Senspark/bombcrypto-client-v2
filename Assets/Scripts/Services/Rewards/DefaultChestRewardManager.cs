@@ -36,7 +36,7 @@ namespace App {
         // BSC/POLYGON thấy cả hai (cross-EVM) + TR; các network đơn chỉ thấy chính nó; VIC bị loại.
         private static HashSet<DataType> VisibleScopes(DataType current) {
             return current switch {
-                DataType.BSC or DataType.POLYGON => new HashSet<DataType> { DataType.BSC, DataType.POLYGON, DataType.TR, DataType.BP },
+                DataType.BSC or DataType.POLYGON => new HashSet<DataType> { DataType.BSC, DataType.POLYGON, DataType.TR },
                 DataType.TR => new HashSet<DataType> { DataType.TR },
                 DataType.TON => new HashSet<DataType> { DataType.TON },
                 DataType.SOL => new HashSet<DataType> { DataType.SOL },
@@ -156,16 +156,6 @@ namespace App {
 
         public float GetRock() {
             return GetChestReward(BlockRewardType.Rock);
-        }
-
-        // Bridge balance sống ở scope BP (chain-agnostic). Hook cho spending phase sau — Wallet UI đọc thẳng
-        // rewards array, không qua getter này. Generic GetChestReward(Bcoin/SenBridge) sẽ trả 0 (không có scope current/TR).
-        public float GetBcoinBridge() {
-            return ScopeValue(RewardUtils.ConvertToBlockRewardType(BlockRewardType.BcoinBridge), DataType.BP);
-        }
-
-        public float GetSenBridge() {
-            return ScopeValue(RewardUtils.ConvertToBlockRewardType(BlockRewardType.SenBridge), DataType.BP);
         }
 
         #endregion

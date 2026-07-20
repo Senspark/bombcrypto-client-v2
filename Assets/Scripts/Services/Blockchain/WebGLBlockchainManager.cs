@@ -248,20 +248,31 @@ namespace App {
             return _bridge.DepositAirdrop(invoice, amount, chainId);
         }
 
-        public Task<string> GetBridgeDeposited(string token) {
-            return _bridge.GetBridgeDeposited(_accountManager.Account, token);
+        public Task<string> GetBridgeDeposited(string chain, string token) {
+            return _bridge.GetBridgeDeposited(chain, _accountManager.Account, token);
         }
 
-        public Task<string> GetBridgeWithdrawn(string token) {
-            return _bridge.GetBridgeWithdrawn(_accountManager.Account, token);
+        public Task<string> GetBridgeWithdrawn(string chain, string token) {
+            return _bridge.GetBridgeWithdrawn(chain, _accountManager.Account, token);
         }
 
-        public Task<BridgeTxResult> BridgeDeposit(string token, string amountWei) {
-            return _bridge.BridgeDeposit(_accountManager.Account, token, amountWei);
+        public void InvalidateBridgeRead(string chain, string token) {
         }
 
-        public Task<BridgeTxResult> BridgeWithdraw(string token, string grossWei, string beforeWei, string signature) {
-            return _bridge.BridgeWithdraw(_accountManager.Account, token, grossWei, beforeWei, signature);
+        public Task<bool> GetBridgeDepositEnabled(string chain) {
+            return _bridge.GetBridgeDepositEnabled(chain);
+        }
+
+        public Task<bool> GetBridgeWithdrawEnabled(string chain) {
+            return _bridge.GetBridgeWithdrawEnabled(chain);
+        }
+
+        public Task<BridgeTxResult> BridgeDeposit(string chain, string token, string amountWei) {
+            return _bridge.BridgeDeposit(chain, _accountManager.Account, token, amountWei);
+        }
+
+        public Task<BridgeTxResult> BridgeWithdraw(string chain, string token, string otherDeposited, long deadline, string signature) {
+            return _bridge.BridgeWithdraw(chain, _accountManager.Account, token, otherDeposited, deadline, signature);
         }
     }
 }

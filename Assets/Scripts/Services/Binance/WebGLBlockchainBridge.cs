@@ -223,6 +223,10 @@ namespace App {
                 };
                 var response = await _unityCommunication.UnityToReact.CallBlockChain(BlockChainCommand.GET_PENDING_HERO, data);
                 _logManager.Log($"response = {response}");
+                if (response.IsNullOrEmpty()) {
+                    _logManager.Log("response is null or empty (RPC unavailable), returning empty ProcessToken");
+                    return default;
+                }
                 var result = JsonConvert.DeserializeObject<ProcessToken>(response);
                 _logManager.Log($"result = {result.pendingHeroes},{result.pendingHeroesFusion}");
                 return result;
@@ -860,10 +864,11 @@ namespace App {
             }
         }
 
-        public async Task<string> GetBridgeDeposited(string walletAddress, string token) {
+        public async Task<string> GetBridgeDeposited(string chain, string walletAddress, string token) {
             try {
                 _logManager.Log();
                 var data = new JObject {
+                    ["chain"] = chain,
                     ["walletAddress"] = walletAddress,
                     ["token"] = token
                 };
@@ -876,10 +881,11 @@ namespace App {
             }
         }
 
-        public async Task<string> GetBridgeWithdrawn(string walletAddress, string token) {
+        public async Task<string> GetBridgeWithdrawn(string chain, string walletAddress, string token) {
             try {
                 _logManager.Log();
                 var data = new JObject {
+                    ["chain"] = chain,
                     ["walletAddress"] = walletAddress,
                     ["token"] = token
                 };
@@ -892,10 +898,37 @@ namespace App {
             }
         }
 
-        public async Task<BridgeTxResult> BridgeDeposit(string walletAddress, string token, string amountWei) {
+        public async Task<bool> GetBridgeDepositEnabled(string chain) {
+            try {
+                _logManager.Log();
+                var data = new JObject { ["chain"] = chain };
+                var response = await _unityCommunication.UnityToReact.CallBlockChain(BlockChainCommand.BRIDGE_GET_DEPOSIT_ENABLED, data);
+                _logManager.Log($"result = {response}");
+                return bool.TryParse(response, out var enabled) && enabled;
+            } catch (Exception ex) {
+                Debug.LogException(ex);
+                throw;
+            }
+        }
+
+        public async Task<bool> GetBridgeWithdrawEnabled(string chain) {
+            try {
+                _logManager.Log();
+                var data = new JObject { ["chain"] = chain };
+                var response = await _unityCommunication.UnityToReact.CallBlockChain(BlockChainCommand.BRIDGE_GET_WITHDRAW_ENABLED, data);
+                _logManager.Log($"result = {response}");
+                return bool.TryParse(response, out var enabled) && enabled;
+            } catch (Exception ex) {
+                Debug.LogException(ex);
+                throw;
+            }
+        }
+
+        public async Task<BridgeTxResult> BridgeDeposit(string chain, string walletAddress, string token, string amountWei) {
             try {
                 _logManager.Log();
                 var data = new JObject {
+                    ["chain"] = chain,
                     ["walletAddress"] = walletAddress,
                     ["token"] = token,
                     ["amountWei"] = amountWei
@@ -910,15 +943,16 @@ namespace App {
             }
         }
 
-        public async Task<BridgeTxResult> BridgeWithdraw(string walletAddress, string token, string grossWei,
-            string beforeWei, string signature) {
+        public async Task<BridgeTxResult> BridgeWithdraw(string chain, string walletAddress, string token,
+            string otherDeposited, long deadline, string signature) {
             try {
                 _logManager.Log();
                 var data = new JObject {
+                    ["chain"] = chain,
                     ["walletAddress"] = walletAddress,
                     ["token"] = token,
-                    ["grossWei"] = grossWei,
-                    ["beforeWei"] = beforeWei,
+                    ["otherDeposited"] = otherDeposited,
+                    ["deadline"] = deadline,
                     ["signature"] = signature
                 };
                 var response = await _unityCommunication.UnityToReact.CallBlockChain(BlockChainCommand.BRIDGE_WITHDRAW, data);

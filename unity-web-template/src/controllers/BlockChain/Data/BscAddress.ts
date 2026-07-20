@@ -60,10 +60,9 @@ export default class BscAddress implements IBlockchainAddress {
     }
 
     get DepositBridgeAddress(): string {
-        // Mainnet DepositBridge is deployed in Phase 8; testnet proxy only for now.
         return this._production
-            ? ""
-            : "0xB3Ed4C979a957A14889b0Cda508963d22dA49832";
+            ? "0xC6aC72C83f72e7F86B7de91f5733c266Fc4F2273"
+            : "0xb34e148821082C7c73f094Be1E194b3474209bba";
     }
 
     get AirDropAddress(): string {

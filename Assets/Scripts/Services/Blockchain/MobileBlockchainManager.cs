@@ -294,19 +294,30 @@ namespace App {
             throw _notSupportException;
         }
 
-        public Task<string> GetBridgeDeposited(string token) {
+        public Task<string> GetBridgeDeposited(string chain, string token) {
             throw _notSupportException;
         }
 
-        public Task<string> GetBridgeWithdrawn(string token) {
+        public Task<string> GetBridgeWithdrawn(string chain, string token) {
             throw _notSupportException;
         }
 
-        public Task<BridgeTxResult> BridgeDeposit(string token, string amountWei) {
+        public void InvalidateBridgeRead(string chain, string token) {
+        }
+
+        public Task<bool> GetBridgeDepositEnabled(string chain) {
             throw _notSupportException;
         }
 
-        public Task<BridgeTxResult> BridgeWithdraw(string token, string grossWei, string beforeWei, string signature) {
+        public Task<bool> GetBridgeWithdrawEnabled(string chain) {
+            throw _notSupportException;
+        }
+
+        public Task<BridgeTxResult> BridgeDeposit(string chain, string token, string amountWei) {
+            throw _notSupportException;
+        }
+
+        public Task<BridgeTxResult> BridgeWithdraw(string chain, string token, string otherDeposited, long deadline, string signature) {
             throw _notSupportException;
         }
     }

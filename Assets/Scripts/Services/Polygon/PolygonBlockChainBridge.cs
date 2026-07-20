@@ -66,6 +66,10 @@ namespace App {
             try {
                 _logManager.Log();
                 var response = await _processor.CallMethod("GetPendingHeroV2", walletAddress);
+                if (string.IsNullOrEmpty(response)) {
+                    _logManager.Log("response is null or empty (RPC unavailable), returning empty ProcessToken");
+                    return default;
+                }
                 var result = JsonConvert.DeserializeObject<ProcessToken>(response);
                 _logManager.Log($"result = {result.pendingHeroes},{result.pendingHeroesFusion}");
                 return result;
@@ -240,21 +244,29 @@ namespace App {
             return _bridge.DepositAirdrop(invoice, amount, chainId);
         }
 
-        public Task<string> GetBridgeDeposited(string walletAddress, string token) {
-            return _bridge.GetBridgeDeposited(walletAddress, token);
+        public Task<string> GetBridgeDeposited(string chain, string walletAddress, string token) {
+            return _bridge.GetBridgeDeposited(chain, walletAddress, token);
         }
 
-        public Task<string> GetBridgeWithdrawn(string walletAddress, string token) {
-            return _bridge.GetBridgeWithdrawn(walletAddress, token);
+        public Task<string> GetBridgeWithdrawn(string chain, string walletAddress, string token) {
+            return _bridge.GetBridgeWithdrawn(chain, walletAddress, token);
         }
 
-        public Task<BridgeTxResult> BridgeDeposit(string walletAddress, string token, string amountWei) {
-            return _bridge.BridgeDeposit(walletAddress, token, amountWei);
+        public Task<bool> GetBridgeDepositEnabled(string chain) {
+            return _bridge.GetBridgeDepositEnabled(chain);
         }
 
-        public Task<BridgeTxResult> BridgeWithdraw(string walletAddress, string token, string grossWei,
-            string beforeWei, string signature) {
-            return _bridge.BridgeWithdraw(walletAddress, token, grossWei, beforeWei, signature);
+        public Task<bool> GetBridgeWithdrawEnabled(string chain) {
+            return _bridge.GetBridgeWithdrawEnabled(chain);
+        }
+
+        public Task<BridgeTxResult> BridgeDeposit(string chain, string walletAddress, string token, string amountWei) {
+            return _bridge.BridgeDeposit(chain, walletAddress, token, amountWei);
+        }
+
+        public Task<BridgeTxResult> BridgeWithdraw(string chain, string walletAddress, string token,
+            string otherDeposited, long deadline, string signature) {
+            return _bridge.BridgeWithdraw(chain, walletAddress, token, otherDeposited, deadline, signature);
         }
     }
 }

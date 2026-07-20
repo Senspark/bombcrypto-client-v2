@@ -23,8 +23,8 @@ namespace App.BomberLand {
         Task<float> ConfirmApproveClaimSuccess(int code);
         Task<IChestReward> SyncDeposited(DepositSyncTarget target = DepositSyncTarget.Both);
         IChestReward SyncDeposited(ISFSObject data);
-        Task<BridgeWithdrawResult> RequestCrosschainBridgeWithdraw(int blockRewardType, double amount, bool allIn, string chain);
-        Task ConfirmCrosschainBridgeDeposit(int blockRewardType);
+        Task<BridgeWithdrawResult> RequestCrosschainBridgeWithdraw(int blockRewardType, string chain);
+        Task NotifyCrosschainBridge(string kind, int blockRewardType, string chain, string txHash = null);
         Task<IAutoMinePackages> GetAutoMinePrice();
         Task<IChestReward> BuyAutoMine(string packageName, BlockRewardType blockRewardType);
         Task<IRockPackage> BuyRockPack(string packageName, BlockRewardType rewardType);

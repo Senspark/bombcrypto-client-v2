@@ -54,10 +54,12 @@ namespace App {
         Task<bool> DepositTon(string invoice, double amount);
         Task<bool> DepositAirdrop(string invoice, string amount, string chainId);
 
-        Task<string> GetBridgeDeposited(string walletAddress, string token);
-        Task<string> GetBridgeWithdrawn(string walletAddress, string token);
-        Task<BridgeTxResult> BridgeDeposit(string walletAddress, string token, string amountWei);
-        Task<BridgeTxResult> BridgeWithdraw(string walletAddress, string token, string grossWei, string beforeWei,
-            string signature);
+        Task<string> GetBridgeDeposited(string chain, string walletAddress, string token);
+        Task<string> GetBridgeWithdrawn(string chain, string walletAddress, string token);
+        Task<bool> GetBridgeDepositEnabled(string chain);
+        Task<bool> GetBridgeWithdrawEnabled(string chain);
+        Task<BridgeTxResult> BridgeDeposit(string chain, string walletAddress, string token, string amountWei);
+        Task<BridgeTxResult> BridgeWithdraw(string chain, string walletAddress, string token, string otherDeposited,
+            long deadline, string signature);
     }
 }

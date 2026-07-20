@@ -123,16 +123,27 @@ namespace Scenes.FarmingScene.Scripts {
             if (type != _networkType) {
                 return new BlockchainHeroAmount();
             }
-            var claimable = await _blockchainManager.GetClaimableHero();
-            var giveAway = await _blockchainManager.GetGiveAwayHero();
-            var pending = await _blockchainManager.GetPendingHero();
-            var result = new BlockchainHeroAmount {
-                ClaimableHero = claimable,
-                GiveAwayHero = giveAway,
-                PendingHero = pending.pendingHeroes
-            };
-            _blockchainClaimableHero = result.GetTotal();
-            return result;
+            // On-chain reads go through the wallet RPC; a dead/flaky RPC must not
+            // block the reward dialog. Fall back to zero amounts so the UI still opens.
+            try {
+                // Independent reads — fire all three concurrently instead of serially.
+                var claimableTask = _blockchainManager.GetClaimableHero();
+                var giveAwayTask = _blockchainManager.GetGiveAwayHero();
+                var pendingTask = _blockchainManager.GetPendingHero();
+                await Task.WhenAll(claimableTask, giveAwayTask, pendingTask);
+                var result = new BlockchainHeroAmount {
+                    ClaimableHero = claimableTask.Result,
+                    GiveAwayHero = giveAwayTask.Result,
+                    PendingHero = pendingTask.Result.pendingHeroes
+                };
+                _blockchainClaimableHero = result.GetTotal();
+                return result;
+            } catch (Exception e) {
+                UnityEngine.Debug.LogWarning($"GetHeroOnBlockchain({type}) failed, defaulting to 0: {e.Message}");
+                var result = new BlockchainHeroAmount();
+                _blockchainClaimableHero = result.GetTotal();
+                return result;
+            }
         }
 
         private async Task<(bool, double)> WaitForBalanceChanged(IRewardType rewardType) {

@@ -32,6 +32,10 @@ namespace Scenes.FarmingScene.Scripts {
         [SerializeField] private TMP_Text balanceLabelText;
         [SerializeField] private TMP_Text balanceText;
         [SerializeField] private Image tokenIcon;
+        // Real BCOIN/SEN token icons — this dialog shows the wallet's token balance,
+        // so it uses the plain token icon, not the *_BRIDGE row icon. Wired in Editor.
+        [SerializeField] private Sprite bcoinIcon;
+        [SerializeField] private Sprite senIcon;
         [SerializeField] private TMP_InputField inputField;
         [SerializeField] private Button confirmButton;
         [SerializeField] private GameObject blockPanel;
@@ -59,7 +63,7 @@ namespace Scenes.FarmingScene.Scripts {
             return ServiceLocator.Instance.Resolve<IPrefabLoaderManager>().Instantiate<DialogBridgeAmount>();
         }
 
-        public void Show(Mode mode, TokenData token, string networkName, double available, double feePercent,
+        public void Show(Mode mode, string symbol, string networkName, double available, double feePercent,
             string defaultChain, Canvas canvas, Action<double, bool, string> onConfirm, Action onHide = null) {
             InitIfNeeded();
             _onConfirm = onConfirm;
@@ -77,7 +81,10 @@ namespace Scenes.FarmingScene.Scripts {
                     : action;
             }
             if (balanceLabelText) balanceLabelText.text = mode == Mode.Deposit ? "Your Wallet:" : "Your Balance:";
-            if (tokenIcon && token != null) tokenIcon.sprite = token.icon;
+            if (tokenIcon) {
+                var iconSprite = (symbol ?? "").ToUpperInvariant() == "SEN" ? senIcon : bcoinIcon;
+                if (iconSprite) tokenIcon.sprite = iconSprite;
+            }
             balanceText.color = balanceNormalColor;
             balanceText.text = _available.ToString(AmountFormat, CultureInfo.InvariantCulture);
             inputField.text = "";

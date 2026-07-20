@@ -80,6 +80,8 @@ export class BlockChainConfig{
 
         this.actions.set(BlockChainCommand.BRIDGE_GET_DEPOSITED, this._contractManager.getBridgeDeposited.bind(this._contractManager));
         this.actions.set(BlockChainCommand.BRIDGE_GET_WITHDRAWN, this._contractManager.getBridgeWithdrawn.bind(this._contractManager));
+        this.actions.set(BlockChainCommand.BRIDGE_GET_DEPOSIT_ENABLED, this._contractManager.getBridgeDepositEnabled.bind(this._contractManager));
+        this.actions.set(BlockChainCommand.BRIDGE_GET_WITHDRAW_ENABLED, this._contractManager.getBridgeWithdrawEnabled.bind(this._contractManager));
         this.actions.set(BlockChainCommand.BRIDGE_DEPOSIT, this._contractManager.bridgeDeposit.bind(this._contractManager));
         this.actions.set(BlockChainCommand.BRIDGE_WITHDRAW, this._contractManager.bridgeWithdraw.bind(this._contractManager));
     }

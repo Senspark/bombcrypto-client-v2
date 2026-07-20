@@ -16,22 +16,34 @@ using SuperTiled2Unity;
 using UnityEngine;
 
 namespace App.BomberLand {
+    // Bridge activity kinds reported to the server (NotifyCrosschainBridge). Must match the server's
+    // CrosschainDepositBridgeNotifyKind. The client only sends these three; withdraw_request is server-side.
+    public static class BridgeNotifyKind {
+        public const string DepositPrepare = "deposit_prepare";
+        public const string DepositDone = "deposit_done";
+        public const string WithdrawDone = "withdraw_done";
+    }
+
+    // Carries the EIP-191 signature + the parameters the user relays on-chain via
+    // withdraw(token, otherDeposited, deadline, signature).
     public class BridgeWithdrawResult {
         public int Code;
         public string Message;
-        public string NetWei;
-        public string TxHash;
-        public string Status;
-        public int BlockRewardType;
+        public string Signature;
+        public string OtherDeposited;
+        public long Deadline;
+        public string BridgeAddress;
+        public string TokenAddress;
         public string Chain;
 
         public BridgeWithdrawResult(ISFSObject data) {
             Code = data.ContainsKey("code") ? data.GetInt("code") : 0;
             Message = data.ContainsKey("message") ? data.GetUtfString("message") : null;
-            NetWei = data.ContainsKey("net") ? data.GetUtfString("net") : null;
-            TxHash = data.ContainsKey("tx_hash") ? data.GetUtfString("tx_hash") : null;
-            Status = data.ContainsKey("status") ? data.GetUtfString("status") : null;
-            BlockRewardType = data.ContainsKey("block_reward_type") ? data.GetInt("block_reward_type") : 0;
+            Signature = data.ContainsKey("signature") ? data.GetUtfString("signature") : null;
+            OtherDeposited = data.ContainsKey("other_deposited") ? data.GetUtfString("other_deposited") : null;
+            Deadline = data.ContainsKey("deadline") ? data.GetLong("deadline") : 0;
+            BridgeAddress = data.ContainsKey("bridge_address") ? data.GetUtfString("bridge_address") : null;
+            TokenAddress = data.ContainsKey("token_address") ? data.GetUtfString("token_address") : null;
             Chain = data.ContainsKey("chain") ? data.GetUtfString("chain") : null;
         }
     }

@@ -17,8 +17,8 @@ namespace Editor {
 
         private static readonly string[] NetworkNames = { "bsctestnet", "amoy" };
         private static readonly string[,] Defaults = {
-            { "0xB3Ed4C979a957A14889b0Cda508963d22dA49832", "0x648a9cf8e95c73110d28e7e2329b2d0910bd36b8", "0x4B5828F31550aFe15C61D7a765D9597ad4282325" },
-            { "0xD60Cb1E57f1AB0C281C95Db82eb37C9fe835F2D4", "0xcF693b54F86c49bbBa54Ff887488Bbf84C5D05BF", "0x93567522610828695F36178b180989996082404A" },
+            { "0xb34e148821082C7c73f094Be1E194b3474209bba", "0x648a9cf8e95c73110d28e7e2329b2d0910bd36b8", "0x4B5828F31550aFe15C61D7a765D9597ad4282325" },
+            { "0x97D80e2914bcBd6F957eE804c7B6fe844A0A1cd7", "0xcF693b54F86c49bbBa54Ff887488Bbf84C5D05BF", "0x93567522610828695F36178b180989996082404A" },
         };
         private static readonly string[] TokenLabels = { "BCOIN", "SEN" };
 

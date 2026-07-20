@@ -262,7 +262,7 @@ namespace App {
                 new InformationData {
                     displayName = "BCOIN BRIDGE",
                     code = new[] { "BCOIN_BRIDGE" },
-                    network = "BP",
+                    network = null,
                     content =
                         "You can claim BCOIN in deposit with 5% fees\n\n" +
                         "BCOIN can be withdrawn/deposited in BNB or POLYGON network\n"
@@ -270,7 +270,7 @@ namespace App {
                 new InformationData {
                     displayName = "SEN BRIDGE",
                     code = new[] { "SEN_BRIDGE" },
-                    network = "BP",
+                    network = null,
                     content =
                         "You can claim SEN in deposit with 5% fees\n\n" +
                         "SEN can be withdrawn/deposited in BNB or POLYGON network\n"

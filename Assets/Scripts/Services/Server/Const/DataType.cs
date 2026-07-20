@@ -8,7 +8,6 @@ namespace App
         SOL,
         RON,
         BAS,
-        VIC,
-        BP
+        VIC
     }
 }

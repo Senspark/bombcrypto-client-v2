@@ -41,12 +41,6 @@ namespace App {
         float GetSenRewardAndDeposit(DataType network);
         float GetRock();
 
-        /// <summary>
-        /// Số dư bridge (scope BP, chain-agnostic). Hook cho spending phase sau.
-        /// </summary>
-        float GetBcoinBridge();
-        float GetSenBridge();
-
         void SetChestReward(BlockRewardType type, float value);
 
         float AdjustChestReward(IRewardType type, float addValue);

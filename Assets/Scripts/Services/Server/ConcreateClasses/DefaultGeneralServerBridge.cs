@@ -160,16 +160,12 @@ namespace App.BomberLand {
             _pendingClaimTcs?.TrySetException(reason);
         }
 
-        private const int BridgeWithdrawTimeoutMs = 130_000;
+        // view-call + sign only, no tx mined.
+        private const int BridgeWithdrawTimeoutMs = 15_000;
 
-        public async Task<BridgeWithdrawResult> RequestCrosschainBridgeWithdraw(int blockRewardType, double amount, bool allIn, string chain) {
+        public async Task<BridgeWithdrawResult> RequestCrosschainBridgeWithdraw(int blockRewardType, string chain) {
             var data = new SFSObject();
             data.PutInt("block_reward_type", blockRewardType);
-            if (allIn) {
-                data.PutBool("all_in", true);
-            } else {
-                data.PutDouble("amount", amount);
-            }
             if (!string.IsNullOrEmpty(chain)) {
                 data.PutUtfString(SFSDefine.SFSField.Chain, chain);
             }
@@ -178,14 +174,23 @@ namespace App.BomberLand {
             return OnCrosschainBridgeWithdraw(response);
         }
 
-        public async Task ConfirmCrosschainBridgeDeposit(int blockRewardType) {
+        // Fire-and-forget bridge activity report (before/after deposit, after withdraw). The server re-emits it
+        // so the indexer accelerates its sweep; there's no business result, we just await the ack. Wallet is
+        // taken server-side from the session. Callers should not block the on-chain flow on this.
+        public async Task NotifyCrosschainBridge(string kind, int blockRewardType, string chain, string txHash = null) {
             var data = new SFSObject();
+            data.PutUtfString(SFSDefine.SFSField.Kind, kind);
             data.PutInt("block_reward_type", blockRewardType);
-            var response = await _serverDispatcher.SendCmd(new CmdCrosschainDepositBridgeConfirmDeposit(data))
+            if (!string.IsNullOrEmpty(chain)) {
+                data.PutUtfString(SFSDefine.SFSField.Chain, chain);
+            }
+            if (!string.IsNullOrEmpty(txHash)) {
+                data.PutUtfString(SFSDefine.SFSField.TxHash, txHash);
+            }
+            await _serverDispatcher.SendCmd(new CmdCrosschainDepositBridgeNotify(data))
                 .TimeoutAfter(BridgeWithdrawTimeoutMs);
-            OnCrosschainBridgeConfirmDeposit(response);
         }
-        
+
         public async Task<float> ConfirmApproveClaimSuccess(int code) {
             var data = new SFSObject().Apply(it => {
                 it.PutInt("block_reward_type", code);

@@ -1,6 +1,5 @@
 using App;
 using Data;
-using UnityEngine;
 using DeviceType = App.DeviceType;
 
 namespace Services.Server {
@@ -32,7 +31,7 @@ namespace Services.Server {
             JwtToken = jwtToken;
             UserName = userName;
             Slogan = SFSDefine.GetSlogans(EntryPoint.Login);
-            DeviceType = Application.isMobilePlatform
+            DeviceType = AppConfig.IsMobile()
                 ? DeviceType.Mobile
                 : DeviceType.Web;
             Landing = RuntimeConfig.LandingWire;
@@ -77,7 +76,7 @@ namespace Services.Server {
             UserData = userData;
             Platform = platform;
             LoginType = (int)App.LoginType.Telegram;
-            DeviceType = Application.isMobilePlatform
+            DeviceType = AppConfig.IsMobile()
                 ? DeviceType.Mobile
                 : DeviceType.Web;
             ReferralCode = referralCode;
@@ -102,7 +101,7 @@ namespace Services.Server {
             UserData = userData;
             Platform = platform;
             LoginType = (int)App.LoginType.Solana;;
-            DeviceType = Application.isMobilePlatform
+            DeviceType = AppConfig.IsMobile()
                 ? DeviceType.Mobile
                 : DeviceType.Web;
             TimeOut = 60;

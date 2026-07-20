@@ -208,20 +208,31 @@ namespace App {
             return Task.FromResult(true);
         }
 
-        public virtual Task<string> GetBridgeDeposited(string token) {
+        public virtual Task<string> GetBridgeDeposited(string chain, string token) {
             return Task.FromResult("0");
         }
 
-        public virtual Task<string> GetBridgeWithdrawn(string token) {
+        public virtual Task<string> GetBridgeWithdrawn(string chain, string token) {
             return Task.FromResult("0");
         }
 
-        public virtual Task<BridgeTxResult> BridgeDeposit(string token, string amountWei) {
+        public virtual void InvalidateBridgeRead(string chain, string token) {
+        }
+
+        public virtual Task<bool> GetBridgeDepositEnabled(string chain) {
+            return Task.FromResult(true);
+        }
+
+        public virtual Task<bool> GetBridgeWithdrawEnabled(string chain) {
+            return Task.FromResult(true);
+        }
+
+        public virtual Task<BridgeTxResult> BridgeDeposit(string chain, string token, string amountWei) {
             return Task.FromResult(new BridgeTxResult { success = true, txHash = "" });
         }
 
-        public virtual Task<BridgeTxResult> BridgeWithdraw(string token, string grossWei, string beforeWei,
-            string signature) {
+        public virtual Task<BridgeTxResult> BridgeWithdraw(string chain, string token, string otherDeposited,
+            long deadline, string signature) {
             return Task.FromResult(new BridgeTxResult { success = true, txHash = "" });
         }
     }

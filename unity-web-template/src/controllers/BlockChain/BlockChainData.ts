@@ -26,6 +26,18 @@ export interface IRpcToken {
     digit: number;
 }
 
+// Per-chain bridge config, keyed by the chain name Unity sends ("BSC" | "POLYGON").
+// Cross-chain reads/writes resolve the bridge + token address by target chain,
+// independent of the wallet's login chain.
+export interface IBridgeChain {
+    chainId: number;
+    bridgeAddress: string;
+    tokens: { BCOIN: string; SEN: string };
+}
+
+export const BRIDGE_CHAIN_BSC = "BSC";
+export const BRIDGE_CHAIN_POLYGON = "POLYGON";
+
 export default class BlockChainData implements IBlockchainData {
     coin_token_address: string;
     senspark_token_address: string;
@@ -35,7 +47,6 @@ export default class BlockChainData implements IBlockchainData {
     hero_extended_address: string;
     house_token_address: string;
     deposit_address: string;
-    deposit_bridge_address: string;
     air_drop_address: string;
     claim_manager_address: string;
     exchange_event_address: string;
@@ -56,7 +67,8 @@ export default class BlockChainData implements IBlockchainData {
     hero_stake_abi: JSON = {} as JSON;
 
     rpcTokens: IRpcToken[];
-    
+    bridge_chains: { [chain: string]: IBridgeChain };
+
     private readonly _bscAddress: IBlockchainAddress;
     private readonly _polygonAddress: IBlockchainAddress;
     private readonly _roninAddress: IBlockchainAddress;
@@ -80,7 +92,6 @@ export default class BlockChainData implements IBlockchainData {
         this.hero_extended_address = address.HeroExtendedAddress;
         this.house_token_address = address.HouseTokenAddress;
         this.deposit_address = address.DepositAddress;
-        this.deposit_bridge_address = address.DepositBridgeAddress;
         this.air_drop_address = address.AirDropAddress;
         this.claim_manager_address = address.ClaimManagerAddress;
         this.exchange_event_address = address.CoinExchangeAddress;
@@ -89,6 +100,28 @@ export default class BlockChainData implements IBlockchainData {
         this.loadAbi();
 
         this.rpcTokens = this.getRpc(isProd);
+        this.bridge_chains = this.getBridgeChains(isProd);
+    }
+
+    private getBridgeChains(isProd: boolean): { [chain: string]: IBridgeChain } {
+        return {
+            [BRIDGE_CHAIN_BSC]: {
+                chainId: isProd ? 56 : 97,
+                bridgeAddress: this._bscAddress.DepositBridgeAddress,
+                tokens: {
+                    BCOIN: this._bscAddress.CoinTokenAddress,
+                    SEN: this._bscAddress.SensparkTokenAddress,
+                },
+            },
+            [BRIDGE_CHAIN_POLYGON]: {
+                chainId: isProd ? 137 : 80002,
+                bridgeAddress: this._polygonAddress.DepositBridgeAddress,
+                tokens: {
+                    BCOIN: this._polygonAddress.CoinTokenAddress,
+                    SEN: this._polygonAddress.SensparkTokenAddress,
+                },
+            },
+        };
     }
 
     loadAbi() {

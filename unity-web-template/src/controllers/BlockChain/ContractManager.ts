@@ -78,10 +78,10 @@ export class ContractManager {
             config.hero_stake_abi
         );
         this._depositBridge = new DepositBridge(
-            config.deposit_bridge_address,
+            config.bridge_chains,
             config.deposit_bridge_abi,
-            this._bcoinToken,
-            this._sensparkToken
+            config.coin_token_abi,
+            this._rpcService
         );
 
         setToken("bcoin", this._bcoinToken);
@@ -383,28 +383,42 @@ export class ContractManager {
     }
 
 
-    // ── Cross-chain DepositBridge (Phase 7c) ──
-    // Reads return wei as a decimal string; deposit/withdraw return JSON {success, txHash}.
+    // ── Cross-chain DepositBridge ──
+    // `chain` (BSC | POLYGON) is the target chain of the operation, resolved
+    // independently of the wallet's login chain. Reads return wei as a decimal
+    // string; deposit/withdraw return JSON {success, txHash}; enabled returns "true"/"false".
     async getBridgeDeposited(args: string): Promise<string> {
-        const data = JSON.parse(args) as { walletAddress: string, token: string };
-        return await this._depositBridge.getDeposited(data.walletAddress, data.token);
+        const data = JSON.parse(args) as { chain: string, walletAddress: string, token: string };
+        return await this._depositBridge.getDeposited(data.chain, data.walletAddress, data.token);
     }
 
     async getBridgeWithdrawn(args: string): Promise<string> {
-        const data = JSON.parse(args) as { walletAddress: string, token: string };
-        return await this._depositBridge.getWithdrawn(data.walletAddress, data.token);
+        const data = JSON.parse(args) as { chain: string, walletAddress: string, token: string };
+        return await this._depositBridge.getWithdrawn(data.chain, data.walletAddress, data.token);
+    }
+
+    async getBridgeDepositEnabled(args: string): Promise<string> {
+        const data = JSON.parse(args) as { chain: string };
+        return JSON.stringify(await this._depositBridge.getDepositEnabled(data.chain));
+    }
+
+    async getBridgeWithdrawEnabled(args: string): Promise<string> {
+        const data = JSON.parse(args) as { chain: string };
+        return JSON.stringify(await this._depositBridge.getWithdrawEnabled(data.chain));
     }
 
     async bridgeDeposit(args: string): Promise<string> {
-        const data = JSON.parse(args) as { walletAddress: string, token: string, amountWei: string };
-        return JSON.stringify(await this._depositBridge.deposit(data.walletAddress, data.token, data.amountWei));
+        const data = JSON.parse(args) as { chain: string, walletAddress: string, token: string, amountWei: string };
+        return JSON.stringify(await this._depositBridge.deposit(data.chain, data.walletAddress, data.token, data.amountWei));
     }
 
     async bridgeWithdraw(args: string): Promise<string> {
         const data = JSON.parse(args) as {
-            walletAddress: string, token: string, grossWei: string, beforeWei: string, signature: string
+            chain: string, walletAddress: string, token: string,
+            otherDeposited: string, deadline: number | string, signature: string
         };
-        return JSON.stringify(await this._depositBridge.withdraw(data.token, data.grossWei, data.beforeWei, data.signature));
+        return JSON.stringify(await this._depositBridge.withdraw(
+            data.chain, data.token, data.otherDeposited, String(data.deadline), data.signature));
     }
 
     // Test method

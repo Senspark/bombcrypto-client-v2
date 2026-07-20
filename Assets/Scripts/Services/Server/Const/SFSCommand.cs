@@ -64,7 +64,7 @@ public static partial class SFSDefine {
         public const string CONFIRM_CLAIM_REWARD_SUCCESS_V2 = "CONFIRM_CLAIM_REWARD_SUCCESS_V2";
         public const string SYNC_DEPOSITED_V4 = "SYNC_DEPOSITED_V4";
         public const string CROSSCHAIN_DEPOSIT_BRIDGE_WITHDRAW = "CROSSCHAIN_DEPOSIT_BRIDGE_WITHDRAW";
-        public const string CROSSCHAIN_DEPOSIT_BRIDGE_CONFIRM_DEPOSIT = "CROSSCHAIN_DEPOSIT_BRIDGE_CONFIRM_DEPOSIT";
+        public const string CROSSCHAIN_DEPOSIT_BRIDGE_NOTIFY = "CROSSCHAIN_DEPOSIT_BRIDGE_NOTIFY";
         public const string BUY_ROCK_V2 = "BUY_ROCK_V2";
         public const string REPAIR_SHIELD_V2 = "REPAIR_SHIELD_V2";
         public const string CHANGE_MINING_TOKEN = "CHANGE_MINING_TOKEN";
