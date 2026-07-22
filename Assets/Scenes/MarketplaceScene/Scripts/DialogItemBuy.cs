@@ -86,9 +86,9 @@ namespace Scenes.MarketplaceScene.Scripts {
                 } catch (Exception e) {
                     _analytics.TrackConversion(ConversionType.BuyMarketItemFail);
                     if (e is ErrorCodeException) {
-                        await DialogError.ShowError(DialogCanvas, e.Message, ()=>{  _isClicked = false;});
+                        await DialogError.ShowError(DialogCanvas, e, ()=>{  _isClicked = false;});
                     } else {
-                        DialogOK.ShowError(DialogCanvas, e.Message, ()=>{  _isClicked = false;});
+                        DialogOK.ShowError(DialogCanvas, e, ()=>{  _isClicked = false;});
                     }
                 } finally {
                     waiting.End();

@@ -1,18 +1,19 @@
 using System.Collections.Generic;
-using System.Threading.Tasks;
+using Cysharp.Threading.Tasks;
+using Game.UI;
 using Senspark;
 using Services.Rewards;
 
 namespace App {
     [Service(nameof(ILaunchPadManager))]
     public interface ILaunchPadManager : IService {
-        Task SyncRemoteData();
-        bool CanShowInLaunchPad(IRewardType type, NetworkSymbol symbol);
+        UniTask SyncRemoteData();
+        bool CanShowInLaunchPad(IRewardType type, DataType symbol);
         bool CanShowInLaunchPad(ITokenReward type);
-        bool CanClaim(IRewardType type, NetworkSymbol symbol, float rewardValue);
-        (float, string) GetClaimFee(IRewardType type, NetworkSymbol symbol);
+        bool CanClaim(IRewardType type, DataType symbol, float rewardValue);
+        (float, string) GetClaimFee(IRewardType type, DataType symbol);
 
-        TokenData GetData(IRewardType type, NetworkSymbol symbol);
+        TokenData GetData(IRewardType type, DataType symbol);
         TokenData GetData(ITokenReward type);
 
         /// <summary>
@@ -26,6 +27,6 @@ namespace App {
         List<TokenData> GetForceDisplayTokensBase();
         List<TokenData> GetForceDisplayTokensViction();
         
-        IRewardType CreateRewardType(string tokenType);
+        IRewardType CreateRewardType(BlockRewardType type);
     }
 }

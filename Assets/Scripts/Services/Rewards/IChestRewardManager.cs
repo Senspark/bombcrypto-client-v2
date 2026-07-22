@@ -1,92 +1,61 @@
 ﻿using System;
 
-using Scenes.TreasureModeScene.Scripts.Solana.Server_Response;
+using Game.UI;
 
 using Senspark;
-
-using Services.Rewards;
-
-using Sfs2X.Entities.Data;
 
 namespace App {
     [Service(nameof(IChestRewardManager))]
     public interface IChestRewardManager : IService, IObserverManager<ChestRewardManagerObserver> {
+        /// <summary>
+        /// Set DataType (network / user kind) hiện tại của account — nguồn chuẩn là data_type từ login response.
+        /// Mặc định TR cho tới khi được set.
+        /// </summary>
+        void SetCurrentNetwork(DataType dataType);
+
         void InitNewChestReward(IChestReward rewards);
 
         /// <summary>
         /// Lấy Chest reward của Network mong muốn
         /// </summary>
-        float GetChestRewardByNetwork(BlockRewardType type, NetworkType network);
-
-        /// <summary>
-        /// Lấy Chest reward của Network mong muốn
-        /// </summary>
-        float GetChestRewardByNetwork(IRewardType type, NetworkSymbol network);
+        float GetChestRewardByNetwork(IRewardType type, DataType network);
 
         /// <summary>
         /// Lấy Chest reward của Network đang sử dụng
         /// </summary>
         float GetChestReward(BlockRewardType type);
-        
+
         /// <summary>
         /// Lấy Chest reward của Network được truyền vào
         /// </summary>
-        float GetChestReward(BlockRewardType type, string dataType);
+        float GetChestReward(BlockRewardType type, DataType dataType);
 
         /// <summary>
         /// Lấy Chest reward của Network đang sử dụng
         /// </summary>
         float GetChestReward(IRewardType type);
 
-        /// <summary>
-        /// Lấy Chest reward của Network đang sử dụng
-        /// </summary>
-        float GetChestReward(string type);
-
         float GetBcoinRewardAndDeposit();
         float GetSenRewardAndDeposit();
-        float GetBcoinRewardAndDeposit(string network);
-        float GetSenRewardAndDeposit(string network);
+        float GetBcoinRewardAndDeposit(DataType network);
+        float GetSenRewardAndDeposit(DataType network);
         float GetRock();
 
-        void SetChestReward(IRewardType type, float value);
         void SetChestReward(BlockRewardType type, float value);
-        void SetChestReward(string type, float value);
 
         float AdjustChestReward(IRewardType type, float addValue);
         float AdjustChestReward(BlockRewardType type, float addValue);
-        float AdjustChestReward(string type, float addValue);
 
         /// <summary>
         /// Lấy Pending Reward của Network mong muốn
         /// </summary>
-        float GetClaimPendingRewardByNetwork(BlockRewardType type, NetworkType network);
-        
-        /// <summary>
-        /// Lấy Pending Reward của Network mong muốn
-        /// </summary>
-        float GetClaimPendingRewardByNetwork(IRewardType type, NetworkSymbol network);
-
-        /// <summary>
-        /// Lấy Pending Reward của Network đang sử dụng
-        /// </summary>
-        float GetClaimPendingReward(IRewardType type);
-
-        /// <summary>
-        /// Lấy Pending Reward của Network đang sử dụng
-        /// </summary>
-        float GetClaimPendingReward(BlockRewardType type);
-
-        /// <summary>
-        /// Lấy Pending Reward của Network đang sử dụng
-        /// </summary>
-        float GetClaimPendingReward(string type);
-
-        IChestReward ParseChestReward(ISFSObject data);
+        float GetClaimPendingRewardByNetwork(IRewardType type, DataType network);
     }
 
     public class ChestRewardManagerObserver {
-        public Action<BlockRewardType, double> OnRewardChanged;
-        public Action<BlockRewardType, double, string> OnSameNetworkRewardChanged;
+        /// <summary>
+        /// Bắn mỗi khi balance của (token, scope) thay đổi. scope = DataType của entry (TR/BSC/POLYGON/…).
+        /// </summary>
+        public Action<BlockRewardType, DataType, double> OnRewardBalanceChanged;
     }
 }

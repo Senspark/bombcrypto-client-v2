@@ -348,7 +348,7 @@ public class ClubInfoTab : MonoBehaviour {
                 await _serverManager.General.LeaveClub();
                 UpdateLeaveClubInfo();
             } catch (Exception ex) {
-                DialogError.ShowError(_canvas, ex.Message);
+                DialogError.ShowError(_canvas, ex);
                 Debug.LogError(ex);
             } finally {
                 dialog.Hide();
@@ -366,7 +366,7 @@ public class ClubInfoTab : MonoBehaviour {
                 _dialogClub.UpdateClubInfo(newClubInfo);
                 SetInfo(newClubInfo);
             } catch (Exception ex) {
-                DialogError.ShowError(_canvas, ex.Message);
+                DialogError.ShowError(_canvas, ex);
                 Debug.LogError(ex);
             } finally {
                 dialog.Hide();

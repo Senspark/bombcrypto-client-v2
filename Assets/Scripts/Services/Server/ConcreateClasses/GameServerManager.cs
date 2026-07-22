@@ -70,7 +70,7 @@ namespace App {
             IServerConfig config,
             ILogManager logManager,
             IStorageManager storageManager,
-            IPlayerStorageManager playerStorageManager,
+            IBHeroManager bHeroManager,
             IHouseStorageManager houseStorageManager,
             IChestRewardManager chestRewardManager,
             IClaimTokenServerBridge claimTokenServerBridge,
@@ -80,7 +80,8 @@ namespace App {
             IUserAccountManager userAccountManager,
             IMasterUnityCommunication unityCommunication,
             IExtResponseEncoder encoder,
-            IServerNotifyManager serverNotifyManager
+            IServerNotifyManager serverNotifyManager,
+            IDedupServerRequester dedup
         ) {
             _enableLog = enableLog;
             _logManager = logManager;
@@ -96,10 +97,10 @@ namespace App {
             _userAccountManager = userAccountManager;
 
             CacheRequestManager = new DefaultCacheRequestManager(_logManager, _api);
-            Pvp = new DefaultPvpServerBridge(this, enableLog, _requestBuilder, _taskDelay);
-            StoryMode = new DefaultStoryModeServerBridge(this, this);
+            Pvp = new DefaultPvpServerBridge(this, enableLog, _requestBuilder, _taskDelay, dedup);
+            StoryMode = new DefaultStoryModeServerBridge(this, this, dedup);
             Pve = new DefaultPveServerBridge(
-                playerStorageManager,
+                bHeroManager,
                 houseStorageManager,
                 storageManager,
                 this
@@ -109,7 +110,7 @@ namespace App {
             General = new DefaultGeneralServerBridge(
                 enableLog,
                 storageManager,
-                playerStorageManager,
+                bHeroManager,
                 houseStorageManager,
                 chestRewardManager,
                 claimTokenServerBridge,
@@ -120,7 +121,8 @@ namespace App {
                 _taskDelay,
                 CacheRequestManager,
                 taskTonManager,
-                onBoardingManager
+                onBoardingManager,
+                dedup
             );
             Marketplace = new Services.Server.Marketplace(_logManager, this, General);
 

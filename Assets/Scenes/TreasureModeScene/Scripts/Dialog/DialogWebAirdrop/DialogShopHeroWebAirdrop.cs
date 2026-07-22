@@ -68,7 +68,7 @@ public class DialogShopHeroWebAirdrop : Dialog
     private IServerManager _serverManager;
     private IAnalytics _analytics;
     private IChestRewardManager _chestRewardManager;
-    private IPlayerStorageManager _playerStore;
+    private IBHeroManager _playerStore;
 
     public static UniTask<DialogShopHeroWebAirdrop> Create() {
         return ServiceLocator.Instance.Resolve<IPrefabLoaderManager>().Instantiate<DialogShopHeroWebAirdrop>();
@@ -82,7 +82,7 @@ public class DialogShopHeroWebAirdrop : Dialog
         _analytics = ServiceLocator.Instance.Resolve<IAnalytics>();
         _serverManager = ServiceLocator.Instance.Resolve<IServerManager>();
         _chestRewardManager = ServiceLocator.Instance.Resolve<IChestRewardManager>();
-        _playerStore = ServiceLocator.Instance.Resolve<IPlayerStorageManager>();
+        _playerStore = ServiceLocator.Instance.Resolve<IBHeroManager>();
     }
 
     public void Init() {
@@ -304,9 +304,9 @@ public class DialogShopHeroWebAirdrop : Dialog
                 }
             } catch (Exception e) {
                 if (e is ErrorCodeException) {
-                    DialogError.ShowError(DialogCanvas, e.Message);
+                    DialogError.ShowError(DialogCanvas, e);
                 } else {
-                    DialogOK.ShowError(DialogCanvas, e.Message);
+                    DialogOK.ShowError(DialogCanvas, e);
                 }
             } finally {
                 waiting.End();

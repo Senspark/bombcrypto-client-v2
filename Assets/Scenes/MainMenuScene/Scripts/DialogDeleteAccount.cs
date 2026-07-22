@@ -68,7 +68,7 @@ namespace Scenes.MainMenuScene.Scripts {
                     if (e.Message == "kick") {
                         App.Utils.KickToConnectScene();
                     } else {
-                        DialogOK.ShowError(DialogCanvas, e.Message);
+                        DialogOK.ShowError(DialogCanvas, e);
                         ResetUI();
                     }
                 } finally {

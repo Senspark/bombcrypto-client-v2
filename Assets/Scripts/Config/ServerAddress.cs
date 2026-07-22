@@ -18,68 +18,68 @@ namespace App {
         private static string SvProdSolana => AppConfig.ServerAddresses?.svProdSolana;
         private static string SvProdWebAirdrop => AppConfig.ServerAddresses?.svProdWebAirdrop;
 
-        private const string PingMain = "127.0.0.1";
-        private const string SvLocal = "127.0.0.1";
+        private const string SvLocal = "localhost";
 
         public const int WsPort = 8080;
         public const int WssPort = 8443;
         public const int TcpPort = 9933;
 
-        private static readonly List<Info> ServerTestForWebBuild = new() {
-            // new Info("Production", SvProd, WssPort, true, PingMain),
-            // new Info("Test", SvTestV1, WssPort, false, PingMain),
-            // new Info("Test 2", SvTestV2, WssPort, false, PingMain),
-            new Info("___ ws", SvLocal, WsPort, false, PingMain),
-            // new Info("___ tcp", SvLocal, TcpPort, false, PingMain),
-        };
+        // webBuild address comes from AppConfig; port is inferred (localhost/127.0.0.1 -> ws, domain -> wss).
+        private static readonly List<Info> ServerTestForWebBuild = BuildWebBuildTestList(AppConfig.ServerAddresses?.testServers?.webBuild);
+
+        private static List<Info> BuildWebBuildTestList([CanBeNull] string address) {
+            if (string.IsNullOrEmpty(address)) return new List<Info>();
+            var isLocal = address is "localhost" or "127.0.0.1";
+            return new List<Info> { new Info("Test", address, isLocal ? WsPort : WssPort, false) };
+        }
 
         private static readonly List<Info> ServerTestForWebEditor = new() {
-            // new Info("Production", SvProdTcp, TcpPort, true, PingMain),
-            // new Info("Test", SvTestV1, WssPort, false, PingMain),
-            // new Info("Test 2", SvTestV2, WssPort, false, PingMain),
-            // new Info("___ ws", SvLocal, WsPort, false, PingMain),
-            new Info("___ tcp", SvLocal, TcpPort, false, PingMain),
+            // new Info("Production", SvProdTcp, TcpPort, true),
+            // new Info("Test", SvTestV1, WssPort, false),
+            // new Info("Test 2", SvTestV2, WssPort, false),
+            // new Info("___ ws", SvLocal, WsPort, false),
+            new Info("___ tcp", SvLocal, TcpPort, false),
         };
 
         private static readonly List<Info> ServerTestForMobileBuild = new() {
-            new Info("Production", SvProdTcp, TcpPort, true, PingMain),
-            new Info("Test", SvTestV1, WssPort, false, PingMain),
-            new Info("Test 2", SvTestV2, WssPort, false, PingMain),
+            new Info("Production", SvProdTcp, TcpPort, true),
+            new Info("Test", SvTestV1, WssPort, false),
+            new Info("Test 2", SvTestV2, WssPort, false),
         };
 
         private static readonly List<Info> ServerTestForMobileEditor = new() {
-            new Info("Production", SvProdTcp, TcpPort, true, PingMain),
-            new Info("Test", SvTestV1Tcp, TcpPort, false, PingMain),
-            new Info("___ tcp", SvLocal, TcpPort, false, PingMain),
+            new Info("Production", SvProdTcp, TcpPort, true),
+            new Info("Test", SvTestV1Tcp, TcpPort, false),
+            new Info("___ tcp", SvLocal, TcpPort, false),
         };
 
         private static readonly List<Info> ServerProdForWebBuild = new() {
-            new Info("Production", SvProd, WssPort, true, PingMain),
+            new Info("Production", SvProd, WssPort, true),
         };
 
         private static readonly List<Info> ServerTournamentProdForWebBuild = new() {
-            new Info("Production", SvTournamentProd, WssPort, true, PingMain),
+            new Info("Production", SvTournamentProd, WssPort, true),
         };
 
         private static readonly List<Info> ServerProdForMobileBuild = new() {
-            new Info("Production", SvProd, WssPort, true, PingMain),
+            new Info("Production", SvProd, WssPort, true),
         };
 
         private static readonly List<Info> ServerProdForTelegramBuild = new() {
-            new Info("Production", SvProdTelegram, WssPort, true, PingMain),
+            new Info("Production", SvProdTelegram, WssPort, true),
         };
-        
+
         private static readonly List<Info> ServerProdForSolanaBuild = new() {
-            new Info("Production", SvProdSolana, WssPort, true, PingMain),
+            new Info("Production", SvProdSolana, WssPort, true),
         };
-        
+
         private static readonly List<Info> ServerProdForWebAirdropBuild = new() {
-            new Info("Production", SvProdWebAirdrop, WssPort, true, PingMain),
+            new Info("Production", SvProdWebAirdrop, WssPort, true),
         };
 
         public static List<Info> TestServerAddresses {
             get {
-                if (Application.isEditor) {
+                if (AppConfig.IsEditor) {
                     return Application.isMobilePlatform ? ServerTestForMobileEditor : ServerTestForWebEditor;
                 }
                 return Application.isMobilePlatform ? ServerTestForMobileBuild : ServerTestForWebBuild;
@@ -133,8 +133,6 @@ namespace App {
         public class Info {
             public readonly string Name;
             public readonly string Address;
-            public readonly string PingServerAddress;
-
             public readonly int Port;
 
             public bool IsEncrypted => Port == WssPort;
@@ -143,14 +141,13 @@ namespace App {
             [JsonConstructor]
             public Info(string name, string address, int port) {
                 Name = name;
-                PingServerAddress = Address = address;
+                Address = address;
                 Port = port;
             }
 
             // For create config
-            public Info(string name, string address, int port, bool useProdConfig, string pingServerAddress)
+            public Info(string name, string address, int port, bool useProdConfig)
                 : this(name, address, port) {
-                PingServerAddress = pingServerAddress;
                 if (useProdConfig) {
                     ServerAddressConfig.ServerWithProdConfig.Add(address);
                 }

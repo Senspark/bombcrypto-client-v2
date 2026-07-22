@@ -17,8 +17,10 @@ import WalletService from "../WalletService.ts";
 import {appKitButtonAtom} from '../../components/AppKitButtonAtom.ts';
 import {getDefaultStore} from 'jotai';
 import NotificationService from "../NotificationService.ts";
-import {getSupportedNetworkFromChainId, getRpc} from "../RpcNetworkUtils.ts";
+import {getSupportedNetworkFromChainId, getRpc, SupportedNetwork} from "../RpcNetworkUtils.ts";
 import {RpcService} from "../BlockChain/RpcService.ts";
+import BlockChainCommand from "../../consts/BlockChainCommand.ts";
+import {buildLandingUrl, openLandingMode} from "../LandingUtils.ts";
 
 const TAG = '[UC]';
 const K_TRANSFER_AIRDROP_PREFIX = 'DEP';
@@ -215,6 +217,28 @@ export default class UnityCommunicator {
         return null;
     }
 
+    // Opens the requested game mode (treasure/adventure) in a new browser tab.
+    async openGameMode(data: string): Promise<string | null> {
+        try {
+            const decrypted = this._aesHelper.decrypt(data);
+            if (decrypted == null) {
+                this._logger.error(`${TAG} openGameMode: cannot decrypt data`);
+                return null;
+            }
+            const {mode} = JSON.parse(decrypted) as { mode: string };
+            if (mode !== 'treasure' && mode !== 'adventure') {
+                this._logger.error(`${TAG} openGameMode: invalid mode "${mode}"`);
+                return null;
+            }
+            this._logger.log(`${TAG} openGameMode: ${mode} -> ${buildLandingUrl(mode)}`);
+            openLandingMode(mode);
+            return null;
+        } catch (e) {
+            this._logger.error(`${TAG} openGameMode fail: ${e}`);
+            return null;
+        }
+    }
+
     async getLoginData(): Promise<string | null> {
         try {
             let accountData = await this._authService.getAccountData();
@@ -391,6 +415,14 @@ export default class UnityCommunicator {
                 return null;
             }
             const {name, param} = JSON.parse(decrypted) as BlockChainData;
+
+            // Cross-chain bridge writes run on the target chain (which may differ
+            // from the login chain), then restore the login chain. Reads bypass
+            // this — they use a dedicated per-chain RPC, not the browser provider.
+            if (name === BlockChainCommand.BRIDGE_DEPOSIT || name === BlockChainCommand.BRIDGE_WITHDRAW) {
+                return await this.callBridgeWrite(name, param);
+            }
+
             const chainId = this._walletService.getChainId();
             const userChangeChainId = this._walletService.getUserChangeChainId();
             const walletAddress = this._walletService.getCurrentWalletAddress();
@@ -418,6 +450,60 @@ export default class UnityCommunicator {
         } catch (e) {
             this._logger.error(`${TAG} Call blockchain method error: ${e}`);
             return null;
+        }
+    }
+
+    // Runs a bridge deposit/withdraw on its target chain: switch the wallet to
+    // that chain, run the on-chain call, then always restore the login chain
+    // (even on failure/revert).
+    private async callBridgeWrite(name: string, param: string): Promise<string | null> {
+        if (!this._blockChainConfig) {
+            this._logger.error(`${TAG} Blockchain config is not initialized`);
+            return null;
+        }
+        const showError = this._notiService.showError.bind(this._notiService);
+
+        const {chain} = JSON.parse(param) as { chain: string };
+        const targetNetwork = this.bridgeChainToNetwork(chain);
+        if (!targetNetwork) {
+            this._logger.error(`${TAG} Bridge write: unknown chain '${chain}'`);
+            return null;
+        }
+
+        const loginChainId = this._walletService.getChainId();
+        const loginNetwork = this._walletService.currentNetworkType;
+        const targetChainId = getRpc(targetNetwork, this._isProd)?.chainId;
+        const switched = loginChainId?.dec !== targetChainId;
+
+        if (switched) {
+            this._logger.log(`${TAG} Bridge write: switching to ${targetNetwork} for ${name}`);
+            const ok = await this._walletService.switchToNetwork(targetNetwork);
+            if (!ok) {
+                this._logger.error(`${TAG} Bridge write: failed to switch to ${targetNetwork}`);
+                showError(`Failed to switch to ${targetNetwork} network.`);
+                return null;
+            }
+        }
+
+        try {
+            return await this._blockChainConfig.callAction(name, param);
+        } finally {
+            if (switched && loginNetwork) {
+                this._logger.log(`${TAG} Bridge write: restoring login chain ${loginNetwork}`);
+                await this._walletService.switchToNetwork(loginNetwork);
+                if (loginChainId) this._walletService.setUserChangeChainId(loginChainId);
+            }
+        }
+    }
+
+    private bridgeChainToNetwork(chain: string): SupportedNetwork | undefined {
+        switch ((chain ?? "").toUpperCase()) {
+            case "BSC":
+                return "bsc";
+            case "POLYGON":
+                return "polygon";
+            default:
+                return undefined;
         }
     }
 

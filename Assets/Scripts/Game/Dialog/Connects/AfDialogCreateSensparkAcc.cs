@@ -106,10 +106,10 @@ namespace Game.Dialog.Connects {
                 if (resultLink) {
                     Resolve(usr);
                 } else {
-                    DialogOK.ShowError(Data.CurrentCanvas, "Username or email is already exist");
+                    DialogOK.ShowErrorMsgOnly(Data.CurrentCanvas, "Username or email is already exist");
                 }
             } catch (Exception e) {
-                DialogOK.ShowError(Data.CurrentCanvas, "Username or email is already exist");
+                DialogOK.ShowErrorMsgOnly(Data.CurrentCanvas, "Username or email is already exist");
             } finally {
                 HideWaiting();
             }

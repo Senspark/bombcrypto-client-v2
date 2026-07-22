@@ -17,7 +17,7 @@ namespace Game.UI {
         private IServerManager _serverManager;
         private ILogManager _logManager;
         private IStorageManager _storeManager;
-        private IPlayerStorageManager _playerStore;
+        private IBHeroManager _playerStore;
         private IHouseStorageManager _houseStorageManager;
         private ObserverHandle _handle;
         
@@ -27,7 +27,7 @@ namespace Game.UI {
             _pveHeroStateManager = ServiceLocator.Instance.Resolve<IPveHeroStateManager>();
             _serverManager = ServiceLocator.Instance.Resolve<IServerManager>();
             _storeManager = ServiceLocator.Instance.Resolve<IStorageManager>();
-            _playerStore = ServiceLocator.Instance.Resolve<IPlayerStorageManager>();
+            _playerStore = ServiceLocator.Instance.Resolve<IBHeroManager>();
             _logManager = ServiceLocator.Instance.Resolve<ILogManager>();
             _houseStorageManager = ServiceLocator.Instance.Resolve<IHouseStorageManager>();
             

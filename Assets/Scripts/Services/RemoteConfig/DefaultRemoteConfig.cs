@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
+using App;
+
 using Cysharp.Threading.Tasks;
 
 using Senspark;
@@ -12,7 +14,7 @@ namespace Services.RemoteConfig {
         private readonly IRemoteConfig _bridge;
 
         public DefaultRemoteConfig(ILogManager logManager) {
-            if (!Application.isEditor) {
+            if (!AppConfig.IsEditor) {
                 var platform = Application.platform;
                 switch (platform) {
                     case RuntimePlatform.Android or RuntimePlatform.IPhonePlayer:

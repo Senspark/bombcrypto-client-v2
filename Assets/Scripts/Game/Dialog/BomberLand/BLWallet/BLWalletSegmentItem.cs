@@ -24,7 +24,7 @@ namespace Game.Dialog.BomberLand.BLWallet {
         
         [SerializeField]
         private Text lbNetwork;
-        
+
         public float Balance { get; private set; }
         public IRewardType RewardType { get; private set; }
         
@@ -37,6 +37,10 @@ namespace Game.Dialog.BomberLand.BLWallet {
         }
 
         public void ApplyData(DataWallet data) {
+            if (data.IsBridge) {
+                ApplyBridgeData(data);
+                return;
+            }
             if (data.RefTokenData != null) {
                 tokenName.text = data.RefTokenData.displayName;
                 if (data.RefTokenData.icon != null) {
@@ -66,8 +70,28 @@ namespace Game.Dialog.BomberLand.BLWallet {
                 pendingLbl.text = App.Utils.FormatBcoinValue(data.PendingValue);
             }
             if (data.RefTokenData != null) {
-                lbNetwork.text = data.RefTokenData.networkSymbolDisplayName;
+                lbNetwork.text = RewardUtils.NetworkDisplayName(data.RefTokenData.networkSymbol);
             }
+        }
+
+        private void ApplyBridgeData(DataWallet data) {
+            tokenName.text = $"{data.BridgeSymbol} BRIDGE";
+            if (data.BridgeIcon) {
+                icon.sprite = data.BridgeIcon;
+            }
+            Balance = data.ClaimValue;
+            RewardType = data.RefRewardType;
+            balanceLbl.text = data.BridgeBalanceKnown ? App.Utils.FormatBcoinValue(data.ClaimValue) : "-";
+            if (pendingLbl) {
+                pendingLbl.text = "";
+            }
+            if (lbNetwork) {
+                lbNetwork.text = $"{BridgeNetworkDisplay(data.BridgeDepositChain)} -> {BridgeNetworkDisplay(data.BridgeWithdrawChain)}";
+            }
+        }
+
+        private static string BridgeNetworkDisplay(string chain) {
+            return chain == "POLYGON" ? "POLYGON" : "BNB";
         }
 
         public void SetItemTab(TypeMenuLeftWallet tab) {

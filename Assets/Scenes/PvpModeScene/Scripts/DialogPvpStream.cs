@@ -112,7 +112,7 @@ namespace Scenes.PvpModeScene.Scripts {
         }
 
         private void ShowErrorAndKick(string reason) {
-            DialogOK.ShowErrorAndKickToConnectScene(DialogCanvas, reason);
+            DialogOK.ShowErrorMsgOnlyAndKickToConnectScene(DialogCanvas, reason);
         }
 
         private void OnCancelFinding() {
@@ -129,7 +129,7 @@ namespace Scenes.PvpModeScene.Scripts {
                     await _pvpJoinManager.CancelFinding();
                     Hide();
                 } catch (Exception e) {
-                    DialogOK.ShowError(DialogCanvas, e.Message, () => Hide());
+                    DialogOK.ShowError(DialogCanvas, e, () => Hide());
                 } finally {
                     buttonCancel.Hide();
                     StopCountDown();
@@ -139,7 +139,7 @@ namespace Scenes.PvpModeScene.Scripts {
         }
 
         private void OnServerStateChanged(ServerConnectionState obj) {
-            DialogOK.ShowErrorAndKickToConnectScene(DialogCanvas, "Disconnected");
+            DialogOK.ShowErrorMsgOnlyAndKickToConnectScene(DialogCanvas, "Disconnected");
         }
 
         private void StartCountDown() {
@@ -190,7 +190,7 @@ namespace Scenes.PvpModeScene.Scripts {
                     } else if (ex.Message.Contains("User joined room")) {
                         _serverManager.Disconnect();
                     } else {
-                        DialogOK.ShowError(DialogCanvas, ex.Message);
+                        DialogOK.ShowError(DialogCanvas, ex);
                         buttonCancel.Hide();
                         StopCountDown();
                         Hide();

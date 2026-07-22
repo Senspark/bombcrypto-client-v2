@@ -122,7 +122,7 @@ namespace Scenes.MainMenuScene.Scripts {
                     waitingDialog.SetActive(false);
                     closeBtn.interactable = true;
                 } catch (Exception e) {
-                    await DialogError.ShowError(canvas, "Failed to load daily tasks", Hide);
+                    await DialogError.ShowErrorMsgOnly(canvas, "Failed to load daily tasks", Hide);
                 }
             });
         }

@@ -29,6 +29,7 @@ const Wrapper = styled.div<{ w: number, h: number, p: string }>`
     height: ${({ h }) => h}px;
     padding: ${({ p }) => p};
     position: relative;
+    flex-shrink: 0;
   
     >div {
       .title {

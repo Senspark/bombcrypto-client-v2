@@ -26,9 +26,12 @@ namespace Share.Scripts.PrefabsManager {
             _currentLoader = loader;
         }
 
-        public void UnregisterPrefabLoader(IPrefabLoader loader) {
-            if (_currentLoader == loader) {
-                _currentLoader = null;
+        private IPrefabLoader CurrentLoader {
+            get {
+                if (_currentLoader != null && _currentLoader.IsDestroyed) {
+                    _currentLoader = null;
+                }
+                return _currentLoader;
             }
         }
 
@@ -36,8 +39,9 @@ namespace Share.Scripts.PrefabsManager {
             if (_initialized == false) {
                 await UniTask.WaitUntil(() => _initialized);
             }
-            if (_currentLoader != null && _currentLoader.Contains<T>()) {
-                return await _currentLoader.Instantiate<T>();
+            var current = CurrentLoader;
+            if (current != null && current.Contains<T>()) {
+                return await current.Instantiate<T>();
             }
             if (_shareLoader.Contains<T>()) {
                 return await _shareLoader.Instantiate<T>();

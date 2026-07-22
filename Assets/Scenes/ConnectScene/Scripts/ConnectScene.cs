@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Analytics;
-using Analytics.Modules;
 using App;
 using Constant;
 using Cysharp.Threading.Tasks;
@@ -20,7 +19,7 @@ using Share.Scripts.Utils;
 using UnityEngine;
 using UnityEngine.UI;
 using Utils;
-using LoginType = App.LoginType;
+using Debug = UnityEngine.Debug;
 
 namespace Scenes.ConnectScene.Scripts {
     public class ConnectScene : MonoBehaviour {
@@ -39,7 +38,6 @@ namespace Scenes.ConnectScene.Scripts {
         [SerializeField]
         private Animator logoAnimator;
 
-        private IAnalyticsModuleLogin _analyticsModuleLogin;
         private IGameReadyController _gameReadyController;
         private NewcomerGiftData[] _newcomerGift;
         private bool _remoteReady;
@@ -167,20 +165,19 @@ namespace Scenes.ConnectScene.Scripts {
                         return;
                     }
                     if (e is ServerMaintenanceException se) {
-                        DialogOK.ShowErrorAndKickToConnectScene(canvasDialog, "Server is under maintenance");
+                        DialogOK.ShowErrorMsgOnlyAndKickToConnectScene(canvasDialog, "Server is under maintenance");
                         return;
                     }
                     if (e is LoginException le) {
                         if (le.Error == LoginException.ErrorType.WrongVersion) {
                             const string msg =
                                 "Your current version is outdated and needs to be updated to run the game";
-                            DialogOK.ShowErrorAsync(canvasDialog, msg, new DialogOK.Optional { OnWillHide = QuitApp })
+                            DialogOK.ShowErrorMsgOnlyAsync(canvasDialog, msg, new DialogOK.Optional { OnWillHide = QuitApp })
                                 .Forget();
                             return;
                         }
                     }
-                    Debug.LogException(e);
-                    DialogOK.ShowErrorAndKickToConnectScene(canvasDialog, e.Message);
+                    DialogOK.ShowErrorAndKickToConnectScene(canvasDialog, e);
                 }
             });
         }
@@ -218,12 +215,10 @@ namespace Scenes.ConnectScene.Scripts {
                     var progressEnd = bypassTutorial ? 98 : 100;
                     await _gameReadyController.Start(progressEnd, reload, isForceLogin);
 
-                    var userAccountManager = ServiceLocator.Instance.Resolve<IUserAccountManager>();
-                    var user = userAccountManager.GetRememberedAccount();
-                    var loginType = user?.loginType ?? LoginType.Guest;
-                    var canOpenThMode = (!reload && loginType == LoginType.Wallet && !AppConfig.IsTournament()) || AppConfig.IsTon() ||
-                                        AppConfig.IsSolana();
-                    if (canOpenThMode) {
+                    var openThMode = reload
+                        ? AppConfig.IsTon() || AppConfig.IsSolana()
+                        : _gameReadyController.ModeResult.Landing == LandingMode.Treasure;
+                    if (openThMode) {
                         await LoadForMain();
                         mainLoadingBar.MoveDown(() => { OpenTreasureHuntMode().Forget(); });
                     } else {
@@ -245,15 +240,15 @@ namespace Scenes.ConnectScene.Scripts {
                         return;
                     }
                     if (e is TonOldDataException) {
-                        DialogOK.ShowErrorAndKickToConnectScene(canvasDialog, e.Message);
+                        DialogOK.ShowErrorAndKickToConnectScene(canvasDialog, e);
                         return;
                     }
                     if (e is IncorrectPassword) {
-                        DialogOK.ShowError(canvasDialog, e.Message);
+                        DialogOK.ShowError(canvasDialog, e);
                         return;
                     }
                     if (e is ServerMaintenanceException se) {
-                        DialogOK.ShowErrorAndKickToConnectScene(canvasDialog, "Server is under maintenance");
+                        DialogOK.ShowErrorMsgOnlyAndKickToConnectScene(canvasDialog, "Server is under maintenance");
                         return;
                     }
                     if(e is BanException be) {
@@ -265,12 +260,12 @@ namespace Scenes.ConnectScene.Scripts {
                         if (le.Error == LoginException.ErrorType.WrongVersion) {
                             const string msg =
                                 "Your current version is outdated and needs to be updated to run the game";
-                            DialogOK.ShowErrorAsync(canvasDialog, msg, new DialogOK.Optional { OnWillHide = QuitApp })
+                            DialogOK.ShowErrorMsgOnlyAsync(canvasDialog, msg, new DialogOK.Optional { OnWillHide = QuitApp })
                                 .Forget();
                             return;
                         }
                         if (le.Error == LoginException.ErrorType.LoadThMode) {
-                            var dialog = await DialogError.ShowErrorDialog(canvasDialog, le.Message);
+                            var dialog = await DialogError.ShowErrorDialog(canvasDialog, le);
                              dialog.OnDidHide(()=> {
                                  // Reset Loading Bar for reLoading...
                                  _gameReadyController.ResetProgress();
@@ -299,12 +294,12 @@ namespace Scenes.ConnectScene.Scripts {
                             userName = userName == null ? "Your account" : UserAccount.TryRemoveSuffixInUserName(userName);
                             var m =
                                 $"{userName} is already logged-in on another device";
-                            DialogOK.ShowErrorAndKickToConnectScene(canvasDialog, m);
+                            DialogOK.ShowErrorMsgOnlyAndKickToConnectScene(canvasDialog, m);
                             return;
 
                         }
                         if (le.Error == LoginException.ErrorType.KickByOtherDevice) {
-                            var dialog = await DialogError.ShowError(canvasDialog, 
+                            var dialog = await DialogError.ShowErrorMsgOnly(canvasDialog,
                                 "Your account is currently logged in on another device.\n Try again after a few minutes"
                                 ,App.Utils.Logout);
         
@@ -328,7 +323,7 @@ namespace Scenes.ConnectScene.Scripts {
                         userName = userName == null ? "Your account" : UserAccount.TryRemoveSuffixInUserName(userName);
                         message = $"{userName} is already logged-in on another device";
                     }
-                    DialogOK.ShowErrorAndKickToConnectScene(canvasDialog, message);
+                    DialogOK.ShowErrorMsgOnlyAndKickToConnectScene(canvasDialog, message);
                 }
             });
         }

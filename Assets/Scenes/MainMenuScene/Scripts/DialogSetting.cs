@@ -135,7 +135,7 @@ namespace Scenes.MainMenuScene.Scripts {
                             _userAccountManager.EraseData();
                             App.Utils.KickToConnectScene();
                         } catch (Exception e) {
-                            DialogOK.ShowError(DialogCanvas, e.Message);
+                            DialogOK.ShowError(DialogCanvas, e);
                         }
                         waiting.End();
                     });

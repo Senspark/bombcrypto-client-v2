@@ -23,6 +23,9 @@ export const useAppService = () => {
 
     useEffect(() => {
         walletService.updateChainId(chainId, () => caipNetwork && switchNetwork(caipNetwork));
+        // AppKit's auto-switch after connect doesn't reliably add missing networks
+        // (no popup for wallet_addEthereumChain). Reconcile with our own logic.
+        walletService.ensureCorrectChain();
         close().then()
     }, [chainId, caipNetwork, switchNetwork, close]);
 

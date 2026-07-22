@@ -45,7 +45,7 @@ public class DialogFusionAirdrop : Dialog, IDialogFusion {
     private HeroRarity _curRarity;
     private ISoundManager _soundManager;
     private IStorageManager _storeManager;
-    private IPlayerStorageManager _playerStorageManager;
+    private IBHeroManager _bHeroManager;
     private IUserSolanaManager _userSolanaManager;
     private IServerManager _serverManager;
     
@@ -57,7 +57,7 @@ public class DialogFusionAirdrop : Dialog, IDialogFusion {
         base.Awake();
         _soundManager = ServiceLocator.Instance.Resolve<ISoundManager>();
         _storeManager = ServiceLocator.Instance.Resolve<IStorageManager>();
-        _playerStorageManager = ServiceLocator.Instance.Resolve<IPlayerStorageManager>();
+        _bHeroManager = ServiceLocator.Instance.Resolve<IBHeroManager>();
         _userSolanaManager = ServiceLocator.Instance.Resolve<IServerManager>().UserSolanaManager;
         _serverManager = ServiceLocator.Instance.Resolve<IServerManager>();
     }
@@ -98,7 +98,7 @@ public class DialogFusionAirdrop : Dialog, IDialogFusion {
         waiting.ChangeText("Processing...");
         UniTask.Void(async () => {
             try {
-                _playerStorageManager.AdjustTotalHeroesSize(_heroList.Count * -1);
+                _bHeroManager.AdjustTotalHeroesSize(_heroList.Count * -1);
                 if (_mainHeroList == 3) {
                     IFusionTonHeroResponse result;
                     if (AppConfig.IsSolana()) {
@@ -107,9 +107,9 @@ public class DialogFusionAirdrop : Dialog, IDialogFusion {
                         result = await _serverManager.General.FusionHeroServer(rarity, _heroList.ToArray());
                     }
                     if (!result.Result) {
-                        DialogOK.ShowError(DialogCanvas, "Fusion Failed");
+                        DialogOK.ShowErrorMsgOnly(DialogCanvas, "Fusion Failed");
                     }
-                    _playerStorageManager.AdjustTotalHeroesSize(result.NewIds.Length);
+                    _bHeroManager.AdjustTotalHeroesSize(result.NewIds.Length);
                 } else {
                     IFusionTonHeroResponse result;
                     if (AppConfig.IsSolana()) {
@@ -118,12 +118,12 @@ public class DialogFusionAirdrop : Dialog, IDialogFusion {
                         result = await _serverManager.General.MultiFusionHeroServer(rarity, _heroList.ToArray());
                     }
                     if (!result.Result) {
-                        DialogOK.ShowError(DialogCanvas, "Fusion Failed");
+                        DialogOK.ShowErrorMsgOnly(DialogCanvas, "Fusion Failed");
                     }
-                    _playerStorageManager.AdjustTotalHeroesSize(result.NewIds.Length);
+                    _bHeroManager.AdjustTotalHeroesSize(result.NewIds.Length);
                 }
             } catch (Exception e) {
-                DialogOK.ShowError(DialogCanvas, e.Message);
+                DialogOK.ShowError(DialogCanvas, e);
             } finally {
                 waiting.End();
                 UpdateUI();

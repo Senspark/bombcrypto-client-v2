@@ -8,15 +8,13 @@ import {toNumberOrZero} from "../../../utils/Number.ts";
 export default class BHeroSToken extends GeneralContract {
     private _bheroToken: BHeroToken;
     private _bcoinToken: CoinToken;
-    private _sensparkToken: CoinToken;
     private _coinCost?: bigint;
     private _senCost?: bigint;
 
-    constructor(bcoinToken: CoinToken, sensparkToken: CoinToken, bheroToken: BHeroToken, address: string, abi: JSON) {
+    constructor(bcoinToken: CoinToken, _sensparkToken: CoinToken, bheroToken: BHeroToken, address: string, abi: JSON) {
         super(address, abi);
         this._bheroToken = bheroToken;
         this._bcoinToken = bcoinToken;
-        this._sensparkToken = sensparkToken;
     }
 
     async getDesignContract(): Promise<Contract> {
@@ -81,9 +79,7 @@ export default class BHeroSToken extends GeneralContract {
             const cost = await this.getHeroPrice();
             const countBN = ethers.toBigInt(count * 2);
             const coinBN = ethers.toBigInt(cost.coin) * countBN;
-            const senBN = ethers.toBigInt(cost.sen) * countBN;
             await this._bcoinToken.checkAllowance(userAddress, this._address, coinBN);
-            await this._sensparkToken.checkAllowance(userAddress, this._address, senBN);
 
             const contract = await this.getContract();
             const estimateGas = await contract.mint.estimateGas(count);

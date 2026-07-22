@@ -22,7 +22,7 @@ namespace Game.UI {
         private void Awake() {
             var launchPadManager = ServiceLocator.Instance.Resolve<ILaunchPadManager>();
             var acc = ServiceLocator.Instance.Resolve<IUserAccountManager>().GetRememberedAccount();
-            tokenImg.sprite = launchPadManager.GetData(new RewardType(type), NetworkSymbol.Convert(acc.network)).icon;
+            tokenImg.sprite = launchPadManager.GetData(new RewardType(type), RewardUtils.ConvertNetworkToDatatype(acc.network)).icon;
         }
     }
 }

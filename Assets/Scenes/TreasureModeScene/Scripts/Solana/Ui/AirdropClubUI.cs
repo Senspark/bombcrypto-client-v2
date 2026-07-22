@@ -133,7 +133,7 @@ public class AirdropClubUI : MonoBehaviour
                 _dialogClub.Show(canvasDialog);
             } catch (Exception) {
                 levelScene.PauseStatus.SetValue(this, false);
-                DialogOK.ShowError(levelScene.DialogCanvas, "Get Club info failed");
+                DialogOK.ShowErrorMsgOnly(levelScene.DialogCanvas, "Get Club info failed");
             } finally {
                 dialog.Hide();
             }

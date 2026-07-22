@@ -73,11 +73,51 @@ function getDoubleGasFeeOption(estimateGas: bigint): { gasLimit: bigint } {
     return { gasLimit: estimateGas * gasMultiplier};
 }
 
-/**
- * Returns gas options with doubled gas limit.
- * On Polygon (mainnet or Amoy), also applies a 30% premium on EIP-1559 fees
- * to improve transaction inclusion speed during congestion.
- */
+const GAS_FEE_PREMIUM = 120n;
+// Polygon network rejects tx with priority fee below 25 gwei; 30 gives a 20% buffer.
+const POLYGON_MIN_PRIORITY_FEE = 30_000_000_000n;
+const POLYGON_CHAIN_IDS = [137, 80002];
+
+const POLYGON_STATIC_FEE: Record<number, { maxFeePerGas: bigint; maxPriorityFeePerGas: bigint }> = {
+    137:   { maxFeePerGas: 300_000_000_000n, maxPriorityFeePerGas: 40_000_000_000n },
+    80002: { maxFeePerGas: 100_000_000_000n, maxPriorityFeePerGas: 30_000_000_000n },
+};
+
+function clampPriority(value: bigint): bigint {
+    return value > POLYGON_MIN_PRIORITY_FEE ? value : POLYGON_MIN_PRIORITY_FEE;
+}
+
+async function resolvePolygonFees(
+    provider: ethers.BrowserProvider,
+    chainId: number
+): Promise<{ maxFeePerGas: bigint; maxPriorityFeePerGas: bigint }> {
+    try {
+        const feeData = await provider.getFeeData();
+        if (feeData.maxFeePerGas && feeData.maxPriorityFeePerGas) {
+            const maxPriorityFeePerGas = clampPriority((feeData.maxPriorityFeePerGas * GAS_FEE_PREMIUM) / 100n);
+            const baseFee = feeData.maxFeePerGas - feeData.maxPriorityFeePerGas;
+            const candidate = baseFee + maxPriorityFeePerGas;
+            return {
+                maxFeePerGas: candidate > maxPriorityFeePerGas ? candidate : maxPriorityFeePerGas * 2n,
+                maxPriorityFeePerGas,
+            };
+        }
+    } catch { /* fall through */ }
+
+    try {
+        const gasPriceHex = await provider.send("eth_gasPrice", []);
+        const gasPrice = BigInt(gasPriceHex);
+        const maxPriorityFeePerGas = clampPriority((gasPrice * GAS_FEE_PREMIUM) / 100n);
+        const candidate = gasPrice * 2n;
+        return {
+            maxFeePerGas: candidate > maxPriorityFeePerGas ? candidate : maxPriorityFeePerGas * 2n,
+            maxPriorityFeePerGas,
+        };
+    } catch { /* fall through */ }
+
+    return POLYGON_STATIC_FEE[chainId] ?? POLYGON_STATIC_FEE[80002];
+}
+
 async function getDoubleGasFeeOptionV2(
     estimateGas: bigint
 ): Promise<{
@@ -85,46 +125,26 @@ async function getDoubleGasFeeOptionV2(
     maxFeePerGas?: bigint;
     maxPriorityFeePerGas?: bigint;
 }> {
-    const gasMultiplier = ethers.toBigInt(GAS_LIMIT_MULTIPLIER);
-    const gasLimit = estimateGas * gasMultiplier;
+    const gasLimit = estimateGas * ethers.toBigInt(GAS_LIMIT_MULTIPLIER);
 
-    // Only attempt EIP-1559 fee enhancement on Polygon networks
-    const GAS_FEE_PREMIUM = 130n; // 30% premium
-    const POLYGON_CHAIN_IDS = [137, 80002]; // Polygon Mainnet & Amoy Testnet
-
-    try {
-        const provider = Storage.getBrowserProvider();
-        if (!provider) {
-            return { gasLimit };
-        }
-
-        const network = await provider.getNetwork();
-        const chainId = Number(network.chainId);
-
-        if (!POLYGON_CHAIN_IDS.includes(chainId)) {
-            return { gasLimit }; // Use simple gasLimit on other chains
-        }
-
-        // Polygon-specific: Apply 30% fee premium for better inclusion
-        const feeData = await provider.getFeeData();
-
-        if (feeData.maxFeePerGas && feeData.maxPriorityFeePerGas) {
-            const maxPriorityFeePerGas = (feeData.maxPriorityFeePerGas * GAS_FEE_PREMIUM) / 100n;
-            const baseFee = feeData.maxFeePerGas - feeData.maxPriorityFeePerGas;
-            const maxFeePerGas = baseFee + maxPriorityFeePerGas;
-
-            return {
-                gasLimit,
-                maxFeePerGas,
-                maxPriorityFeePerGas,
-            };
-        }
-    } catch (error) {
-        console.warn("Failed to fetch enhanced EIP-1559 fees for Polygon. Falling back to gasLimit only.", error);
+    const provider = Storage.getBrowserProvider();
+    if (!provider) {
+        return { gasLimit };
     }
 
-    // Fallback for all other cases (non-Polygon, provider error, missing fee data, etc.)
-    return { gasLimit };
+    let chainId: number;
+    try {
+        chainId = Number((await provider.getNetwork()).chainId);
+    } catch {
+        return { gasLimit };
+    }
+
+    if (!POLYGON_CHAIN_IDS.includes(chainId)) {
+        return { gasLimit };
+    }
+
+    const fees = await resolvePolygonFees(provider, chainId);
+    return { gasLimit, ...fees };
 }
 
 async function waitForReceipt(transaction: TransactionResponse): Promise<TransactionReceipt | null> {

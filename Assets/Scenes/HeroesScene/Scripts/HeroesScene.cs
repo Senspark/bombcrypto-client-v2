@@ -107,7 +107,7 @@ namespace Scenes.HeroesScene.Scripts {
                 try {
                     await LoadData(chooseHero);
                 } catch (Exception e) {
-                    DialogOK.ShowError(canvasDialog, e.Message);
+                    DialogOK.ShowError(canvasDialog, e);
                 } finally {
                     waiting.End();
                     splashFade.DOFade(0.0f, 0.3f).OnComplete(() => { splashFade.gameObject.SetActive(false); });
@@ -263,7 +263,7 @@ namespace Scenes.HeroesScene.Scripts {
                     _storageManager.SelectedHeroKey = _hero.PlayerData.heroId.Id;
                     itemList.SetSelectedItem(_hero.PlayerData.heroId);
                 } catch (Exception e) {
-                    DialogOK.ShowError(canvasDialog, e.Message);
+                    DialogOK.ShowError(canvasDialog, e);
                 } finally {
                     waiting.End();
                 }
@@ -294,7 +294,7 @@ namespace Scenes.HeroesScene.Scripts {
                     RefreshList(upgradeHero);
                     DialogOK.ShowInfo(canvasDialog, "Successfully");
                 } catch (Exception e) {
-                    DialogOK.ShowError(canvasDialog, e.Message);
+                    DialogOK.ShowError(canvasDialog, e);
                 } finally {
                     waiting.End();
                 }

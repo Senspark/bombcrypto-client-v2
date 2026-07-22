@@ -50,7 +50,7 @@ public class ReconnectThModeView : IReconnectView {
         _waiting?.End();
         _waiting = null;
         if (!successful) {
-            DialogOK.ShowErrorAndKickToConnectScene(_canvas, "Failed to reconnect");
+            DialogOK.ShowErrorMsgOnlyAndKickToConnectScene(_canvas, "Failed to reconnect");
         } else {
             await LevelScene.Instance.StartPve();
             LevelScene.Instance.PauseStatus.SetValue(this, false);

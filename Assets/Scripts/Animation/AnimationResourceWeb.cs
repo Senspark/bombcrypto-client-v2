@@ -15,7 +15,7 @@ namespace Animation {
         
         #region Static Load Sprites
         private static readonly string[] BACKLIGHT_IMAGES_RARE = {
-            "Common", "Rare", "SuperRare", "Epic", "Legend", "SuperLegend"
+            "Common", "Rare", "SuperRare", "Epic", "Legend", "SuperLegend", "Mega", "SuperMega", "Mystic", "SuperMystic"
         };
 
         public static Sprite GetBacklightImageByRarity(int rareIndex, bool forUI) {
@@ -115,11 +115,7 @@ namespace Animation {
         public SerializableDictionaryEnumKey<DefaultEntity, AnimationResource.ResourceDefaultPicker> resourceDefaultAnimation;
         
         public SerializableDictionaryEnumKey<GachaChestProductId, AnimationResource.ResourceAnimationPicker> resourceAnimation;
-        
-        public SerializableDictionaryEnumKey<PlayerType, AnimationResource.ResourceHeroPicker> resourceHeroAnimation;
-        
-        public SerializableDictionaryEnumKey<PlayerType, AnimationResource.ResourceHeroSkinPicker> resourceHeroSkinAnimation;
-        
+
         public SerializableDictionaryEnumKey<EnemyType, AnimationResource.ResourceAnimationPicker> resourceEnemyAnimation;
 
         public SerializableDictionaryEnumKey<EnemyBombSkin, AnimationResource.ResourceBombPicker> resourceBombSkin;
@@ -174,64 +170,7 @@ namespace Animation {
         }
         
         #endregion
-        
-        #region Hero
-        public Sprite[] GetSpriteIdle(PlayerType type, PlayerColor color, FaceDirection face) {
-            var resource = resourceHeroAnimation[type].heroPicker[color].ActionSprites.Idle;
-            var result = GetSpriteByFace(resource, face);
-            if (result.Length > 0) {
-                return result;
-            }
-            resource = resourceHeroAnimation[type].heroPicker[PlayerColor.White].ActionSprites.Idle;
-            result = GetSpriteByFace(resource, face);
-            if (result.Length > 0) {
-                return result;
-            }
-            resource = resourceHeroAnimation[type].heroPicker[PlayerColor.HeroTr].ActionSprites.Idle;
-            return GetSpriteByFace(resource, face);
-        }
-        
-        public Sprite[] GetSpriteMoving(PlayerType type, PlayerColor color, FaceDirection face) {
-            var resource = resourceHeroAnimation[type].heroPicker[color].ActionSprites.Moving;
-            var result = GetSpriteByFace(resource, face);
-            if (result.Length > 0) {
-                return result;
-            }
-            resource = resourceHeroAnimation[type].heroPicker[PlayerColor.White].ActionSprites.Moving;
-            result = GetSpriteByFace(resource, face);
-            if (result.Length > 0) {
-                return result;
-            }
-            resource = resourceHeroAnimation[type].heroPicker[PlayerColor.HeroTr].ActionSprites.Moving;
-            return GetSpriteByFace(resource, face);
-        }
 
-        public Sprite[] GetSpriteTakeDamage(PlayerType type, PlayerColor color) {
-            var result = resourceHeroAnimation[type].heroPicker[color].ActionSprites.TakeDamage;
-            if (result.Length > 0) {
-                return result;
-            }
-            result = resourceHeroAnimation[type].heroPicker[PlayerColor.White].ActionSprites.TakeDamage;
-            if (result.Length > 0) {
-                return result;
-            }
-            return resourceHeroAnimation[type].heroPicker[PlayerColor.HeroTr].ActionSprites.TakeDamage;
-        }
-
-        public Sprite[] GetSpriteDie(PlayerType type, PlayerColor color) {
-            var result = resourceHeroAnimation[type].heroPicker[color].ActionSprites.Die;
-            if (result.Length > 0) {
-                return result;
-            }
-            result = resourceHeroAnimation[type].heroPicker[PlayerColor.White].ActionSprites.Die;
-            if (result.Length > 0) {
-                return result;
-            }
-            return resourceHeroAnimation[type].heroPicker[PlayerColor.HeroTr].ActionSprites.Die;
-        }
-        
-        #endregion
-        
         #region Enemy
         public Sprite[] GetSpriteIdle(EnemyType type, FaceDirection face) {
             var resource = resourceEnemyAnimation[type].ActionSprites.Idle;
@@ -336,50 +275,6 @@ namespace Animation {
                         break;
                 }
             }
-        }
-
-        [Button]
-        private void UpdateHeroAnimationSprites() {
-            var colorKeys = Enum.GetValues(typeof(PlayerColor));
-            foreach (var (charName, value) in resourceHeroAnimation) {
-                value.Type = charName;
-                value.heroPicker = new SerializableDictionary<PlayerColor, AnimationResource.ResourceColorPicker>();
-                var i = 0;
-                foreach (var c in colorKeys) {
-                    var heroColor = (PlayerColor) c;
-                    var actionSprites = new AnimationResource.ResourceAction {
-                        Idle = new AnimationResource.ResourceFace {
-                            Front = LoadSpritesHero(charName, heroColor, "Front"), 
-                            Back = LoadSpritesHero(charName, heroColor, "Back"),
-                            Right = LoadSpritesHero(charName, heroColor, "Right"),
-                            Left = LoadSpritesHero(charName, heroColor, "Right"),
-                        },
-                        Moving = new AnimationResource.ResourceFace {
-                            Front = LoadSpritesHero(charName, heroColor, "Front"),
-                            Back = LoadSpritesHero(charName, heroColor, "Back"),
-                            Right = LoadSpritesHero(charName, heroColor, "Right"),
-                            Left = LoadSpritesHero(charName, heroColor, "Right"),
-                        },
-                        
-                        Die = CreateHeroDieFrames(LoadSpritesHero(charName, heroColor, "Die")),
-                        TakeDamage = LoadSpritesHero(charName, heroColor, "Die"),
-                    };
-
-                    var colorPicker = new AnimationResource.ResourceColorPicker {
-                        heroColor = heroColor, 
-                        ActionSprites = actionSprites,
-                    };
-
-                    value.heroPicker[heroColor] = colorPicker;
-                }
-            }
-        }
-
-        private Sprite[] CreateHeroDieFrames(Sprite[] die) {
-            var list = new List<Sprite>();
-            list.AddRange(die);
-            list.AddRange(die);
-            return list.ToArray();
         }
 
         [Button]

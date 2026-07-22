@@ -26,8 +26,6 @@ namespace App {
 
         private static readonly (string, int)[] KeyForAllUser = {
             ("version", 2),
-            (SFSDefine.SFSCommand.GET_LAUNCH_PAD_DATA, 3600),
-            (SFSDefine.SFSCommand.GET_INFORMATION_DATA, 3600),
             (SFSDefine.SFSCommand.GET_START_GAME_CONFIG_V2, 600),
             (SFSDefine.SFSCommand.GET_GACHA_CHEST_SHOP_V2, 600),
             

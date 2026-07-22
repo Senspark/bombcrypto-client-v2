@@ -37,7 +37,10 @@ namespace Engine.Entities {
 
         [SerializeField]
         public HealthBar healthBar;
-        
+
+        [SerializeField]
+        public HealthBar shieldBar;
+
         [SerializeField]
         public Transform trail;
 
@@ -145,6 +148,23 @@ namespace Engine.Entities {
             SetupWeapon();
             _isSkullSpeedEffect = false;
             animator.PlayIdle(FaceDirection.Down);
+            if (shieldBar) {
+                shieldBar.SetShowWhenFull(true);
+                UpdateShieldUi();
+            }
+        }
+
+        public void UpdateShieldUi() {
+            if (!shieldBar) {
+                return;
+            }
+            var playerData = EntityManager.PlayerManager.GetPlayerDataRaw(Slot);
+            var shield = playerData?.Shield;
+            if (shield == null || shield.TotalAmount <= 0) {
+                shieldBar.Progress = 1f;
+                return;
+            }
+            shieldBar.Progress = (float) shield.CurrentAmount / shield.TotalAmount;
         }
 
         public override void SetPlayerID(HeroId heroId) {

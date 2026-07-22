@@ -81,8 +81,13 @@ namespace Game.Dialog.BomberLand {
             wing.gameObject.SetActive(true);
         }
 
-        private void PlayAnimationHero(PlayerData player) {
-            var sprites = animationResource.GetSpriteIdle(player.playerType, player.playercolor, FaceDirection.Down);
+        private async void PlayAnimationHero(PlayerData player) {
+            // Thân hero qua IHeroSpriteLoader (path-load) thay cho dict AnimationResource.
+            var loader = ServiceLocator.Instance.Resolve<IHeroSpriteLoader>();
+            var sprites = await loader.LoadClip(player.playerType, player.playercolor, FaceDirection.Down);
+            if (!icon) {
+                return;
+            }
             icon.StartLoop(sprites);
         }
 

@@ -5,6 +5,6 @@ namespace CustomSmartFox.SolCommands {
         public CmdSyncBomberMan(ISFSObject data) : base(data) {
         }
 
-        public override string Cmd => SFSDefine.SFSCommand.SYNC_BOMBERMAN_V3;
+        public override string Cmd => SFSDefine.SFSCommand.SYNC_BOMBERMAN_V4;
     }
 }

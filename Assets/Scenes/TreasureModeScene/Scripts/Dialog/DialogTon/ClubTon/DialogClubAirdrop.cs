@@ -71,7 +71,7 @@ namespace Game.Dialog {
                     var coinRankingResult = await _serverManager.Pvp.GetCoinRanking();
                     UpdateSeasonText(coinRankingResult.RemainTime);
                 } catch (Exception e) {
-                    DialogError.ShowError(DialogCanvas, e.Message);
+                    DialogError.ShowError(DialogCanvas, e);
                 }
             }, _cancellationTokenSource.Token);
         }
@@ -97,7 +97,7 @@ namespace Game.Dialog {
                 try {
                     SelectTab(tab);
                 } catch (Exception ex) {
-                    await DialogError.ShowError(DialogCanvas, ex.Message, Back);
+                    await DialogError.ShowError(DialogCanvas, ex, Back);
                     Debug.LogError(ex);
                 } finally {
                     dialog.Hide();
@@ -135,7 +135,7 @@ namespace Game.Dialog {
                     item.SetInfo(data, _clubConfig, CreateInfoTab);
                     dialog.Hide();
                 } catch (Exception ex) {
-                   DialogError.ShowError(DialogCanvas, ex.Message);
+                   DialogError.ShowError(DialogCanvas, ex);
                     Debug.LogError(ex);
                     dialog.Hide();
                 }
@@ -160,7 +160,7 @@ namespace Game.Dialog {
                     item.SetInfo(data, _clubConfig, CreateInfoTab);
                     dialog.Hide();
                 } catch (Exception ex) {
-                    DialogError.ShowError(DialogCanvas, ex.Message);
+                    DialogError.ShowError(DialogCanvas, ex);
                     Debug.LogError(ex);
                     dialog.Hide();
                 }
@@ -188,7 +188,7 @@ namespace Game.Dialog {
                     item.SetAction(CreateLeagueTab, CreatePromoteTab);
                     dialog.Hide();
                 } catch (Exception ex) {
-                    DialogError.ShowError(DialogCanvas, ex.Message);
+                    DialogError.ShowError(DialogCanvas, ex);
                     Debug.LogError(ex);
                     dialog.Hide();
                 }
@@ -210,7 +210,7 @@ namespace Game.Dialog {
                     item.SetInfo(data, clubId);
                     dialog.Hide();
                 } catch (Exception ex) {
-                    DialogError.ShowError(DialogCanvas, ex.Message);
+                    DialogError.ShowError(DialogCanvas, ex);
                     Debug.LogError(ex);
                     dialog.Hide();
                 }
@@ -235,7 +235,7 @@ namespace Game.Dialog {
                     item.SetInfo(data, _clubConfig);
                     dialog.Hide();
                 } catch (Exception ex) {
-                    DialogError.ShowError(DialogCanvas, ex.Message);
+                    DialogError.ShowError(DialogCanvas, ex);
                     Debug.LogError(ex);
                     dialog.Hide();
                 }

@@ -2,6 +2,7 @@ using App;
 using Constant;
 using Engine.Components;
 using Engine.Entities;
+using Senspark;
 using UnityEngine;
 
 namespace Animation {
@@ -27,6 +28,13 @@ namespace Animation {
         private Movable _movable;
         private AnimationAction _currentAction;
         private FaceDirection _currentFace;
+
+        // Thân hero render qua IHeroSpriteLoader (path-load) — KHÔNG còn dict AnimationResource.
+        // Cache cục bộ (sync) nạp 1 lần ở SetTypeAndColor; loader phải preload TRƯỚC spawn (xem
+        // DefaultPlayerManager.GenerateBomberMan / AdventureGhostDie). animationResource chỉ còn phục vụ
+        // wing/avatar theo GachaChestProductId (migrate ở Phase 5).
+        private IHeroSpriteLoader _loader;
+        private Sprite[] _clipDown, _clipUp, _clipRight, _dieClip;
 
         private void Awake() {
             var entity = GetComponent<Entity>();
@@ -62,14 +70,30 @@ namespace Animation {
             _playerType = type;
             _playerColor = color;
             _playerRarity = (HeroRarity)rarity;
+            // Cache đã được preload TRƯỚC spawn → đọc sync (cold-miss → clip rỗng → ẩn renderer).
+            _loader ??= ServiceLocator.Instance.Resolve<IHeroSpriteLoader>();
+            _clipDown  = _loader.GetClipCached(type, color, FaceDirection.Down, _playerRarity);
+            _clipUp    = _loader.GetClipCached(type, color, FaceDirection.Up, _playerRarity);
+            _clipRight = _loader.GetClipCached(type, color, FaceDirection.Right, _playerRarity);
+            _dieClip   = _loader.GetDieCached(type, color, _playerRarity);
             SetSprite(FaceDirection.Down);
         }
 
+        // Left dùng chung clip Right (consumer flipX). Down/Up có clip riêng.
+        private Sprite[] BodyClip(FaceDirection face) => face switch {
+            FaceDirection.Up => _clipUp,
+            FaceDirection.Down => _clipDown,
+            _ => _clipRight,
+        };
+
+        private static bool HasFrames(Sprite[] clip) => clip != null && clip.Length > 0;
+
         private void SetSprite(FaceDirection face) {
-            var sprites = animationResource.GetSpriteIdle(_playerType, _playerColor, face, _playerRarity);
-            bodyAnimation.SetSprite(sprites[1]);
+            var clip = BodyClip(face);
+            // Cold-miss / art thiếu: ẩn renderer.
+            bodyAnimation.SetSprite(HasFrames(clip) ? clip[1] : null);
         }
-        
+
         public void SetAvatarId(int avatarId) {
             if (avatarId == 0) {
                 _avatarId = GachaChestProductId.Unknown;
@@ -93,19 +117,28 @@ namespace Animation {
             PlayIdle(FaceDirection.Down);
             _isSleep = false;
         }
-        
+
         public void PlayIdle(FaceDirection face) {
             if (_currentAction == AnimationAction.Idle && _currentFace == face) {
                 return;
             }
             _currentAction = AnimationAction.Idle;
             _currentFace = face;
-            var sprites = animationResource.GetSpriteIdle(_playerType, _playerColor, face, _playerRarity);
-            bodyAnimation.StartLoop(sprites, face == FaceDirection.Left);
+            PlayBodyClip(face);
 
             if (avatar) {
                 avatar.SyncMove(face);
                 StartIdleLoop(face, _avatarId, wingAnimation);
+            }
+        }
+
+        // idle/move dùng chung clip. Rỗng (cold-miss) → ẩn renderer, tránh StartLoop chia 0.
+        private void PlayBodyClip(FaceDirection face) {
+            var clip = BodyClip(face);
+            if (HasFrames(clip)) {
+                bodyAnimation.StartLoop(clip, face == FaceDirection.Left);
+            } else {
+                bodyAnimation.SetSprite(null);
             }
         }
 
@@ -123,8 +156,7 @@ namespace Animation {
             }
             _currentAction = AnimationAction.Moving;
             _currentFace = face;
-            var sprites = animationResource.GetSpriteMoving(_playerType, _playerColor, face, _playerRarity);
-            bodyAnimation.StartLoop(sprites, face == FaceDirection.Left);
+            PlayBodyClip(face);
 
             if (avatar) {
                 avatar.SyncMove(face);
@@ -133,13 +165,21 @@ namespace Animation {
         }
 
         public void PlayTakeDamage(System.Action callback = null) {
-            var sprites = animationResource.GetSpriteTakeDamage(_playerType, _playerColor);
-            bodyAnimation.StartAnimation(sprites, callback);
+            // Take-damage flash = clip Die (y hành vi dict cũ: GetSpriteTakeDamage bake từ folder Die).
+            if (HasFrames(_dieClip)) {
+                bodyAnimation.StartAnimation(_dieClip, callback);
+            } else {
+                callback?.Invoke();
+            }
         }
-        
+
         public void PlayDie(System.Action callback = null) {
-            var sprites = animationResource.GetSpriteDie(_playerType, _playerColor);
-            bodyAnimation.StartAnimation(sprites, callback);
+            if (HasFrames(_dieClip)) {
+                bodyAnimation.StartAnimation(_dieClip, callback);
+            } else {
+                bodyAnimation.SetSprite(null);
+                callback?.Invoke();
+            }
         }
     }
 }

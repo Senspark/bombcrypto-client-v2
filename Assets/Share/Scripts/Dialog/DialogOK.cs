@@ -58,7 +58,28 @@ namespace Share.Scripts.Dialog {
             }
         }
         
-        public static async UniTask ShowErrorAsync(Canvas canvas, string message, Optional optional = null) {
+        public static UniTask ShowErrorAsync(Canvas canvas, Exception e, Optional optional = null) {
+            Debug.LogException(e);
+            return ShowErrorMsgOnlyAsync(canvas, e.Message, optional);
+        }
+
+        public static void ShowError(
+            Canvas canvas,
+            Exception e,
+            Action onDidHide = null,
+            bool useActionsOnDestroy = false
+        ) {
+            Debug.LogException(e);
+            ShowErrorMsgOnly(canvas, e.Message, onDidHide, useActionsOnDestroy);
+        }
+
+        public static void ShowErrorAndKickToConnectScene(Canvas canvas, Exception e) {
+            Debug.LogException(e);
+            ShowErrorMsgOnlyAndKickToConnectScene(canvas, e.Message);
+        }
+
+        public static async UniTask ShowErrorMsgOnlyAsync(Canvas canvas, string message, Optional optional = null) {
+            Debug.LogError(message);
             var d = await Create();
             message = message.Substring(0, Mathf.Min(100, message.Length));
             d.SetInfo(optional?.Title ?? "Error", message);
@@ -74,12 +95,13 @@ namespace Share.Scripts.Dialog {
             }
         }
 
-        public static void ShowError(
+        public static void ShowErrorMsgOnly(
             Canvas canvas,
             string message,
             Action onDidHide = null,
             bool useActionsOnDestroy = false
         ) {
+            Debug.LogError(message);
             _ = Create().ContinueWith(dialog => {
                 message = message.Substring(0, Mathf.Min(100, message.Length));
                 dialog.SetInfo("Error", message);
@@ -93,8 +115,8 @@ namespace Share.Scripts.Dialog {
             });
         }
 
-        public static void ShowErrorAndKickToConnectScene(Canvas canvas, string message) {
-            ShowError(canvas, message, App.Utils.KickToConnectScene, true);
+        public static void ShowErrorMsgOnlyAndKickToConnectScene(Canvas canvas, string message) {
+            ShowErrorMsgOnly(canvas, message, App.Utils.KickToConnectScene, true);
         }
 
         public void SetInfo(string title, string desc) {

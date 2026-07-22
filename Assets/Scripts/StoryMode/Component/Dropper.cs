@@ -19,7 +19,7 @@ namespace Engine.Components {
         private GhostDie prefabBomb;
 
         protected Sprite _sprite;
-        private const string BaseCharPath = "Assets/Scenes/TreasureModeScene/Textures/Pack/";
+        private const string BaseCharPath = "Assets/Data/CharactersSprites/";
         private const string BaseEnemyPath = "Assets/Scenes/MainMenuScene/Textures/Pack/";
 
         public bool IsExitFromDoor { set; private get; }
@@ -43,10 +43,14 @@ namespace Engine.Components {
         }
 
         public virtual async void SetHeroSprite(PlayerType charName, PlayerColor colorName) {
-            var spriteSheetName = BaseCharPath + "Characters/" + charName + "/" + colorName + "/Front/player_front_00.png";
+            // Folder + color tra qua catalog (decoupled khỏi Enum.ToString()): Super skins mượn
+            // folder HeroTR (vd SuperKnight -> "Knight/HeroTr") nên tên enum != tên folder.
+            var folder = HeroSpriteCatalog.Get(charName)?.Folder ?? charName.ToString();
+            var color = HeroSpriteCatalog.ResolveColor(charName, colorName);
+            var spriteSheetName = BaseCharPath + folder + "/" + color + "/Front/player_front_00.png";
             _sprite = await LoadSprite(spriteSheetName);
             if (_sprite == null) {
-                spriteSheetName = BaseCharPath + "Characters/" + charName + "/" + PlayerColor.White + "/Front/player_front_00.png";
+                spriteSheetName = BaseCharPath + folder + "/" + PlayerColor.White + "/Front/player_front_00.png";
                 _sprite = await LoadSprite(spriteSheetName);
             }
         }

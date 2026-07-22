@@ -13,7 +13,7 @@ OcclusionCullingSettings:
 --- !u!104 &2
 RenderSettings:
   m_ObjectHideFlags: 0
-  serializedVersion: 9
+  serializedVersion: 10
   m_Fog: 0
   m_FogColor: {r: 0.5, g: 0.5, b: 0.5, a: 1}
   m_FogMode: 3
@@ -38,13 +38,12 @@ RenderSettings:
   m_ReflectionIntensity: 1
   m_CustomReflection: {fileID: 0}
   m_Sun: {fileID: 0}
-  m_IndirectSpecularColor: {r: 0.37311924, g: 0.38073963, b: 0.3587269, a: 1}
   m_UseRadianceAmbientProbe: 0
 --- !u!157 &3
 LightmapSettings:
   m_ObjectHideFlags: 0
-  serializedVersion: 12
-  m_GIWorkflowMode: 1
+  serializedVersion: 13
+  m_BakeOnSceneLoad: 0
   m_GISettings:
     serializedVersion: 2
     m_BounceScale: 1
@@ -67,9 +66,6 @@ LightmapSettings:
     m_LightmapParameters: {fileID: 0}
     m_LightmapsBakeMode: 1
     m_TextureCompression: 1
-    m_FinalGather: 0
-    m_FinalGatherFiltering: 1
-    m_FinalGatherRayCount: 256
     m_ReflectionCompression: 2
     m_MixedBakeMode: 2
     m_BakeBackend: 1
@@ -324,6 +320,7 @@ MonoBehaviour:
   m_DeselectOnBackgroundClick: 1
   m_PointerBehavior: 0
   m_CursorLockBehavior: 0
+  m_ScrollDeltaPerTick: 6
 --- !u!114 &528003400
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -364,8 +361,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1516834394}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -84.790085, y: -379.70132, z: 3.1437354}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -387,11 +384,13 @@ MonoBehaviour:
     m_AssetGUID: 086569517d84245979840a5b50bc8c30
     m_SubObjectName: 
     m_SubObjectType: 
+    m_SubObjectGUID: 
     m_EditorAssetChanged: 0
   farmingScenePrefab:
     m_AssetGUID: 3195a2282ac8a45c6b53277ed234ecaa
     m_SubObjectName: 
     m_SubObjectType: 
+    m_SubObjectGUID: 
     m_EditorAssetChanged: 0
 --- !u!1 &1598375919
 GameObject:
@@ -418,8 +417,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1598375919}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -84.790085, y: -379.70132, z: 3.1437354}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -441,216 +440,265 @@ MonoBehaviour:
     m_AssetGUID: 70160e1638d554ffdba552d11b09acba
     m_SubObjectName: 
     m_SubObjectType: 
+    m_SubObjectGUID: 
     m_EditorAssetChanged: 0
   dialogSetting:
     m_AssetGUID: 505afa3ff8ee44b6587857aaafa4a44b
     m_SubObjectName: 
     m_SubObjectType: 
+    m_SubObjectGUID: 
     m_EditorAssetChanged: 0
   dialogFusionPolygon:
     m_AssetGUID: 506a7a693b4c44d6aacab6a5b5457cc1
     m_SubObjectName: 
     m_SubObjectType: 
-    m_EditorAssetChanged: 0
-  dialogFusionFailed:
-    m_AssetGUID: a21382656fa1c4e898978cb0b7efeeea
-    m_SubObjectName: 
-    m_SubObjectType: 
+    m_SubObjectGUID: 
     m_EditorAssetChanged: 0
   dialogInventory:
     m_AssetGUID: 498872fbeca2441cf9795013b5267c07
     m_SubObjectName: 
     m_SubObjectType: 
+    m_SubObjectGUID: 
+    m_EditorAssetChanged: 0
+  dialogInventoryV2:
+    m_AssetGUID: 9e4f74511f45a4b6cb3fef97034be244
+    m_SubObjectName: 
+    m_SubObjectType: 
+    m_SubObjectGUID: 
     m_EditorAssetChanged: 0
   dialogInventoryPad:
     m_AssetGUID: 951bf0fe0cee647299dc0ad076982bf1
     m_SubObjectName: 
     m_SubObjectType: 
+    m_SubObjectGUID: 
     m_EditorAssetChanged: 0
   dialogHouse:
     m_AssetGUID: 9d760091a3cd1f543868a32bc488bd9d
     m_SubObjectName: 
     m_SubObjectType: 
+    m_SubObjectGUID: 
     m_EditorAssetChanged: 0
   dialogHouseHelp:
     m_AssetGUID: 2ed59494f5eaedf48829983356fdad25
     m_SubObjectName: 
     m_SubObjectType: 
+    m_SubObjectGUID: 
     m_EditorAssetChanged: 0
   dialogHouseList:
     m_AssetGUID: 1836c992b0c4d459194dd8b95dd05e4e
     m_SubObjectName: 
     m_SubObjectType: 
+    m_SubObjectGUID: 
     m_EditorAssetChanged: 0
   dialogHouseListPad:
     m_AssetGUID: a3448069d19994fa2b75c5f44f9b4759
     m_SubObjectName: 
     m_SubObjectType: 
+    m_SubObjectGUID: 
     m_EditorAssetChanged: 0
   dialogShop:
     m_AssetGUID: 98d9abd41a903450ea05fa4455fc0f5f
     m_SubObjectName: 
     m_SubObjectType: 
+    m_SubObjectGUID: 
     m_EditorAssetChanged: 0
   dialogShopCoin:
     m_AssetGUID: e7026dee0e60942babe0b17f18120172
     m_SubObjectName: 
     m_SubObjectType: 
+    m_SubObjectGUID: 
     m_EditorAssetChanged: 0
   dialogShopHero:
     m_AssetGUID: 69979b643534e42339ba88fd6bbdcacc
     m_SubObjectName: 
     m_SubObjectType: 
+    m_SubObjectGUID: 
     m_EditorAssetChanged: 0
   dialogShopHouse:
     m_AssetGUID: 66f59883acc5843e5809c29123a21351
     m_SubObjectName: 
     m_SubObjectType: 
+    m_SubObjectGUID: 
     m_EditorAssetChanged: 0
   dialogShopHousePad:
     m_AssetGUID: 1ec843c94604f417a9bd143aa123aafa
     m_SubObjectName: 
     m_SubObjectType: 
+    m_SubObjectGUID: 
     m_EditorAssetChanged: 0
   dialogHeroes:
     m_AssetGUID: 87aeb82df66ef3b4f843339cabec7353
     m_SubObjectName: 
     m_SubObjectType: 
+    m_SubObjectGUID: 
     m_EditorAssetChanged: 0
   dialogHeroesPad:
     m_AssetGUID: 1fdc5834786a943c68bbb68014c42a08
     m_SubObjectName: 
     m_SubObjectType: 
+    m_SubObjectGUID: 
     m_EditorAssetChanged: 0
   dialogActiveHouse:
     m_AssetGUID: eca3544ef2dfa5f40a867b6fadda2783
     m_SubObjectName: 
     m_SubObjectType: 
+    m_SubObjectGUID: 
     m_EditorAssetChanged: 0
   dialogNewHero:
     m_AssetGUID: cdf44861d6d5d4a8d8dd80c1e7d63bc6
     m_SubObjectName: 
     m_SubObjectType: 
+    m_SubObjectGUID: 
     m_EditorAssetChanged: 0
   dialogNewHouse:
     m_AssetGUID: a01d01ba250b3a140bf1513c9f182311
     m_SubObjectName: 
     m_SubObjectType: 
+    m_SubObjectGUID: 
     m_EditorAssetChanged: 0
   dialogWarningBeforeBuyHouse:
     m_AssetGUID: 3641cffccb87c49818c96629ef485634
     m_SubObjectName: 
     m_SubObjectType: 
+    m_SubObjectGUID: 
     m_EditorAssetChanged: 0
   dialogDeposit:
     m_AssetGUID: 953e432588af349c6abe4667b63ace23
     m_SubObjectName: 
     m_SubObjectType: 
+    m_SubObjectGUID: 
+    m_EditorAssetChanged: 0
+  dialogBridgeAmount:
+    m_AssetGUID: 21dc075e38fed490fa306c0db57e61c5
+    m_SubObjectName: 
+    m_SubObjectType: 
+    m_SubObjectGUID: 
+    m_EditorAssetChanged: 0
+  dialogBridgeWithdrawAmount:
+    m_AssetGUID: 1e48e856a29754b5bb0aedab146705ed
+    m_SubObjectName: 
+    m_SubObjectType: 
+    m_SubObjectGUID: 
     m_EditorAssetChanged: 0
   bLDialogReward:
     m_AssetGUID: 3f79ff127b7224b9d964a2854fda1a9d
     m_SubObjectName: 
     m_SubObjectType: 
+    m_SubObjectGUID: 
     m_EditorAssetChanged: 0
   dialogLegacyHeroes:
     m_AssetGUID: 06f0b7a3086634edf99b27003ca96314
     m_SubObjectName: 
     m_SubObjectType: 
+    m_SubObjectGUID: 
     m_EditorAssetChanged: 0
   dialogConfirmSelect:
     m_AssetGUID: 077488e702a4a4fca95b77f5234d8260
     m_SubObjectName: 
     m_SubObjectType: 
+    m_SubObjectGUID: 
     m_EditorAssetChanged: 0
   dialogAutoMine:
     m_AssetGUID: 9dee9df4533c74e53aef6f0cdbb8eb64
     m_SubObjectName: 
     m_SubObjectType: 
+    m_SubObjectGUID: 
     m_EditorAssetChanged: 0
   dialogAutoMinePackage:
     m_AssetGUID: cbdc21b11c4064387be14068be3d7364
     m_SubObjectName: 
     m_SubObjectType: 
+    m_SubObjectGUID: 
     m_EditorAssetChanged: 0
   dialogBCoinReward:
     m_AssetGUID: 8039953f41832304c987b6f892c325a8
     m_SubObjectName: 
     m_SubObjectType: 
+    m_SubObjectGUID: 
     m_EditorAssetChanged: 0
   dialogSelectStaking:
     m_AssetGUID: 2d0101f2b350b448ba6ff9d8083e9b28
     m_SubObjectName: 
     m_SubObjectType: 
+    m_SubObjectGUID: 
     m_EditorAssetChanged: 0
   dialogStakeHeroesS:
     m_AssetGUID: e5973336ce7314e1e87aa7863b19e23b
     m_SubObjectName: 
     m_SubObjectType: 
+    m_SubObjectGUID: 
     m_EditorAssetChanged: 0
   dialogStakeHeroesPlus:
     m_AssetGUID: e275f7eea0e384a0ca0b03c58e96beb7
     m_SubObjectName: 
     m_SubObjectType: 
+    m_SubObjectGUID: 
     m_EditorAssetChanged: 0
   dialogUnStakingConfirm:
     m_AssetGUID: 63a91563e1ac54603a33c0c242be15c3
     m_SubObjectName: 
     m_SubObjectType: 
-    m_EditorAssetChanged: 0
-  dialogUnStakingResult:
-    m_AssetGUID: fa3846a9487604119beaa9edc02103fd
-    m_SubObjectName: 
-    m_SubObjectType: 
+    m_SubObjectGUID: 
     m_EditorAssetChanged: 0
   dialogStaking:
     m_AssetGUID: 9bc55c3cd290a440aa7e35cf92ca5b07
     m_SubObjectName: 
     m_SubObjectType: 
+    m_SubObjectGUID: 
     m_EditorAssetChanged: 0
   dialogConfirmStake:
     m_AssetGUID: a9c70b2f8962b4dd5addfa36a1e5f26b
     m_SubObjectName: 
     m_SubObjectType: 
+    m_SubObjectGUID: 
     m_EditorAssetChanged: 0
   dialogConfirmUnStake:
     m_AssetGUID: 71fef0fcc4e604aedac3b3f34fea6cf0
     m_SubObjectName: 
     m_SubObjectType: 
+    m_SubObjectGUID: 
     m_EditorAssetChanged: 0
   dialogStakingResult:
     m_AssetGUID: 22da6ed1bcca24c18a5eb5ec92eab4ec
     m_SubObjectName: 
     m_SubObjectType: 
+    m_SubObjectGUID: 
     m_EditorAssetChanged: 0
   dialogSmithyPolygon:
     m_AssetGUID: 465eef92d8adb44b996f8a727c81e91a
     m_SubObjectName: 
     m_SubObjectType: 
+    m_SubObjectGUID: 
     m_EditorAssetChanged: 0
   dialogSmithyPad:
     m_AssetGUID: bf5f6bc74e20c4dfba51b66821600733
     m_SubObjectName: 
     m_SubObjectType: 
+    m_SubObjectGUID: 
     m_EditorAssetChanged: 0
   dialogConfirmBuyRock:
     m_AssetGUID: 633234b52c32e4c3cacc5e4a2c6a0676
     m_SubObjectName: 
     m_SubObjectType: 
+    m_SubObjectGUID: 
     m_EditorAssetChanged: 0
   dialogForge:
     m_AssetGUID: dd08455215c5e40f0b86f0488f4ae390
     m_SubObjectName: 
     m_SubObjectType: 
+    m_SubObjectGUID: 
     m_EditorAssetChanged: 0
   dialogConfirmBurnOrFusion:
     m_AssetGUID: 5edf55ea9e6c044b1927ad1ffa744be8
     m_SubObjectName: 
     m_SubObjectType: 
+    m_SubObjectGUID: 
     m_EditorAssetChanged: 0
   dialogCommunityLink:
     m_AssetGUID: bcfd81c0cf2fa4941983116af6da9396
     m_SubObjectName: 
     m_SubObjectType: 
+    m_SubObjectGUID: 
     m_EditorAssetChanged: 0
 --- !u!1 &2000595084
 GameObject:
@@ -690,7 +738,7 @@ Transform:
   m_GameObject: {fileID: 2000595084}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 84.790085, y: 379.70132, z: -3.1437354}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:

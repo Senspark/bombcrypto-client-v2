@@ -68,47 +68,60 @@ export default class BHeroStake extends GeneralContract {
         }
     }
 
-    async depositV2(userAddress: string, id: number, amount: number, token: string, category: number): Promise<boolean> {
+    private getCoinTokenByCategory(category: number): CoinToken | null {
+        if (category === 0) return this._bcoinToken;
+        if (category === 1) return this._sensparkToken;
+        return null;
+    }
+
+    async depositV2(userAddress: string, id: number, amount: number, category: number): Promise<{ success: boolean; txHash: string }> {
         try {
             const amountBN = parseEther(amount.toString());
-            let coinToken;
-            if (category === 0) {
-                coinToken = this._bcoinToken;
-            } else if (category === 1) {
-                coinToken = this._sensparkToken;
-            }
-            if(!coinToken){
-                console.error(`coinToken is null`);
-                return false;
+            const coinToken = this.getCoinTokenByCategory(category);
+            if (!coinToken) {
+                console.error(`coinToken is null for category ${category}`);
+                return { success: false, txHash: "" };
             }
             await coinToken.approveMaximum(userAddress, this._address, amountBN);
             const contract = await this.getContract();
-            const transaction = await contract.depositV2(token, id, amountBN);
+            const transaction = await contract.depositV2(coinToken._address, id, amountBN);
+            const txHash = transaction.hash ?? "";
             await waitForReceipt(transaction);
-            return true;
+            return { success: true, txHash };
         } catch (ex) {
             console.error(`exception ${ex}`);
-            return false;
+            return { success: false, txHash: "" };
         }
     }
 
-    async withdrawV2(id: number, amount: number, token: string): Promise<boolean> {
+    async withdrawV2(id: number, amount: number, category: number): Promise<{ success: boolean; txHash: string }> {
         try {
             const amountBN = parseEther(amount.toString());
+            const coinToken = this.getCoinTokenByCategory(category);
+            if (!coinToken) {
+                console.error(`coinToken is null for category ${category}`);
+                return { success: false, txHash: "" };
+            }
             const contract = await this.getContract();
-            const transaction = await contract.withdrawV2(token, id, amountBN);
+            const transaction = await contract.withdrawV2(coinToken._address, id, amountBN);
+            const txHash = transaction.hash ?? "";
             await waitForReceipt(transaction);
-            return true;
+            return { success: true, txHash };
         } catch (ex) {
             console.error(`exception ${ex}`);
-            return false;
+            return { success: false, txHash: "" };
         }
     }
 
-    async getCoinBalanceV2(id: number, token: string): Promise<string> {
+    async getCoinBalanceV2(id: number, category: number): Promise<string> {
         try {
+            const coinToken = this.getCoinTokenByCategory(category);
+            if (!coinToken) {
+                console.error(`coinToken is null for category ${category}`);
+                return "0";
+            }
             const contract = await this.getContract();
-            const result = await contract.getCoinBalanceV2(token, id);
+            const result = await contract.getCoinBalanceV2(coinToken._address, id);
             return formatUnits(result.toString(), 18);
         } catch (ex) {
             console.error(`exception ${ex}`);
@@ -116,10 +129,15 @@ export default class BHeroStake extends GeneralContract {
         }
     }
 
-    async getWithdrawFeeV2(id: number, token: string): Promise<string> {
+    async getWithdrawFeeV2(id: number, category: number): Promise<string> {
         try {
+            const coinToken = this.getCoinTokenByCategory(category);
+            if (!coinToken) {
+                console.error(`coinToken is null for category ${category}`);
+                return "0";
+            }
             const contract = await this.getContract();
-            const result = await contract.getWithdrawFeeV2(token, id);
+            const result = await contract.getWithdrawFeeV2(coinToken._address, id);
             return result.toString();
         } catch (ex) {
             console.error(`exception ${ex}`);

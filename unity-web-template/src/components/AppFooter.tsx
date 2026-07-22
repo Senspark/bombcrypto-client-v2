@@ -6,8 +6,8 @@ import ConnectAccount from "./ConnectAccount.tsx";
 import ConnectNetwork from "./ConnectNetwork.tsx";
 import { ClipLoader } from "react-spinners";
 import "./../App.css";
-import { EnvConfig } from '../configs/EnvConfig';
 import AppKitButton from "./AppKitButton";
+import AddNetworkButtons from "./AddNetworkButtons";
 import {customSessionStorage, sessionSetting} from "../hooks/GlobalServices.ts";
 
 const Wrapper = styled.div<{ fullratio: string }>`
@@ -138,6 +138,7 @@ const ConnectAccountButton = styled.button<ButtonProps>`
     border: 1px solid var(--wui-color-gray-glass-010);
     border-radius: var(--wui-border-radius-m);
     padding: 10px 16px;
+    min-height: 40px;
     font-size: 16px;
     font-weight: 500;
     color: var(--wui-color-foreground-100, #fff);
@@ -169,6 +170,7 @@ const PlayOtherNetworkButton = styled.button`
     border: 1px solid var(--wui-color-gray-glass-010);
     border-radius: var(--wui-border-radius-m);
     padding: 10px 16px;
+    min-height: 40px;
     font-size: 16px;
     font-weight: 500;
     color: var(--wui-color-foreground-100, #fff);
@@ -280,10 +282,15 @@ export default function AppFooter() {
                         </ConnectAccountButton>
                     )}
                     { (
-                        <PlayOtherNetworkButton onClick={() => window.open(EnvConfig.otherNetworkUrl(), '_blank', 'noopener,noreferrer')} >
+                        <PlayOtherNetworkButton onClick={() => {
+                            const url = new URL(window.location.href);
+                            url.searchParams.delete('wid');
+                            window.open(url.toString(), '_blank', 'noopener,noreferrer');
+                        }} >
                             Play on other network
                         </PlayOtherNetworkButton>
                     )}
+                    <AddNetworkButtons />
                 </ButtonWrapper>
             )}
             <ConnectAccount open={openConnectAccount} setOpen={setOpenConnectAccount}/>

@@ -22,7 +22,7 @@ public class FusionSkinItem : MonoBehaviour {
     private HeroRarity _rarity;
     private PlayerData[] _fusionMaterials;
     private Action<PlayerData[]> _onSelectSkin;
-    private IPlayerStorageManager _playerStoreManager;
+    private IBHeroManager _playerStoreManager;
     private Tween _highlightTween;
     
     private const int FUSION_MAX_HERO = 4;
@@ -30,7 +30,7 @@ public class FusionSkinItem : MonoBehaviour {
     private const string NOT_ENOUGH_QUANTITY_COLOR = "#E52929";
 
     private void Awake() {
-        _playerStoreManager = ServiceLocator.Instance.Resolve<IPlayerStorageManager>();
+        _playerStoreManager = ServiceLocator.Instance.Resolve<IBHeroManager>();
     }
     
     public void Init(SkinTypeResource.SkinTypeRes skinTypeRes, HeroRarity rarity) {

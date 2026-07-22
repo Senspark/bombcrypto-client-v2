@@ -9,12 +9,10 @@ const HERO_S_PRICE_MULTIPLIER = 5;
 
 export default class BHeroToken extends NFTToken {
     private readonly _bcoinToken: CoinToken;
-    private readonly _sensparkToken: CoinToken;
 
-    constructor(bcoinToken: CoinToken, sensparkToken: CoinToken, address: string, abi: JSON, designAbi: JSON) {
+    constructor(bcoinToken: CoinToken, _sensparkToken: CoinToken, address: string, abi: JSON, designAbi: JSON) {
         super(address, abi, designAbi);
         this._bcoinToken = bcoinToken;
-        this._sensparkToken = sensparkToken;
     }
 
     async getRarityStats(): Promise<TransactionResponse> {
@@ -126,16 +124,7 @@ export default class BHeroToken extends NFTToken {
     async mint(userAddress: string, count: number, category: number): Promise<boolean> {
         try {
             const cost = await this.getHeroPrice(category);
-            let coinToken;
-            if (category === 0) {
-                coinToken = this._bcoinToken;
-            } else if (category === 1) {
-                coinToken = this._sensparkToken;
-            } else if (category === 2) {
-                coinToken = this._sensparkToken;
-            } else {
-                throw new Error('Invalid request');
-            }
+            const coinToken = this._bcoinToken;
             const countBN = ethers.toBigInt(count);
             const costBN = ethers.toBigInt(cost);
             await coinToken.checkAllowance(userAddress, this._address, (costBN * countBN));
@@ -177,14 +166,14 @@ export default class BHeroToken extends NFTToken {
         return value.toString();
     }
 
-    async processTokenRequests(userAddress: string): Promise<{ result: boolean, fusionFailAmount: number, fusionSuccessHeroIds: number[] }> {
+    async processTokenRequests(): Promise<{ result: boolean, fusionFailAmount: number, fusionSuccessHeroIds: number[] }> {
         const response = {
             result: false,
             fusionFailAmount: 0,
             fusionSuccessHeroIds: []
         };
         try {
-            const tokens = parseInt(await this.getProcessableTokens(userAddress));
+            /* const tokens = parseInt(await this.getProcessableTokens(userAddress));
             while (true) {
                 const pendingResult = await this.getPendingTokens(userAddress);
                 const pendingTokens = pendingResult.pendingHeroes;
@@ -192,7 +181,7 @@ export default class BHeroToken extends NFTToken {
                     break;
                 }
                 await sleep(2000);
-            }
+            } */
 
             const contract = await this.getContract();
             const estimateGas = await contract.processTokenRequests.estimateGas();

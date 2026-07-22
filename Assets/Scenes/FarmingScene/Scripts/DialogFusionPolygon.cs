@@ -38,12 +38,12 @@ namespace Scenes.FarmingScene.Scripts {
         private Button fusionBtn;
 
         private const int MaxLstMainHeroId = 4;
-        private int _targetUpgradeRarity = 1; //default rare
+        private int _targetUpgradeRarity = 0; //default common (result rarity = source + 1 → "Common > Rare")
         private PlayerData[] _mainLstHeroId;
         private List<PlayerData> _secondLstHeroId;
 
         private ISoundManager _soundManager;
-        private IPlayerStorageManager _playerStoreManager;
+        private IBHeroManager _playerStoreManager;
         private IBlockchainManager _blockchainManager;
         private IServerManager _serverManager;
         private IStorageManager _storageManager;
@@ -55,7 +55,7 @@ namespace Scenes.FarmingScene.Scripts {
 
         private void Start() {
             _soundManager = ServiceLocator.Instance.Resolve<ISoundManager>();
-            _playerStoreManager = ServiceLocator.Instance.Resolve<IPlayerStorageManager>();
+            _playerStoreManager = ServiceLocator.Instance.Resolve<IBHeroManager>();
             _blockchainManager = ServiceLocator.Instance.Resolve<IBlockchainManager>();
             _serverManager = ServiceLocator.Instance.Resolve<IServerManager>();
             _storageManager = ServiceLocator.Instance.Resolve<IStorageManager>();
@@ -126,7 +126,7 @@ namespace Scenes.FarmingScene.Scripts {
             //Mở nguyên liêu hero buff nếu đã chon dc 3 nguyên liêu chính
             var chooseMainHeroes = _mainLstHeroId.Where(e => e != null).ToArray();
             if (chooseMainHeroes.Length == 3) {
-                fusionSecondAvatar.gameObject.SetActive(_targetUpgradeRarity != 1);
+                fusionSecondAvatar.gameObject.SetActive(_targetUpgradeRarity != 0);
             }
             //Đóng ngyên liêu buff và clean nếu chon đủ 4 nguyên liệu chính
             else if (chooseMainHeroes.Length == 4) {
@@ -163,20 +163,26 @@ namespace Scenes.FarmingScene.Scripts {
             resultFusion.text = $"{PercentFusionResult()}%";
         }
 
+        private float CalcHeroPercent(PlayerData playerData) {
+            var heroType = _playerStoreManager.GetHeroRarity(playerData);
+            // _targetUpgradeRarity là rarity của hero main (xem FusionItemDisplayPolygon),
+            // target rarity thực = _targetUpgradeRarity + 1 — phải khớp công thức
+            var x = (_targetUpgradeRarity + 1) - (int) heroType;
+            return 25f / Mathf.Pow(4, x - 1);
+        }
+
         private int PercentFusionResult() {
             var percent = 0f;
-            
+
             // Loại second list khi tính percent nếu second list không xuất hiện.
             var lstHeroId = _mainLstHeroId;
             if (fusionSecondAvatar.gameObject.activeSelf) {
                 lstHeroId = _mainLstHeroId.Concat(_secondLstHeroId).ToArray();
             }
-            
+
             foreach (var playerData in lstHeroId) {
                 if (playerData != null) {
-                    var heroType = _playerStoreManager.GetHeroRarity(playerData);
-                    var x = _targetUpgradeRarity - (int) heroType;
-                    percent += 25f / Mathf.Pow(4, x - 1);
+                    percent += CalcHeroPercent(playerData);
                 }
             }
             return Mathf.RoundToInt(percent);
@@ -186,20 +192,16 @@ namespace Scenes.FarmingScene.Scripts {
             var percent = 0f;
             foreach (var playerData in _mainLstHeroId) {
                 if (playerData != null) {
-                    var heroType = _playerStoreManager.GetHeroRarity(playerData);
-                    var x = _targetUpgradeRarity - (int) heroType;
-                    percent += 25f / Mathf.Pow(4, x - 1);
+                    percent += CalcHeroPercent(playerData);
                 }
             }
 
             var subSecondHero = new List<PlayerData>();
             foreach (var playerData in _secondLstHeroId) {
                 if (playerData != null) {
-                    var heroType = _playerStoreManager.GetHeroRarity(playerData);
-                    var x = _targetUpgradeRarity - (int) heroType;
-                    percent += 25f / Mathf.Pow(4, x - 1);
+                    percent += CalcHeroPercent(playerData);
                     subSecondHero.Add(playerData);
-                    if (Mathf.Approximately(percent, 100)) {
+                    if (percent >= 100f) {
                         break;
                     }
                 }
@@ -294,12 +296,12 @@ namespace Scenes.FarmingScene.Scripts {
                 
                 try {
                     var changeWaiting = new Action(() => { waiting.ChangeText("Processing Token Request"); });
-                    var fusionFailReasonError = new Action(() => { DialogOK.ShowError(DialogCanvas, "Fusion Failed"); });
+                    var fusionFailReasonError = new Action(() => { DialogOK.ShowErrorMsgOnly(DialogCanvas, "Fusion Failed"); });
                     await _dialogFusionController.Fusion(DialogCanvas, _mainLstHeroId.ToList(), _secondLstHeroId,
                         changeWaiting,
                         fusionFailReasonError);
                 } catch (Exception e) {
-                    DialogOK.ShowError(DialogCanvas, e.Message);
+                    DialogOK.ShowError(DialogCanvas, e);
                 } finally {
                     CleanMainDisplay();
                     CleanSecondDisplay();

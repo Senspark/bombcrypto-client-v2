@@ -62,6 +62,16 @@ namespace App {
         public Action<HeroId[]> OnRemoveHeroes;
         public Action<IClubInfo> OnJoinClub;
         public Action<IClubInfo> OnLeaveClub;
+        public Action OnBlockchainDataRefreshed;
+        public Action<IUpgradeShieldLevelPush> OnUpgradeShieldLevelResponse;
+        // Hero data đã được ForceUpdate vào PlayerStorage trước khi event này bắn.
+        public Action<IHeroDetails> OnHeroStakePush;
+    }
+
+    public interface IUpgradeShieldLevelPush {
+        bool Success { get; }
+        string ErrorMessage { get; }
+        IHeroDetails Hero { get; }
     }
 
     public enum ServerConnectionState {

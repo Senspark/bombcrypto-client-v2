@@ -5,7 +5,7 @@ using Cysharp.Threading.Tasks;
 using UnityEngine;
 
 namespace Engine.Input {
-    public class NullInputManager: MonoBehaviour, IInputManager {
+    public class NullInputManager: IInputManager {
         public Task<bool> Initialize() =>
             Task.FromResult(true);
 

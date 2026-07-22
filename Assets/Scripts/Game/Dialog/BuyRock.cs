@@ -179,7 +179,7 @@ public class BuyRock : MonoBehaviour
                 DialogForge.ShowInfo(_dialogCanvas, "Successfully");
             } catch (Exception e) {
                 if (e is ErrorCodeException) {
-                    DialogError.ShowError(_dialogCanvas, "Purchase Failed");    
+                    DialogError.ShowErrorMsgOnly(_dialogCanvas, "Purchase Failed");
                 } else {
                     DialogForge.ShowError(_dialogCanvas, "Purchase Failed");
                 }

@@ -149,9 +149,9 @@ namespace Scenes.HeroesScene.Scripts {
                     IgnoreOutsideClick = false;
                 } catch (Exception e) {
                     if (e is ErrorCodeException) {
-                        DialogError.ShowError(DialogCanvas, e.Message);    
+                        DialogError.ShowError(DialogCanvas, e);    
                     } else {
-                        DialogOK.ShowError(DialogCanvas, e.Message);
+                        DialogOK.ShowError(DialogCanvas, e);
                     }
                 } finally {
                     waiting.End();
@@ -200,9 +200,9 @@ namespace Scenes.HeroesScene.Scripts {
                     _onCloseAndDataUpdate?.Invoke();
                 } catch (Exception e) {
                     if (e is ErrorCodeException) {
-                        DialogError.ShowError(DialogCanvas, e.Message);    
+                        DialogError.ShowError(DialogCanvas, e);    
                     } else {
-                        DialogOK.ShowError(DialogCanvas, e.Message);
+                        DialogOK.ShowError(DialogCanvas, e);
                     }
                 } finally {
                     waiting.End();

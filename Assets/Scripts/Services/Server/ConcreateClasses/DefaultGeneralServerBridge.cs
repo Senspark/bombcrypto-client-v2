@@ -13,7 +13,7 @@ namespace App.BomberLand {
     public partial class DefaultGeneralServerBridge : IGeneralServerBridge {
         private readonly IStorageManager _storageManager;
         private readonly IChestRewardManager _chestRewardManager;
-        private readonly IPlayerStorageManager _playerStorageManager;
+        private readonly IBHeroManager _bHeroManager;
         private readonly IHouseStorageManager _houseStorageManager;
         private readonly IClaimTokenServerBridge _claimTokenServerBridge;
         private readonly ILogManager _logManager;
@@ -24,12 +24,13 @@ namespace App.BomberLand {
         private readonly ICacheRequestManager _cacheRequestManager;
         private readonly ITaskTonManager _taskTonManager;
         private readonly IOnBoardingManager _onBoardingManager;
+        private readonly IDedupServerRequester _dedup;
         private readonly bool _enableLog;
 
         public DefaultGeneralServerBridge(
             bool enableLog,
             IStorageManager storageManager,
-            IPlayerStorageManager playerStorageManager,
+            IBHeroManager bHeroManager,
             IHouseStorageManager houseStorageManager,
             IChestRewardManager chestRewardManager,
             IClaimTokenServerBridge claimTokenServerBridge,
@@ -40,12 +41,13 @@ namespace App.BomberLand {
             ITaskDelay taskDelay,
             ICacheRequestManager cacheRequestManager,
             ITaskTonManager taskTonManager,
-            IOnBoardingManager onBoardingManager
+            IOnBoardingManager onBoardingManager,
+            IDedupServerRequester dedup
         ) {
             _enableLog = enableLog;
             _serverDispatcher = serverDispatcher;
             _storageManager = storageManager;
-            _playerStorageManager = playerStorageManager;
+            _bHeroManager = bHeroManager;
             _houseStorageManager = houseStorageManager;
             _logManager = logManager;
             _chestRewardManager = chestRewardManager;
@@ -56,6 +58,7 @@ namespace App.BomberLand {
             _cacheRequestManager = cacheRequestManager;
             _taskTonManager = taskTonManager;
             _onBoardingManager = onBoardingManager;
+            _dedup = dedup;
         }
         
         public async Task<IHeroPower[]> GetHeroPower() {
@@ -65,38 +68,42 @@ namespace App.BomberLand {
             return OnGetHeroPower(response);
         }
         
-        public async Task<ISyncHeroResponse> SyncHero(bool notifyNewIds, bool isBuyHero = false) {
+        public async Task<ISyncHeroResponse> SyncHero(bool notifyNewIds, bool isBuyHero = false, bool forceFresh = false) {
             var data = new SFSObject();
-            
+            if (forceFresh) {
+                data.PutBool(SFSDefine.SFSField.ForceFresh, true);
+            }
+
             var response = await _serverDispatcher.SendCmd(new CmdSyncBomberMan(data));
-            UnityEngine.Debug.Log($"!@#DevHoang SyncHero old");
             return OnSyncHero(response, notifyNewIds, isBuyHero);
         }
-        
+
         public ISyncHeroResponse SyncHero(ISFSObject data) {
-            UnityEngine.Debug.Log($"!@#DevHoang SyncHero new");
-            return OnSyncHero(data, false, false);
+            var result = OnSyncHero(data, true, false);
+            _serverDispatcher.DispatchEvent(observer => observer.OnBlockchainDataRefreshed?.Invoke());
+            return result;
         }
         
         public async Task<ISyncHouseResponse> SyncHouse() {
             var data = new SFSObject();
             
             var response = await _serverDispatcher.SendCmd(new CmdSyncHouse(data));
-            UnityEngine.Debug.Log($"!@#DevHoang SyncHouse old");
             return OnSyncHouseServer(response);
         }
-        
+
         public ISyncHouseResponse SyncHouse(ISFSObject data) {
-            UnityEngine.Debug.Log($"!@#DevHoang SyncHouse new");
-            return OnSyncHouseServer(data);
+            var result = OnSyncHouseServer(data);
+            _serverDispatcher.DispatchEvent(observer => observer.OnBlockchainDataRefreshed?.Invoke());
+            return result;
         }
         
-        public async Task<IChestReward> GetChestReward() {
-            var data = new SFSObject();
-            
-            var response = await _serverDispatcher.SendCmd(new CmdGetReward(data));
-            return OnGetChestReward(response);
-        }
+        public Task<IChestReward> GetChestReward()
+            => _dedup.Dedup<IChestReward>(SFSDefine.SFSCommand.GET_REWARD_V2, async () => {
+                var data = new SFSObject();
+
+                var response = await _serverDispatcher.SendCmd(new CmdGetReward(data));
+                return OnGetChestReward(response);
+            });
         
         public async Task<bool> ReactiveHouse(int houseId) {
             var data = new SFSObject();
@@ -106,15 +113,84 @@ namespace App.BomberLand {
             return OnReactiveHouse(response);
         }
         
-        public async Task<IApproveClaimResponse> ApproveClaim(int code) {
-            var data = new SFSObject().Apply(it => {
-                it.PutInt("block_reward_type", code);
-            });
+        private const int ClaimPushTimeoutMs = 90_000;
+        private TaskCompletionSource<ISFSObject> _pendingClaimTcs;
 
-            var response = await _serverDispatcher.SendCmd(new CmdApproveClaim(data));
-            return OnApproveClaim(response);
+        public async Task<IApproveClaimResponse> ApproveClaim(int code) {
+            if (_pendingClaimTcs != null) {
+                throw new InvalidOperationException("APPROVE_CLAIM_V4 already in-flight");
+            }
+            _pendingClaimTcs = new TaskCompletionSource<ISFSObject>();
+            try {
+                var data = new SFSObject().Apply(it => { it.PutInt("block_reward_type", code); });
+                var ack = await _serverDispatcher.SendCmd(new CmdApproveClaim(data));
+                var status = ack?.GetUtfString("status");
+                if (status != "PENDING") {
+                    throw new Exception($"Unexpected APPROVE_CLAIM_V4 ack status: {status ?? "<null>"}");
+                }
+                _logManager.Log($"APPROVE_CLAIM_V4 pending correlationId={ack.GetUtfString("correlationId")}");
+
+                var push = await _pendingClaimTcs.TimeoutAfter(ClaimPushTimeoutMs);
+                return OnApproveClaim(push);
+            } finally {
+                _pendingClaimTcs = null;
+            }
         }
-        
+
+        public void OnApproveClaimPush(ISFSObject data) {
+            var code = data != null && data.ContainsKey("code") ? data.GetInt("code") : 0;
+            if (code != 0) {
+                var message = data != null && data.ContainsKey("message") ? data.GetUtfString("message") : "<none>";
+                _logManager.Log($"APPROVE_CLAIM_RESPONSE error code={code} message={message}");
+                _pendingClaimTcs?.TrySetException(new ClaimServerErrorException(message));
+                return;
+            }
+            _pendingClaimTcs?.TrySetResult(data);
+        }
+
+        public void OnUpgradeShieldLevelPush(ISFSObject data) {
+            OnUpgradeShieldLevelResponseHandler(data);
+        }
+
+        public void OnHeroStakePush(ISFSObject data) {
+            OnHeroStakePushHandler(data);
+        }
+
+        public void CancelPendingClaim(Exception reason) {
+            _pendingClaimTcs?.TrySetException(reason);
+        }
+
+        // view-call + sign only, no tx mined.
+        private const int BridgeWithdrawTimeoutMs = 15_000;
+
+        public async Task<BridgeWithdrawResult> RequestCrosschainBridgeWithdraw(int blockRewardType, string chain) {
+            var data = new SFSObject();
+            data.PutInt("block_reward_type", blockRewardType);
+            if (!string.IsNullOrEmpty(chain)) {
+                data.PutUtfString(SFSDefine.SFSField.Chain, chain);
+            }
+            var response = await _serverDispatcher.SendCmd(new CmdCrosschainDepositBridgeWithdraw(data))
+                .TimeoutAfter(BridgeWithdrawTimeoutMs);
+            return OnCrosschainBridgeWithdraw(response);
+        }
+
+        // Fire-and-forget bridge activity report (before/after deposit, after withdraw). The server re-emits it
+        // so the indexer accelerates its sweep; there's no business result, we just await the ack. Wallet is
+        // taken server-side from the session. Callers should not block the on-chain flow on this.
+        public async Task NotifyCrosschainBridge(string kind, int blockRewardType, string chain, string txHash = null) {
+            var data = new SFSObject();
+            data.PutUtfString(SFSDefine.SFSField.Kind, kind);
+            data.PutInt("block_reward_type", blockRewardType);
+            if (!string.IsNullOrEmpty(chain)) {
+                data.PutUtfString(SFSDefine.SFSField.Chain, chain);
+            }
+            if (!string.IsNullOrEmpty(txHash)) {
+                data.PutUtfString(SFSDefine.SFSField.TxHash, txHash);
+            }
+            await _serverDispatcher.SendCmd(new CmdCrosschainDepositBridgeNotify(data))
+                .TimeoutAfter(BridgeWithdrawTimeoutMs);
+        }
+
         public async Task<float> ConfirmApproveClaimSuccess(int code) {
             var data = new SFSObject().Apply(it => {
                 it.PutInt("block_reward_type", code);
@@ -124,17 +200,20 @@ namespace App.BomberLand {
             return OnConfirmApproveClaimSuccess(response);
         }
         
-        public async Task<IChestReward> SyncDeposited() {
+        public async Task<IChestReward> SyncDeposited(DepositSyncTarget target = DepositSyncTarget.Both) {
             var data = new SFSObject();
-            
+            if (target != DepositSyncTarget.Both) {
+                data.PutUtfString("deposit_sync_target", target == DepositSyncTarget.Bridge ? "BRIDGE" : "OLD");
+            }
+
             var response = await _serverDispatcher.SendCmd(new CmdSyncDeposited(data));
-            UnityEngine.Debug.Log($"!@#DevHoang SyncDeposited old");
             return OnSyncDeposited(response);
         }
-        
+
         public IChestReward SyncDeposited(ISFSObject data) {
-            UnityEngine.Debug.Log($"!@#DevHoang SyncDeposited new");
-            return OnSyncDeposited(data);
+            var result = OnSyncDeposited(data);
+            _serverDispatcher.DispatchEvent(observer => observer.OnBlockchainDataRefreshed?.Invoke());
+            return result;
         }
         
         public async Task<IAutoMinePackages> GetAutoMinePrice() {
@@ -475,15 +554,6 @@ namespace App.BomberLand {
             return OnGetTreasureHuntDataConfig(response);
         }
 
-        public void SendMessageSlack(string title, SFSObject info) {
-            var data = new SFSObject().Apply(it => {
-                it.PutUtfString("title", title);
-                it.PutSFSObject("data", info);
-            });
-
-            var response = _serverDispatcher.SendCmd(new CmdSendMessageSlack(data));
-        }
-
         public async Task<IBurnHeroConfig> GetBurnHeroConfig() {
             var data = new SFSObject();
 
@@ -491,12 +561,10 @@ namespace App.BomberLand {
             return OnGetBurnHeroConfig(response);
         }
 
-        public async Task BurnHero() {
+        public async Task BurnHero(string tx, HeroId[] heroIds) {
             var data = new SFSObject().Apply(it => {
-                var lastHeroBurnData = _storageManager.LastBurnHeroData;
-                it.PutUtfString("tx", lastHeroBurnData.LastTx);
-                int[] listIdHero = lastHeroBurnData.LastListHeroIdBurn.Select(hero => hero.Id).ToArray();
-                it.PutIntArray("listIdHero", listIdHero);
+                it.PutUtfString("tx", tx);
+                it.PutIntArray("listIdHero", heroIds.Select(hero => hero.Id).ToArray());
             });
 
             var response = await _serverDispatcher.SendCmd(new CmdCreateRock(data));
@@ -511,11 +579,13 @@ namespace App.BomberLand {
         }
 
         public async Task<IUpgradeShieldResponse> UpgradeLevelShield(HeroId heroId) {
-            var data = new SFSObject().Apply(it => {
-                it.PutInt("heroId", heroId.Id);
-            });
+            var data = new SFSObject();
+            data.PutInt("heroId", heroId.Id);
+#if UNITY_EDITOR
+            data.PutBool("debug_fake_push", true);
+#endif
 
-            var response = await _serverDispatcher.SendCmd(new CmdUpgradeShieldLevel(data));
+            var response = await _serverDispatcher.SendCmd(new CmdUpgradeShieldLevelV3(data));
             return OnUpgradeLevelShield(response);
         }
         

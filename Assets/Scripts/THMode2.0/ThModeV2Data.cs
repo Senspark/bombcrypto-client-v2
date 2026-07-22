@@ -23,7 +23,11 @@ public class THModeV2PoolData {
     public PoolData[] PoolE { get; set; }
     public PoolData[] PoolL { get; set; }
     public PoolData[] PoolSL { get; set; }
-    
+    public PoolData[] PoolMega { get; set; }
+    public PoolData[] PoolSuperMega { get; set; }
+    public PoolData[] PoolMystic { get; set; }
+    public PoolData[] PoolSuperMystic { get; set; }
+
     //Các giá trị config (sẽ đc load tử server)
     // public float MaxPoolBcoin { get; set; } = 500000f;
     // public float MaxPoolSen { set; get; } = 500000f;

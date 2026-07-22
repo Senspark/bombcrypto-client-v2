@@ -1,8 +1,15 @@
-import { WindowWithEthereum } from "@solflare-wallet/metamask-sdk/lib/cjs/types";
 import * as Storage from "./Storage.ts";
 import {setEthereum} from "./Storage.ts";
 import { ExternalProvider } from "@ethersproject/providers";
 import Logger from "../../../Logger.ts";
+
+type EthereumProvider = ExternalProvider & {
+    providers?: EthereumProvider[];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    addListener: (event: string, handler: (...args: any[]) => void) => void;
+};
+
+type WindowWithEthereum = { ethereum?: EthereumProvider };
 
 class EthereumService {
     
@@ -17,7 +24,7 @@ class EthereumService {
             this._logger.log('EthereumService already initialized');
             return;
         }
-        const windowEthereum = (window as WindowWithEthereum);
+        const windowEthereum = (window as unknown as WindowWithEthereum);
 
         const ethereum = windowEthereum.ethereum;
         if (ethereum === undefined) {

@@ -10,10 +10,10 @@ public class BorderBackground : MonoBehaviour {
     [SerializeField]
     private GameObject[] borderList;
 
-    private IPlayerStorageManager _playerStoreManager;
+    private IBHeroManager _playerStoreManager;
 
     public void Awake() {
-        _playerStoreManager = ServiceLocator.Instance.Resolve<IPlayerStorageManager>();
+        _playerStoreManager = ServiceLocator.Instance.Resolve<IBHeroManager>();
     }
 
     private void Start() {

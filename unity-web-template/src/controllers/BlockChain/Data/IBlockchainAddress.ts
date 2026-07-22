@@ -8,6 +8,7 @@ export interface IBlockchainAddress {
     HeroExtendedAddress: string;
     HouseTokenAddress: string;
     DepositAddress: string;
+    DepositBridgeAddress: string;
     AirDropAddress: string;
     ClaimManagerAddress: string;
     CoinExchangeAddress: string;

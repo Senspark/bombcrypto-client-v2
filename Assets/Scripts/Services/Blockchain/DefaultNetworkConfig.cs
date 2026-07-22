@@ -6,19 +6,18 @@ namespace App {
         public NetworkType NetworkType => _bridge.NetworkType;
         public string Domain => _bridge.Domain;
         public string NetworkName => _bridge.NetworkName;
-        public IBlockchainConfig BlockchainConfig => _bridge.BlockchainConfig;
 
         private readonly INetworkConfig _bridge;
 
-        public DefaultNetworkConfig(bool production, NetworkType chainName) {
+        public DefaultNetworkConfig(NetworkType chainName) {
             _bridge = chainName switch {
                 //DevHoang: Add new airdrop
-                NetworkType.Binance => new BinanceNetworkConfig(production),
-                NetworkType.Polygon => new PolygonNetworkConfig(production),
-                NetworkType.Ton => new TonNetworkConfig(production),
-                NetworkType.Solana => new SolanaNetworkConfig(production),
-                NetworkType.Ronin => new RoninNetworkConfig(production),
-                NetworkType.Base => new BaseNetworkConfig(production),
+                NetworkType.Binance => new BinanceNetworkConfig(),
+                NetworkType.Polygon => new PolygonNetworkConfig(),
+                NetworkType.Ton => new TonNetworkConfig(),
+                NetworkType.Solana => new SolanaNetworkConfig(),
+                NetworkType.Ronin => new RoninNetworkConfig(),
+                NetworkType.Base => new BaseNetworkConfig(),
                 _ => throw new ArgumentOutOfRangeException(nameof(chainName), chainName, null)
             };
         }

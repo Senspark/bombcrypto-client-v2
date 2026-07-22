@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
+using Cysharp.Threading.Tasks;
+
 using Senspark;
 
 namespace Services.IapAds {
@@ -40,7 +42,7 @@ namespace Services.IapAds {
 
     [Service(nameof(IUnityPurchaseManager))]
     public interface IUnityPurchaseManager : IService {
-        Task SyncData();
+        UniTask SyncData();
         Task<PurchaseResult> PurchaseItem(string productId);
         void ConsumePurchaseItem(string productId);
         IapPrice GetItemPrice(string productId);

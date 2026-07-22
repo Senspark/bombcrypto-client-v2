@@ -42,10 +42,14 @@ namespace Engine.Manager {
     public class DefaultPlayerManager : IPlayerManager {
         private readonly IEntityManager _entityManager;
         private IProvider _bomberProvider;
-        private IPlayerStorageManager _playerStoreManager;
+        private IBHeroManager _playerStoreManager;
 
         private readonly Dictionary<int, PlayerData> _dicPlayerData = new();
         private readonly Dictionary<int, Player> _dicPlayers = new();
+        // Sổ đăng ký id ĐỒNG BỘ cho PvE/Treasure: ghi ngay khi nhận lệnh spawn (trước await tạo
+        // GameObject). _dicPlayers chỉ có entry SAU await GenerateBomberMan nên không đủ để chống
+        // trùng khi hai pipeline (load scene FirstInitPlayerPVE + push SYNC_HERO_RESPONSE) chạy chồng.
+        private readonly Dictionary<int, HeroId> _reservedSlots = new();
         private readonly List<Player> _players = new();
         // do khi active, deactive _players không thêm hay remove ngay nên cần biến này khi cần get active hero
         private readonly Dictionary<HeroId, bool> _pendingActivePlayers = new();
@@ -63,6 +67,10 @@ namespace Engine.Manager {
         private EquipmentData[] _equipments;
         private readonly Dictionary<StatId, int> _maximumStats;
         private Vector2Int _startingPosition;
+
+        // PvP: lưu để spawn ở FirstInitPlayerPvp (tách khỏi ctor vì spawn async).
+        private IMapInfo _pvpMapInfo;
+        private IMatchHeroInfo[] _pvpHeroes;
 
         public HeroTakeDamageInfo TakeDamageInfo { get; private set; }
 
@@ -82,17 +90,24 @@ namespace Engine.Manager {
             IMatchHeroInfo[] heroes) {
             _entityManager = entityManager;
             _container = container;
+            _pvpMapInfo = mapInfo;
+            _pvpHeroes = heroes;
 
             _soundManager = ServiceLocator.Instance.Resolve<ISoundManager>();
             _heroStatsManager = ServiceLocator.Instance.Resolve<IHeroStatsManager>();
             _heroIdManager = ServiceLocator.Instance.Resolve<IHeroIdManager>();
             _thunderStrikes = new Dictionary<HeroId, bool>();
             _bomberProvider = new ExhaustedProvider("Prefabs/Allies/PlayerPvp");
-            for (var i = 0; i < heroes.Length; ++i) {
-                var hero = heroes[i];
+        }
+
+        // Spawn player PvP phải await: hero render qua IHeroSpriteLoader (path-load async). Ctor không async được
+        // nên tách ra đây; caller (BLevelViewPvp.Initialize) await TRƯỚC khi đọc Players[slot]. Mirror FirstInitPlayerPVE.
+        public async Task FirstInitPlayerPvp() {
+            for (var i = 0; i < _pvpHeroes.Length; ++i) {
+                var hero = _pvpHeroes[i];
                 var location = new Vector2Int(
-                    mapInfo.StartingPositions[i].x,
-                    mapInfo.StartingPositions[i].y
+                    _pvpMapInfo.StartingPositions[i].x,
+                    _pvpMapInfo.StartingPositions[i].y
                 );
                 var skinChests = hero.SkinChests;
                 var playerType = TrPlayerType(hero.Skin);
@@ -121,7 +136,7 @@ namespace Engine.Manager {
                         it => it.Value.ToList()
                     ),
                 };
-                AddPlayer(location, playerData, i, false);
+                await AddPlayer(location, playerData, i, false);
             }
         }
 
@@ -138,7 +153,7 @@ namespace Engine.Manager {
             _soundManager = ServiceLocator.Instance.Resolve<ISoundManager>();
             _heroStatsManager = ServiceLocator.Instance.Resolve<IHeroStatsManager>();
             _heroIdManager = ServiceLocator.Instance.Resolve<IHeroIdManager>();
-            _playerStoreManager = ServiceLocator.Instance.Resolve<IPlayerStorageManager>();
+            _playerStoreManager = ServiceLocator.Instance.Resolve<IBHeroManager>();
             _thunderStrikes = new Dictionary<HeroId, bool>();
         }
 
@@ -162,11 +177,35 @@ namespace Engine.Manager {
                 if (true) {
                     _bomberProvider = new ExhaustedProvider("Prefabs/Allies/Player");
                 } 
-                var playerStorageManager = ServiceLocator.Instance.Resolve<IPlayerStorageManager>();
+                var playerStorageManager = ServiceLocator.Instance.Resolve<IBHeroManager>();
                 var workingPlayer = playerStorageManager.GetInMapPlayerData();
+
+                // Preload TRƯỚC vòng spawn (1 lần, song song): hero in-map (sắp lên map) + in-home
+                // (có thể enable giữa trận). Các hero dùng CHUNG atlas page nên warm 1 lần là mọi hero sẵn sàng →
+                // enable giữa trận không tank framerate (WebGL upload atlas page 2048² trên main thread).
+                // ⚠️ Per-sprite preload là O(hero×frame) — KHÔNG scale tới vài trăm skin; khi đó chuyển sang nạp
+                // thẳng atlas page (O(số page)). Xem ghi chú scalable trong plan_decouple_animation_resource Phase 4.
+                var loader = ServiceLocator.Instance.Resolve<IHeroSpriteLoader>();
+                var toPreload = new List<(PlayerType, PlayerColor, HeroRarity)>();
+                CollectPreload(toPreload, workingPlayer);
+                CollectPreload(toPreload, playerStorageManager.GetInHomePlayers());
+                await loader.PreloadMany(toPreload);
 
                 for (var i = 0; i < locations.Count && i < workingPlayer.Count; i++) {
                     await AddPlayer(locations[i], workingPlayer[i], i, false);
+                }
+            }
+        }
+
+        // Gom (type,color,rarity) các hero có trong catalog để PreloadMany. Dùng cho cả in-map lẫn in-home.
+        private static void CollectPreload(
+            List<(PlayerType, PlayerColor, HeroRarity)> dst, List<PlayerData> src) {
+            if (src == null) {
+                return;
+            }
+            foreach (var pd in src) {
+                if (pd != null && HeroSpriteCatalog.Has(pd.playerType)) {
+                    dst.Add((pd.playerType, pd.playercolor, (HeroRarity)pd.rare));
                 }
             }
         }
@@ -226,23 +265,74 @@ namespace Engine.Manager {
             if (playerData == null) {
                 return;
             }
-            if (_entityManager.LevelManager.GameMode != GameModeType.StoryMode &&
-                _entityManager.LevelManager.GameMode != GameModeType.PvpMode) {
-                if (!playerData.active || playerData.stage == HeroStage.Home) {
+
+            // Story/PvP giữ nguyên hành vi cũ: PvP gán chung heroId(1,Tr) cho mọi player (dedup-by-id sẽ
+            // gộp nhầm); Story chỉ 1 hero + Revive tái dùng slot. Race trùng hero chỉ xảy ra ở PvE/Treasure.
+            var isPveMode = _entityManager.LevelManager.GameMode != GameModeType.StoryMode &&
+                            _entityManager.LevelManager.GameMode != GameModeType.PvpMode;
+            if (!isPveMode) {
+                var p = await GenerateBomberMan(playerData, location);
+                p.MaximumStats = playerData.MaximumStats;
+                _dicPlayerData[slot] = playerData;
+                AddBomberman(p, slot);
+                SetPropertiesAndAbility(p, playerData, isDangerous);
+                return;
+            }
+
+            if (!playerData.active || playerData.stage == HeroStage.Home) {
+                return;
+            }
+
+            var heroId = playerData.heroId;
+            // Dedup ĐỒNG BỘ trước await: đã có trên map -> refresh; đang spawn dở (reserved) -> bỏ qua.
+            if (heroId.IsValid()) {
+                var existing = GetPlayerById(heroId);
+                if (existing) {
+                    SetPropertiesAndAbility(existing, playerData, isDangerous);
+                    return;
+                }
+                if (IsReserved(heroId)) {
                     return;
                 }
             }
 
-            var player = await GenerateBomberMan(playerData, location);
-            player.MaximumStats = playerData.MaximumStats;
+            // Chốt slot trống + ghi sổ NGAY (trước await) để pipeline kia thấy được, tránh double-spawn
+            // và tránh hai pipeline chọn trùng slot -> orphan GameObject.
+            slot = AllocateSlot(slot);
+            _reservedSlots[slot] = heroId;
+            try {
+                var player = await GenerateBomberMan(playerData, location);
+                player.MaximumStats = playerData.MaximumStats;
+                _dicPlayerData[slot] = playerData;
+                AddBomberman(player, slot);
+                SetPropertiesAndAbility(player, playerData, isDangerous);
+            } finally {
+                _reservedSlots.Remove(slot);
+            }
+        }
 
-            // if (playerData.stage == HeroStage.Sleep) {
-            //     player.GetComponent<BotManager>().ForceSleep();
-            // }
+        private bool IsReserved(HeroId id) {
+            foreach (var kv in _reservedSlots) {
+                if (kv.Value == id) {
+                    return true;
+                }
+            }
+            return false;
+        }
 
-            AddBomberman(player, slot);
-            SetPropertiesAndAbility(player, playerData, isDangerous);
-            _dicPlayerData[slot] = playerData;
+        private bool IsSlotTaken(int slot) {
+            return _dicPlayers.ContainsKey(slot) || _reservedSlots.ContainsKey(slot);
+        }
+
+        private int AllocateSlot(int preferred) {
+            if (preferred >= 0 && !IsSlotTaken(preferred)) {
+                return preferred;
+            }
+            var slot = 0;
+            while (IsSlotTaken(slot)) {
+                slot++;
+            }
+            return slot;
         }
 
         public void RemoveHeroes(HeroId[] heroIds) {
@@ -279,6 +369,12 @@ namespace Engine.Manager {
             var player = (Player) entity;
             player.transform.SetParent(_container, false);
             player.transform.localPosition = _entityManager.MapManager.GetTilePosition(tileLocation);
+            // Mọi hero render qua IHeroSpriteLoader (path-load). Preload cache ấm TRƯỚC khi
+            // SetTypeAndColor đọc sync, tránh pop-in.
+            if (HeroSpriteCatalog.Has(playerData.playerType)) {
+                var loader = ServiceLocator.Instance.Resolve<IHeroSpriteLoader>();
+                await loader.Preload(playerData.playerType, playerData.playercolor, (HeroRarity)playerData.rare);
+            }
             var animator = player.GetComponent<HeroAnimator>();
             animator.SetTypeAndColor(playerData.playerType, playerData.playercolor, playerData.rare);
             if (player.dropper) {
@@ -343,9 +439,9 @@ namespace Engine.Manager {
 
         private void AddBomberman(Player player, int slot) {
             player.Type = EntityType.BomberMan;
+            player.Init(slot);
             _entityManager.AddEntity(player);
 
-            player.Init(slot);
             _dicPlayers[slot] = player;
             _players.Clear();
             _players.AddRange(_dicPlayers.Values.ToList());
@@ -369,10 +465,20 @@ namespace Engine.Manager {
             }
             player.Kill(false);
         }
-        
+
+        // Gỡ khỏi _dicPlayers khi 1 Player bị Kill trong SetProperties (Home/inactive/null-data). Không gỡ thì
+        // slot cũ vẫn coi là "taken" mãi mãi -> lần AddPlayer kế tiếp cho cùng heroId luôn bị đẩy sang slot mới,
+        // sinh ra nhiều bản GameObject sống song song cho cùng 1 hero.
+        private void RemoveFromDicPlayers(Player player) {
+            if (_dicPlayers.TryGetValue(player.Slot, out var current) && current == player) {
+                _dicPlayers.Remove(player.Slot);
+            }
+        }
+
         private void SetProperties(Player player, PlayerData playerData, bool isDangerous) {
             if(playerData == null) {
                 Players.Remove(player);
+                RemoveFromDicPlayers(player);
                 player.Kill(false);
                 return;
             }
@@ -418,6 +524,7 @@ namespace Engine.Manager {
                 botManager.ForceWork();
             } else if (playerData.stage == HeroStage.Home || playerData.active == false) {
                 Players.Remove(player);
+                RemoveFromDicPlayers(player);
                 player.Kill(false);
             } else {
                 if (isDangerous) {
@@ -633,6 +740,15 @@ namespace Engine.Manager {
                 }
                 if (player.Value.Slot >= slot) {
                     slot = player.Value.Slot + 1;
+                }
+            }
+            // Tính cả slot đang reserve (hero đang spawn dở) để không trả về slot đã bị pipeline kia giữ.
+            foreach (var kv in _reservedSlots) {
+                if (kv.Value == id) {
+                    return kv.Key;
+                }
+                if (kv.Key >= slot) {
+                    slot = kv.Key + 1;
                 }
             }
             return slot;

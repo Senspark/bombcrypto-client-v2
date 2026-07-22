@@ -382,7 +382,6 @@ namespace Scenes.InventoryScene.Scripts {
         //         if (e is ErrorCodeException) {
         //             DialogError.ShowError(canvasDialog, e.Message);    
         //         } else {
-        //             DialogOK.ShowError(canvasDialog, e.Message);
         //         }
         //     } finally {
         //         waiting.End();
@@ -406,7 +405,6 @@ namespace Scenes.InventoryScene.Scripts {
         //         if (e is ErrorCodeException) {
         //             DialogError.ShowError(canvasDialog, e.Message);    
         //         } else {
-        //             DialogOK.ShowError(canvasDialog, e.Message);
         //         }
         //     } finally {
         //         waiting.End();

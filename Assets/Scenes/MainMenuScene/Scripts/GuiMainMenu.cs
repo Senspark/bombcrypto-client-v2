@@ -11,6 +11,7 @@ using Cysharp.Threading.Tasks;
 using Data;
 using Engine.Input;
 using Engine.Utils;
+using Game.ConnectControl;
 using Game.Dialog;
 using Game.Manager;
 using Game.UI;
@@ -564,7 +565,7 @@ namespace Scenes.MainMenuScene.Scripts {
 
         private void ShowMarket() {
             if (_mainMenuController.IsDisableFeature(FeatureId.Marketplace)) {
-                DialogOK.ShowError(canvasDialog, _mainMenuController.GetString(LocalizeKey.ui_feature_maintenance));
+                DialogOK.ShowErrorMsgOnly(canvasDialog, _mainMenuController.GetString(LocalizeKey.ui_feature_maintenance));
                 return;
             }
             _mainMenuController.TrackConversionClickMarket();
@@ -575,6 +576,19 @@ namespace Scenes.MainMenuScene.Scripts {
         }
 
         private void ShowTreasureHunt() {
+            if (RuntimeConfig.Landing == LandingMode.Adventure) {
+                _mainMenuController.PlaySoundTap();
+                DialogConfirm.Create().ContinueWith(confirm => {
+                    confirm.SetInfo(
+                        "Do you want to play Treasure Mode?",
+                        "Yes",
+                        "No",
+                        () => GameModeSwitcher.Switch(LandingMode.Treasure, canvasDialog),
+                        () => { });
+                    confirm.Show(canvasDialog);
+                });
+                return;
+            }
             if (_mainMenuController.IsDisableFeature(FeatureId.TreasureHunt)) {
                 DialogOK.ShowInfo(canvasDialog, _mainMenuController.GetString(LocalizeKey.ui_feature_maintenance));
                 return;
@@ -602,7 +616,7 @@ namespace Scenes.MainMenuScene.Scripts {
                     await _mainMenuController.ShowTreasureHunt();
                 } catch (Exception e) {
                     _logManager.Log(e.Message);
-                    DialogError.ShowError(canvasDialog, "Loading Problems, please try again after a few seconds.");
+                    DialogError.ShowErrorMsgOnly(canvasDialog, "Loading Problems, please try again after a few seconds.");
                     waiting.End();
                 }
             }
@@ -610,7 +624,7 @@ namespace Scenes.MainMenuScene.Scripts {
 
         private void ShowShop() {
             if (_mainMenuController.IsDisableFeature(FeatureId.Marketplace)) {
-                DialogOK.ShowError(canvasDialog, _mainMenuController.GetString(LocalizeKey.ui_feature_maintenance));
+                DialogOK.ShowErrorMsgOnly(canvasDialog, _mainMenuController.GetString(LocalizeKey.ui_feature_maintenance));
                 return;
             }
             _mainMenuController.ShowShop();
@@ -633,7 +647,7 @@ namespace Scenes.MainMenuScene.Scripts {
 
         private void ShowInventory(BLTabType blTabType = BLTabType.Heroes) {
             if (_mainMenuController.IsDisableFeature(FeatureId.Inventory)) {
-                DialogOK.ShowError(canvasDialog, _mainMenuController.GetString(LocalizeKey.ui_feature_maintenance));
+                DialogOK.ShowErrorMsgOnly(canvasDialog, _mainMenuController.GetString(LocalizeKey.ui_feature_maintenance));
                 return;
             }
             _mainMenuController.ShowInv(blTabType);
@@ -743,11 +757,11 @@ namespace Scenes.MainMenuScene.Scripts {
         private void PlayStoryMode() {
             _mainMenuController.PlaySoundTap();
             if (_mainMenuController.IsDisableFeature(FeatureId.PvE)) {
-                DialogOK.ShowError(canvasDialog, _mainMenuController.GetString(LocalizeKey.ui_feature_maintenance));
+                DialogOK.ShowErrorMsgOnly(canvasDialog, _mainMenuController.GetString(LocalizeKey.ui_feature_maintenance));
                 return;
             }
             if (!_mainMenuController.IsEnableStoryMode()) {
-                DialogOK.ShowError(canvasDialog, "Story Mode Not Enabled in Feature");
+                DialogOK.ShowErrorMsgOnly(canvasDialog, "Story Mode Not Enabled in Feature");
                 return;
             }
             _mainMenuController.PlayStoryMode();
@@ -815,7 +829,7 @@ namespace Scenes.MainMenuScene.Scripts {
         }
 
         private void ShowError(string message) {
-            DialogOK.ShowError(canvasDialog, message, () => { _currentStage = CurrentStageInMainMenu.None; });
+            DialogOK.ShowErrorMsgOnly(canvasDialog, message, () => { _currentStage = CurrentStageInMainMenu.None; });
         }
 
         public void OpenEquip() {

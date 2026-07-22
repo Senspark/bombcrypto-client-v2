@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Analytics.Modules;
 using App;
-using CustomSmartFox;
 using Cysharp.Threading.Tasks;
 using Newtonsoft.Json;
 using Senspark;
@@ -34,7 +32,6 @@ namespace Scenes.ConnectScene.Scripts.Connectors {
         private readonly IUserAccountManager _userAccountManager;
         private readonly ILogManager _logManager;
         private readonly IAuthManager _authManager;
-        private readonly IAnalyticsModuleLogin _analytics;
         private readonly ITaskDelay _taskDelay;
 
         private readonly Stack<StateType> _stackStates;
@@ -48,7 +45,6 @@ namespace Scenes.ConnectScene.Scripts.Connectors {
             IMasterUnityCommunication unityCommunication,
             IUserAccountManager userAccountManager,
             ILogManager logManager,
-            IAnalyticsModuleLogin analytics,
             ITaskDelay taskDelay,
             Canvas canvasDialog,
             bool isProduction
@@ -57,11 +53,9 @@ namespace Scenes.ConnectScene.Scripts.Connectors {
             _isProduction = isProduction;
             _userAccountManager = userAccountManager;
             _logManager = logManager;
-            _analytics = analytics;
             _taskDelay = taskDelay;
             _canvasDialog = canvasDialog;
-            _authManager = new DefaultAuthManager(logManager, new NullSignManager(), new NullEncoder(logManager),
-                unityCommunication, isProduction);
+            _authManager = new DefaultAuthManager(logManager, unityCommunication, isProduction);
             _stackStates = new Stack<StateType>();
         }
 
@@ -99,8 +93,7 @@ namespace Scenes.ConnectScene.Scripts.Connectors {
                     ToCheckRememberAccount();
                     break;
                 case StateType.ChooseLoginMethod:
-                    ToChooseLoginMethod();
-                    break;
+                    throw new NotSupportedException("ChooseLoginMethod is not supported anymore");
                 case StateType.LoginGuest:
                     ToLoginGuest();
                     break;
@@ -139,9 +132,6 @@ namespace Scenes.ConnectScene.Scripts.Connectors {
 
         private void Completed() {
             _logManager.Log("Login account completed");
-            var lt = GetAnalyticsLoginType(_userAccount);
-            _analytics.TrackAction(ActionType.ChooseLogin, lt);
-            ;
             _completion.SetResult(_userAccount);
             
             //DevHoang: Enable WebGLInput capture all keyboard input
@@ -176,8 +166,6 @@ namespace Scenes.ConnectScene.Scripts.Connectors {
                 _logManager.Log("Resolve");
                 _userAccount = acc;
                 LogUserAccount(acc);
-                var lt = GetAnalyticsLoginType(_userAccount);
-                _analytics.TrackAction(ActionType.AutoLogin, lt);
                 ApplyState(StateType.Done);
             }
 
@@ -189,26 +177,6 @@ namespace Scenes.ConnectScene.Scripts.Connectors {
             var controller =
                 new ConnectContinueLoginController(_logManager, _authManager, _userAccount, Resolve, Reject);
             controller.ToCheckRememberAccount();
-        }
-
-        private void ToChooseLoginMethod() {
-            void Resolve(ConnectMethodType type) {
-                var state = type switch {
-                    ConnectMethodType.Facebook => StateType.LoginFacebook,
-                    ConnectMethodType.Apple => StateType.LoginApple,
-                    ConnectMethodType.Telegram => StateType.LoginTelegram,
-                    ConnectMethodType.Guest => StateType.LoginGuest,
-                    ConnectMethodType.Senspark => StateType.LoginSenspark,
-                    ConnectMethodType.Wallet => StateType.LoginWallet,
-                    ConnectMethodType.Solana => StateType.LoginSolana,
-                    _ => StateType.Cancel
-                };
-                ApplyState(state);
-            }
-            _ = DialogChooseLoginMethod.Create().ContinueWith(dialog => {
-                dialog.StartFlow(Resolve, CancelState).Show(_canvasDialog);
-                _analytics.TrackAction(ActionType.ShowDialogLogin, Analytics.Modules.LoginType.Unknown);
-            });
         }
 
         private void ToLoginWallet() {
@@ -230,7 +198,6 @@ namespace Scenes.ConnectScene.Scripts.Connectors {
                 _unityCommunication,
                 _logManager,
                 _userAccountManager,
-                _analytics,
                 GetServerAddress(),
                 Resolve,
                 CancelState,
@@ -245,13 +212,24 @@ namespace Scenes.ConnectScene.Scripts.Connectors {
                 return;
             }
 
+            // Network luôn do AppConfig.json (Editor) / React (WebGL) quyết định -> dialog không cần chọn network
+            // (đã InitNetwork(false)). Khi chỉ còn 1 test server và không có override ?ip= thì không còn gì để
+            // chọn -> bỏ qua dialog, vào thẳng. Giữ dialog cho dev nhiều test server hoặc truyền ?ip= (đường lui).
+            var servers = ServerAddress.TestServerAddresses;
+            var hasIpOverride = WebGLUtils.GetUrlParams().ContainsKey("ip");
+            if (!hasIpOverride && servers is { Count: 1 }) {
+                _userAccount.server = servers[0];
+                ToLoginSenspark_KnownServer();
+                return;
+            }
+
             void Resolve(UserAccount acc) {
                 _userAccount.server = acc.server;
                 ToLoginSenspark_KnownServer();
             }
 
             _ = DialogChooseNetworkServer.Create().ContinueWith(dialog => {
-                dialog.InitServerAddresses(ServerAddress.TestServerAddresses)
+                dialog.InitServerAddresses(servers)
                     .InitNetwork(false)
                     .StartFlow(Resolve, CancelState)
                     .Show(_canvasDialog);
@@ -304,7 +282,7 @@ namespace Scenes.ConnectScene.Scripts.Connectors {
                     Resolve(acc);
                 } catch (Exception e) {
                     _logManager.Log($"Error when login account {e.Message}");
-                    DialogOK.ShowError(_canvasDialog, "Username or password is incorrect", App.Utils.KickToConnectScene);
+                    DialogOK.ShowErrorMsgOnly(_canvasDialog, "Username or password is incorrect", App.Utils.KickToConnectScene);
                 } finally {
                     _unityCommunication.UnityToReact.SendToReactNoEncrypted(ReactCommand.ENABLE_VIDEO_THUMBNAIL, false.ToString());
                 }
@@ -410,7 +388,7 @@ namespace Scenes.ConnectScene.Scripts.Connectors {
             }
             catch (Exception e) {
                 _logManager.Log($"Error login wallet: {e.Message}");
-                DialogOK.ShowErrorAndKickToConnectScene(_canvasDialog, "Something went wrong\nPlease try again");
+                DialogOK.ShowErrorMsgOnlyAndKickToConnectScene(_canvasDialog, "Something went wrong\nPlease try again");
             }
         }
 
@@ -438,15 +416,6 @@ namespace Scenes.ConnectScene.Scripts.Connectors {
             _logManager.Log($"UserAccount: {JsonConvert.SerializeObject(acc)}");
         }
 
-        private Analytics.Modules.LoginType GetAnalyticsLoginType(UserAccount usr) {
-            var lt = usr.loginType switch {
-                LoginType.UsernamePassword => Analytics.Modules.LoginType.Senspark,
-                LoginType.Guest => Analytics.Modules.LoginType.Guest,
-                LoginType.Apple => Analytics.Modules.LoginType.Apple,
-                _ => Analytics.Modules.LoginType.Unknown
-            };
-            return lt;
-        }
 
         private enum StateType {
             WaitAniLogo,
@@ -454,7 +423,6 @@ namespace Scenes.ConnectScene.Scripts.Connectors {
             CheckConnection,
             CheckRemember,
             ChooseLoginMethod,
-            LoginFacebook,
             LoginApple,
             LoginGuest,
             LoginSenspark,
@@ -470,7 +438,6 @@ namespace Scenes.ConnectScene.Scripts.Connectors {
 
         public enum ConnectMethodType {
             Guest,
-            Facebook,
             Apple,
             Senspark,
             Wallet,

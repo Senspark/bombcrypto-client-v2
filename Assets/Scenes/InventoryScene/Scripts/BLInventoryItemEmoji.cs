@@ -15,7 +15,6 @@ namespace Game.Dialog {
 
         private IProductItemManager _productItemManager;
         private bool isNew = false;
-        private int itemId = 0;
         private IServerRequester _serverRequester;
 
         

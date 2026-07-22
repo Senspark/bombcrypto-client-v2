@@ -50,12 +50,12 @@ public class HeroDetailsDisplay : MonoBehaviour {
     
     [CanBeNull] [SerializeField] private InventoryHeroL inventoryHeroL;
     [CanBeNull] [SerializeField] private InventoryHeroS inventoryHeroS;
-    [SerializeField]
+    [CanBeNull] [SerializeField]
     private GameObject lockObject;
 
     [SerializeField]
     private Text textTimeLock;
-    
+
     [SerializeField] [CanBeNull]
     private GameObject groupButton;
 
@@ -65,10 +65,7 @@ public class HeroDetailsDisplay : MonoBehaviour {
     private static readonly int Rarity = Animator.StringToHash("Rarity");
     private Action _onRepairShieldButtonClick;
     private bool _enableRepair, _showGroupButton, _enableOpenStake = true;
-    private float _remainingSecondsLock = 0;
-    private Action _onLockEnd;
-    private Coroutine _coroutine;
-    
+
     private void Awake() {
         _repairShieldManager = ServiceLocator.Instance.Resolve<IRepairShieldManager>();
     }
@@ -175,48 +172,13 @@ public class HeroDetailsDisplay : MonoBehaviour {
         });
     }
 
-    public void SetLockHero(Action onLockEnd = null) {
-        var timeLock = _playerData.timeLockSince + _playerData.timeLockSeconds * 1000;
-        _onLockEnd = onLockEnd;
-        if (timeLock < DateTime.Now.ToEpochMilliseconds()) {
-            if (_coroutine != null) {
-                OnLockEnd();
-            }
+    public void SetLockHero() {
+        if (!lockObject) {
             return;
-        }  
-        _remainingSecondsLock = _playerData.timeLockSince / 1000 + _playerData.timeLockSeconds - DateTime.Now.ToEpochSeconds();
-        groupButton.SetActive(false);
-        lockObject.SetActive(true);
-        if (_coroutine == null) {
-            _coroutine = StartCoroutine(CountTime());
         }
-    }
-    
-    private void OnLockEnd() {
-        StopCoroutine(_coroutine);
-        _coroutine = null;
-        groupButton.SetActive(true);
-        lockObject.SetActive(false);
-        _onLockEnd?.Invoke();
-    }
-
-    private void UpdateTimeDisplay(float timeLeft)
-    {
-        int hours = Mathf.FloorToInt(timeLeft / 3600);
-        int minutes = Mathf.FloorToInt((timeLeft % 3600) / 60);
-        int seconds = Mathf.FloorToInt(timeLeft % 60);
-        
-        textTimeLock.text = $"<color=#FFFF80>Hero is being delivered:</color> {hours:D2}h: {minutes:D2}m: {seconds:D2}s";
-    }
-    
-    IEnumerator CountTime() {
-        while (true) {
-            UpdateTimeDisplay(_remainingSecondsLock);
-            yield return new WaitForSecondsRealtime(1f);
-            _remainingSecondsLock--;
-            if (_remainingSecondsLock < 0) {
-                OnLockEnd();
-            }
-        }
+        // Snapshot: panel chi tiết chỉ hiện/ẩn icon lock theo data hiện tại, không đếm ngược.
+        var locked = _playerData.IsLocked();
+        if (groupButton) groupButton.SetActive(!locked);
+        lockObject.SetActive(locked);
     }
 }

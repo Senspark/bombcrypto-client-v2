@@ -5,6 +5,6 @@ namespace CustomSmartFox.SolCommands {
         public CmdSyncHouse(ISFSObject data) : base(data) {
         }
 
-        public override string Cmd => SFSDefine.SFSCommand.SYNC_HOUSE_V3;
+        public override string Cmd => SFSDefine.SFSCommand.SYNC_HOUSE_V4;
     }
 }

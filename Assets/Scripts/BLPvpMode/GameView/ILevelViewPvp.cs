@@ -4,6 +4,8 @@ using BLPvpMode.Engine.Data;
 using BLPvpMode.Engine.Entity;
 using BLPvpMode.Engine.Info;
 
+using Cysharp.Threading.Tasks;
+
 using Engine.Entities;
 using Engine.Manager;
 
@@ -30,7 +32,7 @@ namespace BLPvpMode.GameView {
         /// <param name="pvpModeCallback"> callback to levelScene</param>
         /// <param name="layer"> layer của Map parent  </param>
         /// <param name="mapData"> SuperMapData, force load map data theo design </param> 
-        void Initialize(
+        UniTask Initialize(
             IMatchHeroInfo[] heroes,
             IMapInfo mapDetail,
             IMatchData matchData,

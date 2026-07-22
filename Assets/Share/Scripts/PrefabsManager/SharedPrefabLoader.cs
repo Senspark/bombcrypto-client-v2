@@ -76,6 +76,8 @@ namespace Share.Scripts.PrefabsManager {
     public class SharePrefabLoaderWrapper : IPrefabLoader {
         private Dictionary<Type, AssetReference> _map;
 
+        public bool IsDestroyed => false;
+
         public async UniTask<IPrefabLoader> Load() {
             var r = await SharedPrefabLoader.Load();
             await UniTask.WaitUntil(() => r.Map != null);

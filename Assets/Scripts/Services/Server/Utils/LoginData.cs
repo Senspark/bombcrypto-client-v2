@@ -1,11 +1,9 @@
 using App;
 using Data;
-using UnityEngine;
 using DeviceType = App.DeviceType;
 
 namespace Services.Server {
     public enum LoginDataType {
-        Bombcrypto,
         Bomberland,
         Telegram,
         Solana,
@@ -16,34 +14,6 @@ namespace Services.Server {
         float TimeOut { get; }
     }
 
-    public class LoginDataBombcrypto : ILoginData {
-        public readonly string UserName;
-        public readonly string Password;
-        public readonly string ActivationCode;
-        public readonly string Signature;
-        public readonly LoginType LoginType;
-        public readonly string Slogan;
-        public LoginDataType LoginDataType => LoginDataType.Bombcrypto;
-        public float TimeOut { get; }
-
-        public LoginDataBombcrypto(
-            string userName,
-            string password,
-            string activationCode,
-            string signature,
-            LoginType loginType,
-            float timeOutSec
-        ) {
-            UserName = userName;
-            Password = password;
-            ActivationCode = activationCode;
-            Signature = signature;
-            LoginType = loginType;
-            Slogan = SFSDefine.GetSlogans(EntryPoint.Login);
-            TimeOut = timeOutSec;
-        }
-    }
-
     public class LoginDataBomberland : ILoginData {
         public readonly int LoginType;
         public readonly string Network;
@@ -51,6 +21,7 @@ namespace Services.Server {
         public readonly string UserName;
         public readonly string Slogan;
         public readonly DeviceType DeviceType;
+        public readonly string Landing;
         public LoginDataType LoginDataType => LoginDataType.Bomberland;
         public float TimeOut { get; }
 
@@ -60,9 +31,10 @@ namespace Services.Server {
             JwtToken = jwtToken;
             UserName = userName;
             Slogan = SFSDefine.GetSlogans(EntryPoint.Login);
-            DeviceType = Application.isMobilePlatform
+            DeviceType = AppConfig.IsMobile()
                 ? DeviceType.Mobile
                 : DeviceType.Web;
+            Landing = RuntimeConfig.LandingWire;
             TimeOut = timeOutSec;
         }
     }
@@ -104,7 +76,7 @@ namespace Services.Server {
             UserData = userData;
             Platform = platform;
             LoginType = (int)App.LoginType.Telegram;
-            DeviceType = Application.isMobilePlatform
+            DeviceType = AppConfig.IsMobile()
                 ? DeviceType.Mobile
                 : DeviceType.Web;
             ReferralCode = referralCode;
@@ -129,7 +101,7 @@ namespace Services.Server {
             UserData = userData;
             Platform = platform;
             LoginType = (int)App.LoginType.Solana;;
-            DeviceType = Application.isMobilePlatform
+            DeviceType = AppConfig.IsMobile()
                 ? DeviceType.Mobile
                 : DeviceType.Web;
             TimeOut = 60;

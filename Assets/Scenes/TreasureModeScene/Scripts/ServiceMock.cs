@@ -7,6 +7,8 @@ using App;
 
 using Game.Manager;
 
+using Game.UI;
+
 using Scenes.TreasureModeScene.Scripts.Mocks;
 
 using Senspark;
@@ -31,20 +33,22 @@ namespace Scenes.TreasureModeScene.Scripts {
                 return;
             }
             IServerManager serverManager = new NullServerManager();
+            var chestRewardManager = new DefaultChestRewardManager();
+            chestRewardManager.SetCurrentNetwork(DataType.TON);
             var services = new List<IService> {
                 new DefaultLogManager(true),
                 new DefaultDataManager(new LocalDataStorage()),
-                new DefaultChestRewardManager(NetworkType.Ton),
+                chestRewardManager,
                 serverManager,
                 new DefaultPveHeroStateManager(new DefaultLogManager(true), new NullServerManager()),
                 new NullStorageManager(),
                 new EditorFeatureManager(),
                 new DefaultSoundManager(new DefaultDataManager(new LocalDataStorage())),
-                new TonNetworkConfig(false),
+                new TonNetworkConfig(),
                 new TaskNone(),
                 new DefaultFusionManager(),
                 new NullHouseStorageManager(),
-                new NullPlayerStorageManager(),
+                new NullBHeroManager(),
                 new DefaultLanguageManager(),
                 new NullAnalytics(new DefaultLogManager(false)),
                 new NullAccountManager(),

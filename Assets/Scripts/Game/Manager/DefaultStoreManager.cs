@@ -41,11 +41,6 @@ namespace App {
         CanBuyHeroesTrial,
     }
     
-    public class BurnHeroData {
-        public HeroId[] LastListHeroIdBurn;
-        public string LastTx;
-    }
-
     public class DefaultStoreManager : ObserverManager<StoreManagerObserver>, IStorageManager {
         public class Data {
             public string Username;
@@ -104,7 +99,6 @@ namespace App {
         public IMinStakeHeroManager MinStakeHero { get; set; }
         public IRepairShieldConfig RepairShieldConfig { get; set; }
         public IRockPackConfigs RockPackConfigs { get; set; }
-        public BurnHeroData LastBurnHeroData { get; set; }
         public IBurnHeroConfig BurnHeroConfig { get; set; }
         public IUpgradeShieldConfig UpgradeShieldConfig { get; set; }
         public IRentHousePackageConfigs RentHousePackConfigs { get; set; }

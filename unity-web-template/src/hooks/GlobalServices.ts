@@ -22,6 +22,7 @@ import UnityCommunicator from "../controllers/unity/UnityCommunicator.ts";
 import unityBridge from "../controllers/unity/UnityBridge.ts";
 import {AppendBytesObfuscate} from "../controllers/encrypt/AppendBytesObfuscate.ts";
 import ApiService from "../controllers/ApiService.ts";
+import ShareService from "../controllers/ShareService.ts";
 import CheckServerService from "../controllers/CheckServerService.ts";
 import UnityService from "../controllers/UnityService.ts";
 import CheckIpService from "../controllers/CheckIpService.ts";
@@ -75,6 +76,7 @@ const reactApiObfuscate = new AppendBytesObfuscate(secret.APPEND_BYTES);
 const versionManager = new VersionManager(logger, notificationService)
 
 export const apiService = new ApiService(isProd, logger, apiHost, reactApiObfuscate, versionManager.getCurrentVersion());
+export const shareService = new ShareService(logger, apiService);
 export const walletService = new WalletService(isProd, secret.SIGN_SECRET, secret.SIGN_PADDING, logger, notificationService);
 export const authService = new AuthService(isProd, customSessionStorage, walletService, logger, versionManager, apiService);
 export const unityCommunicator = new UnityCommunicator(logger, authService, walletService, unityReactObfuscate, isProd, notificationService);
@@ -85,7 +87,7 @@ export const unityService = new UnityService();
 export const depositServiceWithInvoice = new DepositServiceWithInvoice(logger, walletService, notificationService);
 
 loginModal.setStatus(isProd)
-unityBridge.initialize(logger, unityCommunicator);
+unityBridge.initialize(logger, unityCommunicator, shareService);
 InitWeb();
 
 if (!isProd) {

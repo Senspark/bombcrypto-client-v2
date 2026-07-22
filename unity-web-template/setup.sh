@@ -33,6 +33,15 @@ codeUrlExtension=""
 # Copy the StreamingAssets folder
 cp -r "$ROOT_PATH/StreamingAssets" "$NEW_FOLDER/StreamingAssets"
 
+# Inject default landing mode into Unity runtime config at build time.
+# Usage: LANDING=adventure ./setup.sh <folder>   (default: treasure)
+# treasure => FarmingScene | adventure => MainMenuScene
+LANDING="${LANDING:-treasure}"
+RUNTIME_CONFIG_DIR="$NEW_FOLDER/StreamingAssets/configs"
+mkdir -p "$RUNTIME_CONFIG_DIR"
+printf '{"landing":"%s"}\n' "$LANDING" > "$RUNTIME_CONFIG_DIR/runtime-config.json"
+echo "Set landing=$LANDING in runtime-config.json"
+
 # Navigate to the build output directory
 cd "$ROOT_PATH/Build" || { echo "Build folder not found"; exit 1; }
 

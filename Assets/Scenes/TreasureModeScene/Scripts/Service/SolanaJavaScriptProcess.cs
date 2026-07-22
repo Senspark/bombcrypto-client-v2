@@ -1,5 +1,6 @@
 using System;
 using System.Threading.Tasks;
+using App;
 using Game.Dialog;
 using Newtonsoft.Json.Linq;
 using Senspark;
@@ -35,7 +36,7 @@ namespace Scenes.TreasureModeScene.Scripts.Service {
             try {
                 _logManager.Log();
                 
-                if (Application.isEditor) {
+                if (AppConfig.IsEditor) {
                     return true;
                 }
                 var depositCmd = new JObject {

@@ -154,7 +154,7 @@ public class DialogHouseListAirdrop : Dialog
                 Init();
             });
         } catch (Exception ex) {
-            DialogError.ShowError(DialogCanvas, ex.Message);
+            DialogError.ShowError(DialogCanvas, ex);
             Debug.LogError(ex);
         } finally {
             waiting.End();

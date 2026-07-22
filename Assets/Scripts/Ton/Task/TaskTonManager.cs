@@ -21,7 +21,7 @@ public class TaskTonManager : ObserverManager<UserTonObserver>, ITaskTonManager 
 
     private readonly Dictionary<int, ITaskTonData> _taskTonDataDict = new();
     private List<int> _allCategoryComplete = new();
-    private readonly IPlayerStorageManager _playerStorage;
+    private readonly IBHeroManager _bHeroManager;
     private readonly IHouseStorageManager _houseStorage;
     private IUserTonManager _userTonManager;
     private readonly ILogManager _logManager;
@@ -31,9 +31,9 @@ public class TaskTonManager : ObserverManager<UserTonObserver>, ITaskTonManager 
 
     public List<ICategoryTonData> TaskCategoryTonDataDict { get; set; } = new();
 
-    public TaskTonManager(IPlayerStorageManager playerStorage, IHouseStorageManager houseStorage,
+    public TaskTonManager(IBHeroManager bHeroManager, IHouseStorageManager houseStorage,
         ILogManager logManager) {
-        _playerStorage = playerStorage;
+        _bHeroManager = bHeroManager;
         _houseStorage = houseStorage;
         _logManager = logManager;
     }
@@ -132,7 +132,7 @@ public class TaskTonManager : ObserverManager<UserTonObserver>, ITaskTonManager 
         }
         _userTonManager ??= ServiceLocator.Instance.Resolve<IServerManager>().UserTonManager;
 
-        var heroAmount = _playerStorage.GetPlayerDataList(HeroAccountType.Ton).Count;
+        var heroAmount = _bHeroManager.GetPlayerDataList(HeroAccountType.Ton).Count;
 
         if (!buy1Hero && heroAmount >= 1) {
             var result = await _userTonManager.CompleteTask(TaskData.Buy1Hero);
@@ -210,7 +210,7 @@ public class TaskTonManager : ObserverManager<UserTonObserver>, ITaskTonManager 
     }
 
     public int GetHeroAmount() {
-        return _playerStorage.GetPlayerDataList(HeroAccountType.Ton).Count;
+        return _bHeroManager.GetPlayerDataList(HeroAccountType.Ton).Count;
     }
 
     //Thêm task mở link mới mà ko cần set sẵn từ client

@@ -1,36 +1,24 @@
-﻿using System;
-using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+
+using Cysharp.Threading.Tasks;
 
 using Senspark;
 
 using Game.UI.Information;
 
-using Newtonsoft.Json;
-
-using UnityEngine;
-
 namespace App {
     public class DefaultInformationManager : IInformationManager {
-        private string GetBasePath => Path.Combine(Application.streamingAssetsPath, RemoteFolder);
-        private string GetFilePath => Path.Combine(GetBasePath, JsonFile);
-        
-        private const string RemoteFolder = "Information";
-        private const string JsonFile = "data.json";
-
         private readonly ILogManager _logManager;
-        private readonly ICacheRequestManager _cacheRequestManager;
-        
+
         private InformationData[] _data;
-        
+
         private const string _starCoreAirdropInfo =
             "1. STAR CORE is obtained from Treasure Hunt mode.\n\n" +
             "2. Players will compete for rankings based on the number of Star Cores they collect The top-ranked players will be rewarded with airdropped tokens.";
-        
-        public DefaultInformationManager(ILogManager logManager, ICacheRequestManager cacheRequestManager) {
+
+        public DefaultInformationManager(ILogManager logManager) {
             _logManager = logManager;
-            _cacheRequestManager = cacheRequestManager;
         }
 
         public Task<bool> Initialize() {
@@ -39,18 +27,16 @@ namespace App {
 
         public void Destroy() { }
 
-        public async Task SyncRemoteData() {
+        public UniTask SyncRemoteData() {
             if (_data != null) {
-                return;
+                return UniTask.CompletedTask;
             }
 
-            var jsonPath = GetFilePath;
-            var data = await GetTextFile(jsonPath);
-            _data = JsonConvert.DeserializeObject<InformationData[]>(data);
+            _data = InformationTable.Build();
             foreach (var d in _data) {
                 UpdateTextByNetwork(d.displayName, ref d.content);
-                d.content = d.content.Replace("\\n", Environment.NewLine);
             }
+            return UniTask.CompletedTask;
         }
 
         //DevHoang_20250715: Star core các mạng airdrop khác nhau, tạm thời xài chung đợi server phân biệt sẽ cập nhật lại
@@ -77,14 +63,6 @@ namespace App {
                 return data[0];
             }
             return data.Find(e => e.network == network);
-        }
-
-        private async Task<string> GetTextFile(string path) {
-            if (Utils.IsUrl(path)) {
-                var (code, res) =  await _cacheRequestManager.GetWebResponse(SFSDefine.SFSCommand.GET_INFORMATION_DATA, path);
-                return res;
-            }
-            return await File.ReadAllTextAsync(path);
         }
     }
 }

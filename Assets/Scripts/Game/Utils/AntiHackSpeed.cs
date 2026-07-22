@@ -88,7 +88,7 @@ public class AntiHackSpeed : MonoBehaviour {
 
         var message = "The account is having a data conflict with the server";
         ServiceLocator.Instance.Resolve<IServerManager>().Disconnect();
-        DialogOK.ShowErrorAndKickToConnectScene(canvasDialog, message);
+        DialogOK.ShowErrorMsgOnlyAndKickToConnectScene(canvasDialog, message);
     }
 
     private void CheckJsTime() {

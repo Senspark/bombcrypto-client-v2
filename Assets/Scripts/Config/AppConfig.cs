@@ -33,7 +33,7 @@ namespace App {
         public static string TestUserName { get; private set; }
         public static string TestPassword { get; private set; }
         public static string TestWalletSolana { get; private set; }
-        public static bool Simulated => true;
+        public static bool Simulated => false;
         public static bool EnableLog => !IsProduction;
         public static string WalletTon { get; private set; }
         public static string TestWalletTonHex { get; private set; }
@@ -123,6 +123,8 @@ namespace App {
         public static bool IsMobile() {
             return GamePlatform == GamePlatform.MOBILE;
         }
+
+        public static bool IsEditor => Application.isEditor;
 
         public static void SetWebGLNetwork(NetworkType network) {
             switch (network) {
@@ -241,6 +243,12 @@ namespace App {
             public string baseApiHost;
             public string tournamentBaseApiHost;
             public string baseApiTestHost;
+            [CanBeNull] public TestServerConfig testServers;
+        }
+
+        [Serializable]
+        public class TestServerConfig {
+            public string webBuild;
         }
 
         [Serializable]

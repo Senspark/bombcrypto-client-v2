@@ -63,7 +63,7 @@ namespace Utils {
                         notification.Play();
                     }
                 } catch (Exception e) {
-                    DialogError.ShowError(canvas, e.Message);
+                    DialogError.ShowError(canvas, e);
                 }
             }, _cancellationTokenSource.Token);
         }

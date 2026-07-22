@@ -10,8 +10,10 @@ using Data;
 using Senspark;
 using Engine.Utils;
 using Game.Dialog.BomberLand.BLGacha;
+using Game.UI;
 using JetBrains.Annotations;
 using Services;
+
 using UnityEngine;
 using UnityEngine.UI;
 using Utils;
@@ -115,7 +117,19 @@ namespace Game.Dialog.BomberLand.BLFrameShop {
             SetItemDesc(resource, product.ItemId);
             UpdateUiStats(product);
 
-            if (product.ItemType == (int)InventoryItemType.AvatarTR) {
+            if (product.ItemType == (int)InventoryItemType.Hero
+                && Engine.Entities.HeroSpriteCatalog.Has(UIHeroData.ConvertFromHeroId(product.ItemId))) {
+                // Hero decouple: clip idle (Front) qua IHeroSpriteLoader, thay ResourceAnimationSo cũ (sprite gãy → trắng).
+                var playerType = UIHeroData.ConvertFromHeroId(product.ItemId);
+                var loader = ServiceLocator.Instance.Resolve<Animation.IHeroSpriteLoader>();
+                var clip = await loader.LoadClip(playerType, Engine.Entities.PlayerColor.HeroTr, Engine.Components.FaceDirection.Down);
+                if (icon != null) {
+                    icon.gameObject.SetActive(false);
+                }
+                imageAnimation.StartLoop(clip);
+                imageAnimation.gameObject.SetActive(true);
+                explodeAnimation.gameObject.SetActive(false);
+            } else if (product.ItemType == (int)InventoryItemType.AvatarTR) {
                 var sprites = await resource.GetAvatar(product.ItemId);
                 imageAnimation.StartAni(sprites);
                 explodeAnimation.gameObject.SetActive(false);
@@ -237,12 +251,12 @@ namespace Game.Dialog.BomberLand.BLFrameShop {
             }
             
             _handle.AddObserver(_chestRewardManager, new ChestRewardManagerObserver() {
-                OnRewardChanged = UpdateAvailableCurrency
+                OnRewardBalanceChanged = UpdateAvailableCurrency
             });
             
         }
 
-        private void UpdateAvailableCurrency(BlockRewardType type, double value) {
+        private void UpdateAvailableCurrency(BlockRewardType type, DataType scope, double value) {
             // khi thay đổi lockedGem thì xem như thay đổi gem vì lấy value = Gem + LockedGem.
             if (type == BlockRewardType.LockedGem) {
                 type = BlockRewardType.Gem;

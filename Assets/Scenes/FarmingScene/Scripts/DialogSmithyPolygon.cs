@@ -23,7 +23,7 @@ namespace Scenes.FarmingScene.Scripts {
         private Image[] shadow;
 
         private ISoundManager _soundManager;
-        private IPlayerStorageManager _playerStoreManager;
+        private IBHeroManager _playerStoreManager;
         private PlayerData _resetThisHero;
         private UserAccount _userAccount;
         private Smithy _smithy;
@@ -35,7 +35,7 @@ namespace Scenes.FarmingScene.Scripts {
         protected override void Awake() {
             base.Awake();
             _soundManager = ServiceLocator.Instance.Resolve<ISoundManager>();
-            _playerStoreManager = ServiceLocator.Instance.Resolve<IPlayerStorageManager>();
+            _playerStoreManager = ServiceLocator.Instance.Resolve<IBHeroManager>();
             _userAccount = ServiceLocator.Instance.Resolve<IUserAccountManager>().GetRememberedAccount();
         }
 

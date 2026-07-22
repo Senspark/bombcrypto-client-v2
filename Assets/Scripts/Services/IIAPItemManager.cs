@@ -4,6 +4,8 @@ using System.Threading.Tasks;
 
 using App;
 
+using Cysharp.Threading.Tasks;
+
 using Data;
 
 using Senspark;
@@ -22,7 +24,7 @@ namespace Services {
         FreeRewardConfig GetFreeGoldRewardConfigs();
         
         // Pack shop
-        Task SyncOfferShops();
+        UniTask SyncOfferShops();
         bool CanAutoShowOffer(IOfferPacksResult.OfferType type);
         bool CanBuyOffer(IOfferPacksResult.OfferType type);
         IOfferPacksResult.IOffer GetOfferData(IOfferPacksResult.OfferType type);

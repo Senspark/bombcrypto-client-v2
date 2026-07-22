@@ -77,7 +77,7 @@ namespace Game.Dialog {
         private async void ReactiveHouseTon() {
             var result = await _userTonManager.ReactiveHouse(_thisHouse.id);
             if (!result) {
-                DialogError.ShowError(DialogCanvas, "Reactive House Failed", () => { _isClicked = false; });
+                DialogError.ShowErrorMsgOnly(DialogCanvas, "Reactive House Failed", () => { _isClicked = false; });
                 return;
             }
             _houseStorageManager.UpdateLockedHouse(_thisHouse);
@@ -100,7 +100,7 @@ namespace Game.Dialog {
         private async void ReactiveHouseSol() {
             var result = await _userSolanaManager.ReactiveHouseSol(_thisHouse.id);
             if (!result) {
-                DialogError.ShowError(DialogCanvas, "Reactive House Failed");
+                DialogError.ShowErrorMsgOnly(DialogCanvas, "Reactive House Failed");
                 return;
             }
             _houseStorageManager.UpdateLockedHouse(_thisHouse);

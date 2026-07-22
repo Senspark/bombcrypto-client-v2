@@ -117,7 +117,7 @@ public class AirdropRankingUi : MonoBehaviour {
             levelScene.PauseStatus.SetValue(this, true);
         } catch (Exception) {
             levelScene.PauseStatus.SetValue(this, false);
-            DialogOK.ShowError(levelScene.DialogCanvas, "Get Ranking info failed");
+            DialogOK.ShowErrorMsgOnly(levelScene.DialogCanvas, "Get Ranking info failed");
         } finally {
             dialog.Hide();
         }

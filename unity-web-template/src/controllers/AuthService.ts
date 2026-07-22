@@ -11,7 +11,7 @@ import {WalletId, WalletIdUtils} from "./WalletIdUtils.ts";
 import {IAuthService, JwtDataSenspark, JwtDataWallet, JwtValidation, ScheduleBy} from "./IAuthService.ts";
 import WalletService, {HandshakeType, Account} from "./WalletService.ts";
 import LoginModal from '../components/LoginModal';
-import {getWalletAddress} from "./WalletUtils.ts";
+import {getWalletAddress, requestAccountSwitch} from "./WalletUtils.ts";
 import {getBrowserProvider} from "./BlockChain/Module/Utils/Storage.ts";
 import {sleep} from "../utils/Time.ts";
 import { appKitButtonAtom } from '../components/AppKitButtonAtom';
@@ -20,7 +20,7 @@ import {unityCommunicator} from "../hooks/GlobalServices.ts";
 
 const TAG = '[AUT]';
 const K_SINGLE_REFRESH_TOKEN_ID_JOB = "refreshJwt";
-const REFRESH_INTERVAL_SECONDS_TEST = 15;
+const REFRESH_INTERVAL_SECONDS_TEST = 60;
 const REFRESH_INTERVAL_SECONDS_PROD = 5 * 60;
 
 export default class AuthService implements IAuthService {
@@ -228,17 +228,8 @@ export default class AuthService implements IAuthService {
                     }
 
                     if (result.hasChange) {
-                        // Kiểm tra wallet có đúng là wallet đã chọn ko
-                        const addressInMetaMask = await getWalletAddress(this._logger, getBrowserProvider());
-                        if (!addressInMetaMask) {
-                            //notificationService.showError("Error happened. Please check your wallet connection.");
-                            return null;
-                        }
-                        // Chỗ này do user đổi ví trên app-kit nhưng ko thể trực tiếp gọi metamassk để dổi ví dùm user đc
-                        // Nên sẽ thông báo lỗi, user phải tự mở metamask để đổi ví
-                        if (addressInMetaMask.toLowerCase() !== result.address.toLowerCase()) {
-                            this._logger.error(`${TAG} Wallet address mismatch: expected ${result.address}, got ${addressInMetaMask}`);
-                            //notificationService.showError("Wallet address mismatch. Please connect correct wallet.");
+                        const matched = await this.ensureProviderMatches(result.address);
+                        if (!matched) {
                             getDefaultStore().set(appKitButtonAtom, { showCustomUI: false, showFakeConnect: true });
                             return null;
                         }
@@ -330,17 +321,8 @@ export default class AuthService implements IAuthService {
                     // user đã xác nhận đổi profile trong modal rồi, cho login luôn, ko hỏi lại
                     if (result.hasChange) {
                         WalletIdUtils.removeWalletId()
-                        // Kiểm tra wallet có đúng là wallet đã chọn ko
-                        const addressInMetaMask = await getWalletAddress(this._logger, getBrowserProvider());
-                        if (!addressInMetaMask) {
-                            //notificationService.showError("Error happened. Please check your wallet connection.");
-                            return null;
-                        }
-                        // Chỗ này do user đổi ví trên app-kit nhưng ko thể trực tiếp gọi metamassk để dổi ví dùm user đc
-                        // Nên sẽ thông báo lỗi, user phải tự mở metamask để đổi ví
-                        if (addressInMetaMask.toLowerCase() !== result.address.toLowerCase()) {
-                            this._logger.error(`${TAG} Wallet address mismatch: expected ${result.address}, got ${addressInMetaMask}`);
-                            //notificationService.showError("Wallet address mismatch. Please connect correct wallet.");
+                        const matched = await this.ensureProviderMatches(result.address);
+                        if (!matched) {
                             getDefaultStore().set(appKitButtonAtom, { showCustomUI: false, showFakeConnect: true });
                             return null;
                         }
@@ -404,6 +386,41 @@ export default class AuthService implements IAuthService {
 
     clearSavedWallet() {
         this._savedWalletId = undefined;
+    }
+
+    private async ensureProviderMatches(targetAddress: string): Promise<string | null> {
+        const live = await getWalletAddress(this._logger, getBrowserProvider());
+        if (!live) {
+            this._logger.error(`${TAG} ensureProviderMatches: provider returned no address`);
+            return null;
+        }
+        if (live.toLowerCase() === targetAddress.toLowerCase()) {
+            return live;
+        }
+        this._logger.log(`${TAG} provider on ${live}, target ${targetAddress}; opening MetaMask account picker`);
+        // Suppress onUserSelectOtherWallet so the accountsChanged event from the picker
+        // doesn't logout+reload mid-login.
+        this._walletService.stopUpdateWalletInfo();
+        let result;
+        try {
+            result = await requestAccountSwitch(this._logger, getBrowserProvider(), targetAddress);
+        } finally {
+            this._walletService.resumeUpdateWalletInfo();
+        }
+        switch (result.kind) {
+            case 'matched':
+                this._walletService.updateWalletAddress(result.address);
+                return result.address;
+            case 'not_active':
+                this._logger.error(`${TAG} ${targetAddress} is connected but MetaMask's active account is ${result.active}. User must pick ONLY ${targetAddress} in the MetaMask picker (or set it active in MetaMask UI), then retry.`);
+                return null;
+            case 'not_connected':
+                this._logger.error(`${TAG} Account switch did not connect ${targetAddress}. Connected: [${result.connected.join(', ')}]`);
+                return null;
+            case 'error':
+                this._logger.error(`${TAG} Account switch request failed`);
+                return null;
+        }
     }
 
 

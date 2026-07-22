@@ -51,12 +51,14 @@ namespace Game.Dialog {
         
         private IInputManager _inputManager;
         private IDialogManager _dialogManager;
+        private ILogManager _logManager;
 
         protected virtual void Awake() {
             SetupClickOutside();
             _waitForDialogClosedTask = new TaskCompletionSource<bool>();
             _inputManager = ServiceLocator.Instance.Resolve<IInputManager>();
             _dialogManager = ServiceLocator.Instance.Resolve<IDialogManager>();
+            _logManager = ServiceLocator.Instance.Resolve<ILogManager>();
         }
 
         protected bool IsHiding() {
@@ -101,6 +103,7 @@ namespace Game.Dialog {
         }
 
         public virtual void Show(Canvas canvas) {
+            _logManager?.Log($"[DialogOpen] {GetType().Name} (Show) on canvas '{(canvas ? canvas.name : "null")}'");
             canvasGroup.alpha = 0;
             DialogCanvas = canvas;
             transform.SetParent(canvas.transform, false);
@@ -108,6 +111,7 @@ namespace Game.Dialog {
             _dialogManager?.AddDialog(this);
         }
         public void ShowImmediately(Canvas canvas) {
+            _logManager?.Log($"[DialogOpen] {GetType().Name} (ShowImmediately) on canvas '{(canvas ? canvas.name : "null")}'");
             DialogCanvas = canvas;
             transform.SetParent(canvas.transform, false);
             _willShowActions.ForEach(item => item?.Invoke());

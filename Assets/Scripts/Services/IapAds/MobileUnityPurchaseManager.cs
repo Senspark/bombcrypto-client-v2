@@ -4,7 +4,11 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 
+using App;
+
 using Analytics;
+
+using Cysharp.Threading.Tasks;
 
 using Senspark;
 
@@ -18,7 +22,6 @@ using Unity.Services.Core.Environments;
 using UnityEngine;
 using UnityEngine.Assertions;
 using UnityEngine.Purchasing;
-using UnityEngine.Purchasing.Security;
 
 namespace Services.IapAds {
     /// <summary>
@@ -46,7 +49,7 @@ namespace Services.IapAds {
         public void Destroy() {
         }
 
-        public async Task SyncData() {
+        public async UniTask SyncData() {
             if (_synced == null) {
                 _synced = new TaskCompletionSource<bool>();
                 await SyncDataImpl();
@@ -129,7 +132,7 @@ namespace Services.IapAds {
 
         private async Task SyncDataImpl() {
             try {
-                var env = Application.isEditor ? "development" : "production";
+                var env = AppConfig.IsEditor ? "development" : "production";
                 var options = new InitializationOptions().SetEnvironmentName(env);
                 await UnityServices.InitializeAsync(options);
 
@@ -206,7 +209,7 @@ namespace Services.IapAds {
         }
 
         private PurchaseResult ParseAndSaveReceiptData(string productId, string receipt) {
-            var result = GetPurchaseTokenFromReceipt(receipt);
+            var result = GetPurchaseTokenFromReceipt(productId, receipt);
             
             if (_pendingTransactions.Any(p => p.PurchaseToken == result.PurchaseToken)) {
                 return result;
@@ -220,39 +223,47 @@ namespace Services.IapAds {
             return result;
         }
 
-        private PurchaseResult GetPurchaseTokenFromReceipt(string receipt) {
+        private PurchaseResult GetPurchaseTokenFromReceipt(string productId, string receipt) {
             _logManager.Log("devv receipt:");
             _logManager.Log(receipt);
-            var validator =
-                new CrossPlatformValidator(GooglePlayTangle.Data(), AppleTangle.Data(), Application.identifier);
-            var results = validator.Validate(receipt);
-            if (results.Length == 0) {
+
+            var wrapper = JsonConvert.DeserializeObject<ReceiptWrapper>(receipt);
+            if (wrapper == null || string.IsNullOrEmpty(wrapper.Payload)) {
                 throw new Exception("Receipt Invalid");
             }
-            var result = results[0];
-            string purchaseToken = null;
+
+            string purchaseToken;
             var orderId = string.Empty;
 #if UNITY_ANDROID
-            var parsed = (GooglePlayReceipt)result;
-            purchaseToken = parsed.purchaseToken;
-            orderId = parsed.orderID;
+            var payload = JsonConvert.DeserializeObject<GooglePlayPayload>(wrapper.Payload);
+            var inner = JsonConvert.DeserializeObject<GooglePlayJson>(payload.json);
+            purchaseToken = inner.purchaseToken;
+            orderId = inner.orderId;
 #elif UNITY_IOS
-            var rawReceipt = JsonConvert.DeserializeObject<AppleReceipt>(receipt);
-            purchaseToken = rawReceipt.Payload;
+            purchaseToken = wrapper.Payload;
 #else
             throw new Exception("Not supported");
-            return null;
 #endif
             if (string.IsNullOrWhiteSpace(purchaseToken)) {
                 throw new Exception("Receipt Invalid");
             }
-            return new PurchaseResult(PurchaseState.Done, result.transactionID, purchaseToken, orderId, result.productID, receipt);
+            return new PurchaseResult(PurchaseState.Done, wrapper.TransactionID, purchaseToken, orderId, productId, receipt);
         }
-        
-        private class AppleReceipt {
+
+        private class ReceiptWrapper {
             public string Payload;
             public string Store;
             public string TransactionID;
+        }
+
+        private class GooglePlayPayload {
+            public string json;
+            public string signature;
+        }
+
+        private class GooglePlayJson {
+            public string orderId;
+            public string purchaseToken;
         }
 
         #endregion

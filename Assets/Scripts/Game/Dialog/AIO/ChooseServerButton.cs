@@ -39,7 +39,7 @@ namespace Game.Dialog.AIO {
             _onChoose = onChoose;
 #if TurnOnPing
             pingTxt.text = "--";
-            Ping(svInfo.PingServerAddress).Forget();
+            Ping(svInfo.Address).Forget();
 #else 
             pingTxt.text = "";
 #endif

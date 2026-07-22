@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -12,6 +13,7 @@ namespace App {
         private readonly IStorageManager _storeManager;
         private readonly IBlockchainStorageManager _blockchainStorageManager;
         private readonly IFeatureManager _featureManager;
+        private readonly Dictionary<string, string> _bridgeReadCache = new();
 
         public AutoUpdateBlockchainManager(
             IBlockchainManager manager,
@@ -178,7 +180,7 @@ namespace App {
             return _manager.GetNFT(amount, eventId, nonce, signature);
         }
 
-        public Task<string> ClaimToken(double amount, int tokenType, int nonce, string[] details, string signature,
+        public Task<ClaimAndProcessResult> ClaimToken(double amount, int tokenType, int nonce, string[] details, string signature,
             string formatType, int waitConfirmations) {
             return _manager.ClaimToken(amount, tokenType, nonce, details, signature, formatType, waitConfirmations);
         }
@@ -222,20 +224,20 @@ namespace App {
             return _manager.Exchange_GetInfo();
         }
 
-        public Task<bool> StakeToHero(int id, double amount, string tokenAddress, StakeHeroCategory category) {
-            return _manager.StakeToHero(id, amount, tokenAddress, category);
+        public Task<StakeResult> StakeToHero(int id, double amount, StakeHeroCategory category) {
+            return _manager.StakeToHero(id, amount, category);
         }
 
-        public Task<bool> WithDrawFromHeroId(int id, double amount, string tokenAddress) {
-            return _manager.WithDrawFromHeroId(id, amount, tokenAddress);
+        public Task<StakeResult> WithDrawFromHeroId(int id, double amount, StakeHeroCategory category) {
+            return _manager.WithDrawFromHeroId(id, amount, category);
         }
 
-        public Task<double> GetStakeFromHeroId(int id, string tokenAddress) {
-            return _manager.GetStakeFromHeroId(id, tokenAddress);
+        public Task<double> GetStakeFromHeroId(int id, StakeHeroCategory category) {
+            return _manager.GetStakeFromHeroId(id, category);
         }
 
-        public Task<double> GetFeeFromHeroId(int id, string tokenAddress) {
-            return _manager.GetFeeFromHeroId(id, tokenAddress);
+        public Task<double> GetFeeFromHeroId(int id, StakeHeroCategory category) {
+            return _manager.GetFeeFromHeroId(id, category);
         }
 
         public Task<bool> DepositTon(string invoice, double amount) {
@@ -244,6 +246,61 @@ namespace App {
         
         public Task<bool> DepositAirdrop(string invoice, string amount, string chainId) {
             return _manager.DepositAirdrop(invoice, amount, chainId);
+        }
+
+        // deposited/withdrawn only change through this user's own deposit/withdraw, so the
+        // session cache is invalidated on the matching tx instead of expiring.
+        public async Task<string> GetBridgeDeposited(string chain, string token) {
+            var key = $"D:{chain}:{token}";
+            if (_bridgeReadCache.TryGetValue(key, out var cached)) {
+                return cached;
+            }
+            var value = await _manager.GetBridgeDeposited(chain, token);
+            _bridgeReadCache[key] = value;
+            return value;
+        }
+
+        public async Task<string> GetBridgeWithdrawn(string chain, string token) {
+            var key = $"W:{chain}:{token}";
+            if (_bridgeReadCache.TryGetValue(key, out var cached)) {
+                return cached;
+            }
+            var value = await _manager.GetBridgeWithdrawn(chain, token);
+            _bridgeReadCache[key] = value;
+            return value;
+        }
+
+        // Drop cached deposited/withdrawn so the next read hits the chain. Used before
+        // showing the withdraw confirm, where a stale amount (e.g. the user withdrew on
+        // another device) would misrepresent what they can actually withdraw.
+        public void InvalidateBridgeRead(string chain, string token) {
+            _bridgeReadCache.Remove($"D:{chain}:{token}");
+            _bridgeReadCache.Remove($"W:{chain}:{token}");
+        }
+
+        public Task<bool> GetBridgeDepositEnabled(string chain) {
+            return _manager.GetBridgeDepositEnabled(chain);
+        }
+
+        public Task<bool> GetBridgeWithdrawEnabled(string chain) {
+            return _manager.GetBridgeWithdrawEnabled(chain);
+        }
+
+        public async Task<BridgeTxResult> BridgeDeposit(string chain, string token, string amountWei) {
+            var result = await _manager.BridgeDeposit(chain, token, amountWei);
+            if (result.success) {
+                _bridgeReadCache.Remove($"D:{chain}:{token}");
+            }
+            return result;
+        }
+
+        public async Task<BridgeTxResult> BridgeWithdraw(string chain, string token, string otherDeposited,
+            long deadline, string signature) {
+            var result = await _manager.BridgeWithdraw(chain, token, otherDeposited, deadline, signature);
+            if (result.success) {
+                _bridgeReadCache.Remove($"W:{chain}:{token}");
+            }
+            return result;
         }
     }
 }

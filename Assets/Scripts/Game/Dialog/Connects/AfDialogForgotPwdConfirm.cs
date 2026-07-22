@@ -118,7 +118,7 @@ namespace Game.Dialog.Connects {
                     txtResendCode.color = Color.green;
                     _lastResendCodeTime = DateTime.Now;
                 } catch (Exception e) {
-                    DialogOK.ShowError(Data.CurrentCanvas, e.Message);
+                    DialogOK.ShowError(Data.CurrentCanvas, e);
                 } finally {
                     HideWaiting();
                 }

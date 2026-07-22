@@ -42,10 +42,9 @@ namespace Scenes.FarmingScene.Scripts {
         private GameObject infoText;
 
         private IBlockchainManager _blockchainManager;
-        private IPlayerStorageManager _playerStorageManager;
+        private IBHeroManager _bHeroManager;
         private IServerManager _serverManager;
         private ISoundManager _soundManager;
-        private INetworkConfig _networkConfig;
         private DataUnStake _dataUnStake;
         private PlayerData _playerData;
         private IInputManager _inputManager;
@@ -92,9 +91,8 @@ namespace Scenes.FarmingScene.Scripts {
         
             _blockchainManager = ServiceLocator.Instance.Resolve<IBlockchainManager>();
             _serverManager = ServiceLocator.Instance.Resolve<IServerManager>();
-            _playerStorageManager = ServiceLocator.Instance.Resolve<IPlayerStorageManager>();
+            _bHeroManager = ServiceLocator.Instance.Resolve<IBHeroManager>();
             _soundManager = ServiceLocator.Instance.Resolve<ISoundManager>();
-            _networkConfig = ServiceLocator.Instance.Resolve<INetworkConfig>();
         }
 
         private void UpdateText(DataUnStake data) {
@@ -106,11 +104,9 @@ namespace Scenes.FarmingScene.Scripts {
             minValue.text = data.MinValue;
         }
 
-        private async Task<bool> UnStake() {
-            var tokenAddress = _tokenType == RewardType.BCOIN
-                ? _networkConfig.BlockchainConfig.CoinTokenAddress
-                : _networkConfig.BlockchainConfig.SensparkTokenAddress;
-            return await _blockchainManager.WithDrawFromHeroId(_heroId, _amountWantUnStake, tokenAddress);
+        private async Task<StakeResult> UnStake() {
+            var category = _tokenType == RewardType.BCOIN ? StakeHeroCategory.Bcoin : StakeHeroCategory.Sen;
+            return await _blockchainManager.WithDrawFromHeroId(_heroId, _amountWantUnStake, category);
         }
 
         protected override void OnYesClick() {
@@ -124,23 +120,28 @@ namespace Scenes.FarmingScene.Scripts {
             _soundManager.PlaySound(Audio.Tap);
             IsProcessing(true);
             var result = await UnStake();
-            if (result) {
-                //Đợi 30s trước khi gọi lên server
-                await WebGLTaskDelay.Instance.Delay(30 * 1000);
-                await _serverManager.Pve.CheckBomberStake(_dataUnStake.PlayerData.heroId);
+            if (!result.success) {
+                IsProcessing(false);
+                return;
             }
 
+#if UNITY_EDITOR
+            // Editor không tương tác được với blockchain → yêu cầu server push fake
+            // BHERO_STAKE_PUSH với state hiện tại để FarmingSceneStakeObserver hiển thị
+            // DialogStakingResult.
+            _serverManager.Pve.RequestFakeStakePush(_dataUnStake.PlayerData.heroId);
+#else
+            // Production: trigger server fetch fresh stake từ ap-blockchain bằng txHash → push BHERO_STAKE_PUSH.
+            if (!string.IsNullOrEmpty(result.txHash)) {
+                _serverManager.Pve.RefreshHeroStake(_dataUnStake.PlayerData.heroId, result.txHash);
+            }
+#endif
+
             IsProcessing(false);
-        
-            var dialogResult = await DialogUnStakingResult.Create();
-            dialogResult.Show(result, DialogCanvas, _callback.Hide);
-            //callback sau khi unstake hoặc stake
+
+            // Đóng dialog ngay sau khi tx on-chain success — không block UI chờ server.
             _callback.StakeOrUnStakeComplete?.Invoke();
-        
-            //Unstake thành công thì kiểm tra xem hero đó có còn đủ stake đê là heroS ko, nếu ko thì ẩn hero đó ra khỏi ds chọn
-            var player = _playerStorageManager.GetPlayerDataFromId(_playerData.heroId);
-            _callback.UnStakeComplete?.Invoke(player);
-        
+            _callback.UnStakeHide?.Invoke();
             Hide();
         }
 
@@ -151,9 +152,16 @@ namespace Scenes.FarmingScene.Scripts {
 
         private void ChangeToProcessing(bool isProcess) {
             _isProcessing = isProcess;
-        
+
             if (_isProcessing) {
                 _ = DialogWaiting.Create().ContinueWith(d => {
+                    // Race: IsProcessing(false) có thể chạy xong trước khi Create resolve
+                    // (flow unstake mới không còn 30s wait). Trong trường hợp đó, hide ngay
+                    // để không có DialogWaiting orphan mãi trên screen.
+                    if (!_isProcessing) {
+                        d.Hide();
+                        return;
+                    }
                     _dialogWaiting = d;
                     _dialogWaiting.Show(DialogCanvas);
                     _dialogWaiting.ShowLoadingAnim();
@@ -161,6 +169,7 @@ namespace Scenes.FarmingScene.Scripts {
             } else {
                 if (_dialogWaiting != null) {
                     _dialogWaiting.Hide();
+                    _dialogWaiting = null;
                 }
             }
         }

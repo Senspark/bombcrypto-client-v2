@@ -10,11 +10,7 @@ using Newtonsoft.Json.Linq;
 
 using Senspark;
 
-using Share.Scripts;
 using Share.Scripts.Communicate;
-using Share.Scripts.Communicate.UnityReact;
-
-using UnityEngine;
 
 using Utils;
 
@@ -25,11 +21,8 @@ namespace App {
         private const string PostRegisterTraditionUrl = "/gateway/auth/tr/register";
         private const string PostLoginTraditionUrl = "/gateway/auth/tr/login";
         private const string GetVerifyJwtTraditionUrl = "/gateway/auth/tr/verify-token";
-        private const string GetSignTokenUrl = "/gateway/auth/dapp/token?address=";
-        private const string PostVerifyTokenUrl = "/gateway/auth/dapp/verify-signature";
         private const string PostSetAccountUrl = "/gateway/auth/dapp/set-account";
         private const string PostSetNickNameUrl = "/gateway/user/set-nickname";
-        private const string PostLoginFacebook = "/gateway/auth/third-party/login/facebook";
         private const string PostLoginApple = "/gateway/auth/third-party/login/apple";
         private const string GetRequestCreateGuestAccount = "/gateway/auth/guest/request-create-account";
         private const string GetForgotPassword = "/gateway/auth/tr/send-mail-reset-password?email=";
@@ -37,21 +30,13 @@ namespace App {
 
         private readonly string _host;
         private readonly ILogManager _logManager;
-        private readonly ISignManager _signManager;
-        private readonly IExtResponseEncoder _encoder;
         private readonly IMasterUnityCommunication _unityCommunication;
-        private UserLoginToken _tokenData;
-        private readonly JavascriptProcessor _processor;
         
         public DefaultAuthManager(
             ILogManager logManager,
-            ISignManager signManager,
-            IExtResponseEncoder encoder,
             IMasterUnityCommunication unityCommunication,
             bool isProduction) {
             _logManager = logManager;
-            _signManager = signManager;
-            _encoder = encoder;
             _unityCommunication = unityCommunication;
 
             if (AppConfig.ServerAddresses != null) {
@@ -59,9 +44,6 @@ namespace App {
             } else {
                 _host = HOST_LOCAL;
             }
-
-            _processor = JavascriptProcessor.Instance;
-            // _host = HOST_LOCAL;
         }
         
         public Task<bool> Initialize() {
@@ -75,7 +57,6 @@ namespace App {
             await RegisterSenspark(username, password, email);
             var jwt = await GetUserJwtTokenByPassword(username, password);
             var tokenData = await VerifyJwtToken(jwt);
-            _tokenData = tokenData;
             return tokenData;
         }
 
@@ -130,46 +111,9 @@ namespace App {
             }
         }
 
-        public async Task<string> GetUserJwtTokenBySign(int networkChainId) {
-            // Lấy walletAddress
-            await _signManager.IsValidChainId(networkChainId);
-            var walletAddress = await _signManager.ConnectAccount();
-            
-            // Sign Message
-            var url = $"{_host}{GetSignTokenUrl}{walletAddress}";
-            var (statusCode, resStr) = await Utils.GetWebResponse(_logManager, url);
-            
-            var failException = new Exception($"Get sign token failed ({statusCode})");
-            var signToken = ParseResponse<string>(statusCode, resStr, failException);
-            
-            // mang sign token to sign
-            var signature = await _signManager.Sign(signToken, walletAddress);
-            
-            // Get JWT Token
-            url = $"{_host}{PostVerifyTokenUrl}";
-            var body = new JObject {
-                {"address", walletAddress},
-                {"signature", signature}
-            };
-            (statusCode, resStr) = await Utils.PostWebResponse(_logManager, url, body.ToString());
-            
-            failException = new Exception($"Verify failed ({statusCode})");
-            var message = ParseResponse<JObject>(statusCode, resStr, failException);
-            var jwt = (string) message["token"];
-            return jwt;
-        }
-
         public async Task<UserLoginToken> GetUserLoginDataByPassword(string username, string password) {
             var jwt = await GetUserJwtTokenByPassword(username, password);
             var tokenData = await VerifyJwtToken(jwt);
-            _tokenData = tokenData;
-            return tokenData;
-        }
-
-        public async Task<UserLoginToken> GetUserLoginDataBySign(int networkChainId) {
-            var jwt = await GetUserJwtTokenBySign(networkChainId);
-            var tokenData = await VerifyJwtToken(jwt);
-            _tokenData = tokenData;
             return tokenData;
         }
 
@@ -282,16 +226,6 @@ namespace App {
         }
         
         
-        private async Task<UserLoginToken> GetUserLoginDataByFacebook(string accessToken) {
-            var url = $"{_host}{PostLoginFacebook}";
-            var jwt = await GetSensparkJwtByThirdPartyToken(url, accessToken);
-            var tokenData = await VerifyJwtToken(jwt);
-            var newData = new UserLoginToken(tokenData.JwtToken, accessToken, tokenData.UserId, false,
-                tokenData.UsernameOrWallet, tokenData.HasPasscode);
-            _tokenData = newData;
-            return newData;
-        }
-
         private async Task<UserLoginToken> GetUserLoginDataByApple() {
             var app = new AppleLogin();
             var res = await app.GetAccessToken();
@@ -353,7 +287,6 @@ namespace App {
             var tokenData = await VerifyJwtToken(jwt);
             var newData = new UserLoginToken(tokenData.JwtToken, accessToken, tokenData.UserId, false,
                 tokenData.UsernameOrWallet, tokenData.HasPasscode);
-            _tokenData = newData;
             return newData;
         }
         

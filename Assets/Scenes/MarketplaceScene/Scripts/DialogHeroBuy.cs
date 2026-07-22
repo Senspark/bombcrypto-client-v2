@@ -83,7 +83,7 @@ namespace Scenes.MarketplaceScene.Scripts {
                     Hide();
                 } catch (Exception e) {
                     _analytics.TrackConversion(ConversionType.BuyMarketHeroTrFail);
-                    DialogOK.ShowError(DialogCanvas, e.Message, ()=>{_isClicked = false;});
+                    DialogOK.ShowError(DialogCanvas, e, ()=>{_isClicked = false;});
                 }
             });
         }

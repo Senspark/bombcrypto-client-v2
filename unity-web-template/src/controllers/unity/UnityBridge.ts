@@ -2,6 +2,7 @@ import {sleep} from "../../utils/Time.ts";
 import UnityCommunicator from "./UnityCommunicator.ts";
 import Logger from "../Logger.ts";
 import UnityCommand from "../../consts/UnityCommand.ts";
+import ShareService from "../ShareService.ts";
 
 type Callback = (arg: string | null) => void;
 type Function = (arg: string) => Promise<string|null>;
@@ -16,12 +17,13 @@ declare global {
 }
 
 
-function initialize(logger:Logger, communicator: UnityCommunicator) {
+function initialize(logger:Logger, communicator: UnityCommunicator, shareService: ShareService) {
     logger.log('UnityBridge initialized');
     window.jsCall = jsCall;
     _communicator = communicator;
 
     methods.set('test', test);
+    methods.set('SHARE_ON_X', shareService.shareOnX.bind(shareService));
     methods.set('INIT', communicator.handShakeFromUnity.bind(communicator));
     methods.set('GET_CONNECTION', communicator.getFirstDataConnection.bind(communicator));
     methods.set('ENABLE_VIDEO_THUMBNAIL', communicator.enableVideoThumbnail.bind(communicator));
@@ -33,6 +35,7 @@ function initialize(logger:Logger, communicator: UnityCommunicator) {
     methods.set('CHANGE_NICK_NAME', communicator.changeNickName.bind(communicator));
     methods.set('LOGOUT', communicator.logout.bind(communicator));
     methods.set('DEPOSIT_AIRDROP', communicator.payment.bind(communicator));
+    methods.set('OPEN_GAME_MODE', communicator.openGameMode.bind(communicator));
 }
 
 

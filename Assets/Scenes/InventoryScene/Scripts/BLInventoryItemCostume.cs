@@ -30,7 +30,6 @@ namespace Game.Dialog {
         private GameObject tagNew;
         
         private bool isNew = false;
-        private int itemId = 0;
         private IServerRequester _serverRequester;
 
         private void Awake() {

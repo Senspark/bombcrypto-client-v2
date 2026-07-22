@@ -35,7 +35,7 @@ namespace Engine.Components {
         private WalkThrough walkThrough;
         private HeroAnimator _heroAnimation;
         private Movable _movable;
-        private IPlayerStorageManager _playerStoreManager;
+        private IBHeroManager _playerStoreManager;
         public TileType[,] map;
         public Vector2Int currentLocation, targetLocation;
         public List<Vector2Int> reachableLocationList, safeLocationList, nearestLocationList;
@@ -47,7 +47,7 @@ namespace Engine.Components {
 
         private void Awake() {
             _pveHeroStateManager = ServiceLocator.Instance.Resolve<IPveHeroStateManager>();
-            _playerStoreManager = ServiceLocator.Instance.Resolve<IPlayerStorageManager>();
+            _playerStoreManager = ServiceLocator.Instance.Resolve<IBHeroManager>();
             player = GetComponent<Player>();
             player.GetEntityComponent<Updater>()
                 .OnBegin(Init)

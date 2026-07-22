@@ -33,7 +33,7 @@ namespace Share.Scripts.Communicate {
 
         public MobileRequest(IJwtSession jwtSession, ILogManager logManager) {
             _jwtSession = jwtSession;
-            if (Application.isEditor) {
+            if (AppConfig.IsEditor) {
                 _host = LocalHost;
             }
             else if (!AppConfig.IsProduction) {

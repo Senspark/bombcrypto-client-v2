@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Numerics;
 using CodeStage.AntiCheat.ObscuredTypes;
@@ -15,6 +16,38 @@ using SuperTiled2Unity;
 using UnityEngine;
 
 namespace App.BomberLand {
+    // Bridge activity kinds reported to the server (NotifyCrosschainBridge). Must match the server's
+    // CrosschainDepositBridgeNotifyKind. The client only sends these three; withdraw_request is server-side.
+    public static class BridgeNotifyKind {
+        public const string DepositPrepare = "deposit_prepare";
+        public const string DepositDone = "deposit_done";
+        public const string WithdrawDone = "withdraw_done";
+    }
+
+    // Carries the EIP-191 signature + the parameters the user relays on-chain via
+    // withdraw(token, otherDeposited, deadline, signature).
+    public class BridgeWithdrawResult {
+        public int Code;
+        public string Message;
+        public string Signature;
+        public string OtherDeposited;
+        public long Deadline;
+        public string BridgeAddress;
+        public string TokenAddress;
+        public string Chain;
+
+        public BridgeWithdrawResult(ISFSObject data) {
+            Code = data.ContainsKey("code") ? data.GetInt("code") : 0;
+            Message = data.ContainsKey("message") ? data.GetUtfString("message") : null;
+            Signature = data.ContainsKey("signature") ? data.GetUtfString("signature") : null;
+            OtherDeposited = data.ContainsKey("other_deposited") ? data.GetUtfString("other_deposited") : null;
+            Deadline = data.ContainsKey("deadline") ? data.GetLong("deadline") : 0;
+            BridgeAddress = data.ContainsKey("bridge_address") ? data.GetUtfString("bridge_address") : null;
+            TokenAddress = data.ContainsKey("token_address") ? data.GetUtfString("token_address") : null;
+            Chain = data.ContainsKey("chain") ? data.GetUtfString("chain") : null;
+        }
+    }
+
     public partial class DefaultGeneralServerBridge {
         private class SendExtensionRequestResult<T> {
             [JsonProperty("ec")]
@@ -658,6 +691,7 @@ namespace App.BomberLand {
             public double[] FusionFee { get; }
             public double[] HousePriceTokenNetwork { get; }
             public double EndTimeTokenNetwork { get; }
+            public double BridgeFeePercent { get; }
 
             public TreasureHuntConfigResponse(ISFSObject data) {
                 // hero limit
@@ -728,6 +762,12 @@ namespace App.BomberLand {
                     var endTimeBuyTon = data.GetUtfString("disable_buy_with_token_network");
                     EndTimeTokenNetwork = JsonConvert.DeserializeObject<double>(endTimeBuyTon);
                 }
+
+                BridgeFeePercent = data.ContainsKey("bridge_fee_percent")
+                    && double.TryParse(data.GetUtfString("bridge_fee_percent"), NumberStyles.Any,
+                        CultureInfo.InvariantCulture, out var bridgeFee)
+                    ? bridgeFee
+                    : 5.0;
             }
         }
 
@@ -772,10 +812,22 @@ namespace App.BomberLand {
         private class UpgradeShieldResponse : IUpgradeShieldResponse {
             public int Nonce { get; }
             public string Signature { get; }
-            
+
             public UpgradeShieldResponse(ISFSObject data) {
                 Nonce = data.GetInt("nonce");
                 Signature = data.GetUtfString("signature");
+            }
+        }
+
+        private class UpgradeShieldLevelPush : IUpgradeShieldLevelPush {
+            public bool Success { get; }
+            public string ErrorMessage { get; }
+            public IHeroDetails Hero { get; }
+
+            public UpgradeShieldLevelPush(bool success, string errorMessage, IHeroDetails hero) {
+                Success = success;
+                ErrorMessage = errorMessage;
+                Hero = hero;
             }
         }
         

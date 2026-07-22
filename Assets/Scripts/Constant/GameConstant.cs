@@ -1,3 +1,5 @@
+using App;
+
 using UnityEngine;
 
 namespace Constant {
@@ -12,7 +14,7 @@ namespace Constant {
         public static readonly bool MobilePlatform = Application.isMobilePlatform; // || Application.isEditor;
 
         public static readonly bool FiPlatform =
-            Application.platform == RuntimePlatform.WebGLPlayer || Application.isEditor;
+            Application.platform == RuntimePlatform.WebGLPlayer || AppConfig.IsEditor;
 
         public const int MatchPvpRequiredForNewUser = 0;
     }

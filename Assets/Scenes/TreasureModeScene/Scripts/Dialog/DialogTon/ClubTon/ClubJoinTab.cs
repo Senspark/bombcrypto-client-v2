@@ -121,7 +121,7 @@ public class ClubJoinTab : MonoBehaviour {
                     result += "\n";
                 }
             }
-            DialogOK.ShowError(_canvas, result);
+            DialogOK.ShowErrorMsgOnly(_canvas, result);
             Debug.LogError(ex);
         } finally {
             dialog.Hide();
@@ -144,7 +144,7 @@ public class ClubJoinTab : MonoBehaviour {
             _dialogClub.UpdateClubInfo(newClubInfo);
             _dialogClub.CreateInfoTab(newClubInfo.ClubId);
         } catch (Exception ex) {
-            DialogOK.ShowError(_canvas, ex.Message);
+            DialogOK.ShowError(_canvas, ex);
             Debug.LogError(ex);
         } finally {
             dialog.Hide();

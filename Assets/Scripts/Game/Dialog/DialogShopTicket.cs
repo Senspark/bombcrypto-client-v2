@@ -124,9 +124,9 @@ namespace Game.Dialog {
                     DialogOK.ShowInfo(DialogCanvas, "Info", "Successfully");
                 } catch (Exception e) {
                     if (e is ErrorCodeException) {
-                        DialogError.ShowError(DialogCanvas, e.Message);    
+                        DialogError.ShowError(DialogCanvas, e);    
                     } else {
-                        DialogOK.ShowError(DialogCanvas, e.Message);
+                        DialogOK.ShowError(DialogCanvas, e);
                     }
                 }
                 waiting.End();

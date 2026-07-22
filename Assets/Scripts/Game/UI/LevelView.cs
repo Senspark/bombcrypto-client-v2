@@ -1,5 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
+
+using Animation;
 
 using App;
 
@@ -54,17 +57,16 @@ namespace Game.UI {
 
         public IEntityManager EntityManager { get; private set; }
 
-        private IPlayerStorageManager _playerStoreManager;
+        private IBHeroManager _playerStoreManager;
         private IFeatureManager _featureManager;
         private ISoundManager _soundManager;
         private float _accumulatedTime;
         private SceneCallback _sceneCallback;
-        private PlayingTimeTracker _playingTimeTracker;
         private ICamera _proCamera;
 
         public async UniTask Initialize(GameModeType gameMode, SceneCallback sceneCallback, 
             RectTransform bottomPanner, ProCamera2DPanAndZoom panAndZoom) {
-            _playerStoreManager = ServiceLocator.Instance.Resolve<IPlayerStorageManager>();
+            _playerStoreManager = ServiceLocator.Instance.Resolve<IBHeroManager>();
             _featureManager = ServiceLocator.Instance.Resolve<IFeatureManager>();
             _soundManager = ServiceLocator.Instance.Resolve<ISoundManager>();
 
@@ -131,10 +133,6 @@ namespace Game.UI {
             EntityManager = manager;
             // Ko play music ở dây nữa do refactor load scene kiểu mới ko chạy đc, scene nào cần thì tự gọi music
             //ChangeMusic();
-
-            _playingTimeTracker = gameObject.AddComponent<PlayingTimeTracker>();
-            _playingTimeTracker.Init(manager.LevelManager, manager.PlayerManager);
-            _playingTimeTracker.BeginTrack();
             
             // Camera
             if (bottomPanner == null) {
@@ -173,6 +171,17 @@ namespace Game.UI {
         public async Task AddNewPlayersOrRefresh(HeroId[] heroIds) {
             var locations = EntityManager.MapManager.TakeEmptyLocations(heroIds.Length);
             var playerManager = EntityManager.PlayerManager;
+            // Pre-warm song song TRƯỚC khi add — quan trọng cho hero mua giữa trận (chưa có lúc load nên
+            // chưa được warm in-home). Cache đã ấm thì đây là no-op; chưa ấm thì tránh tank framerate khi spawn.
+            var loader = ServiceLocator.Instance.Resolve<IHeroSpriteLoader>();
+            var toPreload = new List<(PlayerType, PlayerColor, HeroRarity)>();
+            foreach (var id in heroIds) {
+                var pd = _playerStoreManager.GetPlayerDataFromId(id);
+                if (pd != null && HeroSpriteCatalog.Has(pd.playerType)) {
+                    toPreload.Add((pd.playerType, pd.playercolor, (HeroRarity)pd.rare));
+                }
+            }
+            await loader.PreloadMany(toPreload);
             for (var i = 0; i < locations.Count && i < heroIds.Length; i++) {
                 var id = heroIds[i];
                 var player = playerManager.GetPlayerById(id);
@@ -187,7 +196,6 @@ namespace Game.UI {
                     await playerManager.AddPlayer(locations[i], playerData, slot, false);
                 }
             }
-            _playingTimeTracker.BeginTrack();
         }
 
         public async Task AddNewPlayersOrRefresh(IPveHeroDangerous data) {
@@ -204,7 +212,6 @@ namespace Game.UI {
                     await playerManager.AddPlayer(locations[0], playerData, slot, isDangerous);
                 }
             }
-            _playingTimeTracker.BeginTrack();
         }
 
         public void ShowThunder(HeroId heroId) {
@@ -249,11 +256,11 @@ namespace Game.UI {
             if (playerData.IsHeroS || playerData.Shield != null) {
                 player.SetShieldEffectVisible(false);
             }
+            player.UpdateShieldUi();
         }
 
         public void Step(float delta) {
             EntityManager?.Step(delta);
-            _playingTimeTracker?.Step(delta);
             _proCamera?.ProcessPanHorizontal(delta);
         }
 
@@ -264,7 +271,6 @@ namespace Game.UI {
         private void LevelCompleted(bool win, IStoryModeEnterDoorResponse response) {
             //Hiện đổi qua dùng PVE_NEW_MAP nên bỏ new map chỗ này
             //_sceneCallback.OnLevelCompleted?.Invoke(win);
-            _playingTimeTracker.StopAndSendTracking();
         }
 
         private void SetActiveMap(bool value) {

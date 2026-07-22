@@ -396,6 +396,7 @@ namespace App {
         int[] HouseMintLimits { get; }
         HouseStats[] HouseStats { get; }
         double[] FusionFee { get; }
+        double BridgeFeePercent { get; }
     }
 
     public enum AirDropClaimStatus {
@@ -415,7 +416,7 @@ namespace App {
     public enum LoginType {
         Wallet,
         UsernamePassword,
-        Master,
+        Master, // DEPRECATED: không còn dùng. Giữ lại để khỏi lệch ordinal gửi lên server (wire = (int)LoginType).
         Guest,
         Apple,
         Telegram,

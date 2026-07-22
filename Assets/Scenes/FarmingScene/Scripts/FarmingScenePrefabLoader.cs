@@ -15,6 +15,7 @@ namespace Scenes.FarmingScene.Scripts {
         public AssetReference dialogSetting;
         public AssetReference dialogFusionPolygon;
         public AssetReference dialogInventory;
+        public AssetReference dialogInventoryV2;
         public AssetReference dialogInventoryPad;
         public AssetReference dialogHouse;
         public AssetReference dialogHouseHelp;
@@ -32,6 +33,8 @@ namespace Scenes.FarmingScene.Scripts {
         public AssetReference dialogNewHouse;
         public AssetReference dialogWarningBeforeBuyHouse;
         public AssetReference dialogDeposit;
+        public AssetReference dialogBridgeAmount;
+        public AssetReference dialogBridgeWithdrawAmount;
         public AssetReference bLDialogReward;
         public AssetReference dialogLegacyHeroes;
         public AssetReference dialogConfirmSelect;
@@ -42,7 +45,6 @@ namespace Scenes.FarmingScene.Scripts {
         public AssetReference dialogStakeHeroesS;
         public AssetReference dialogStakeHeroesPlus;
         public AssetReference dialogUnStakingConfirm;
-        public AssetReference dialogUnStakingResult;
         public AssetReference dialogStaking;
         public AssetReference dialogConfirmStake;
         public AssetReference dialogConfirmUnStake;
@@ -53,13 +55,14 @@ namespace Scenes.FarmingScene.Scripts {
         public AssetReference dialogForge;
         public AssetReference dialogConfirmBurnOrFusion;
         public AssetReference dialogCommunityLink;
-        
+
         public override void Initialize() {
             Map = new Dictionary<Type, AssetReference>() {
                 {typeof(DialogWin), dialogWin },
                 {typeof(DialogSetting), dialogSetting},
                 {typeof(DialogFusionPolygon), dialogFusionPolygon},
                 {typeof(DialogInventory), dialogInventory},
+                {typeof(DialogInventoryV2), dialogInventoryV2},
                 {typeof(DialogInventoryPad), dialogInventoryPad},
                 {typeof(DialogHouse), dialogHouse},
                 {typeof(DialogHouseHelp), dialogHouseHelp},
@@ -77,6 +80,8 @@ namespace Scenes.FarmingScene.Scripts {
                 {typeof(DialogNewHouse), dialogNewHouse},
                 {typeof(DialogWarningBeforeBuyHouse), dialogWarningBeforeBuyHouse},
                 {typeof(DialogDeposit), dialogDeposit},
+                {typeof(DialogBridgeAmount), dialogBridgeAmount},
+                {typeof(DialogBridgeWithdrawAmount), dialogBridgeWithdrawAmount},
                 {typeof(BLDialogReward), bLDialogReward},
                 {typeof(DialogLegacyHeroes), dialogLegacyHeroes},
                 {typeof(DialogConfirmSelect), dialogConfirmSelect},
@@ -87,7 +92,6 @@ namespace Scenes.FarmingScene.Scripts {
                 {typeof(DialogStakeHeroesS), dialogStakeHeroesS},
                 {typeof(DialogStakeHeroesPlus), dialogStakeHeroesPlus},
                 {typeof(DialogUnStakingConfirm), dialogUnStakingConfirm},
-                {typeof(DialogUnStakingResult), dialogUnStakingResult},
                 {typeof(DialogStaking), dialogStaking},
                 {typeof(DialogConfirmStake), dialogConfirmStake},
                 {typeof(DialogConfirmUnStake), dialogConfirmUnStake},

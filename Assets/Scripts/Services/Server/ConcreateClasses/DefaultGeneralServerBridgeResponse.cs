@@ -22,8 +22,8 @@ namespace App.BomberLand {
         
         private ISyncHeroResponse OnSyncHero(ISFSObject data, bool notifyNewIds, bool isBuyHero) {
             var result = new SyncHeroResponse(data);
-            _playerStorageManager.LoadPlayerFromServer(result.Details);
-            _playerStorageManager.SetTotalHeroesSize(result.HeroesSize);
+            _bHeroManager.LoadPlayerFromServer(result.Details);
+            _bHeroManager.SetTotalHeroesSize(result.HeroesSize);
             if (notifyNewIds && result.NewIds.Length > 0) {
                 _serverDispatcher.DispatchEvent(e => e.OnNewHeroFi?.Invoke(result.NewIds, isBuyHero));
             }
@@ -69,7 +69,12 @@ namespace App.BomberLand {
             var result = ParseChestReward(data);
             return result;
         }
-        
+
+        private BridgeWithdrawResult OnCrosschainBridgeWithdraw(ISFSObject data) {
+            ParseChestReward(data);
+            return new BridgeWithdrawResult(data);
+        }
+
         private IAutoMinePackages OnGetAutoMinePrice(ISFSObject data) {
             var packageDetail = new AutoMinePackage(data);
             _storageManager.AutoMinePackages = packageDetail.Packages;
@@ -101,10 +106,10 @@ namespace App.BomberLand {
             var chestReward = ParseChestReward(data);
             var result = HeroDetails.Parse(heroData);
             var heroId = new HeroId(result.Id, result.AccountType);
-            _playerStorageManager.UpdatePlayerHpFromServer(result);
-            _playerStorageManager.UpdateHeroSShield(heroId, result.HeroSAbilities);
-            _playerStorageManager.UpdateHeroState(heroId, result.Stage);
-            _playerStorageManager.UpdateHeroActiveState(heroId, result.IsActive);
+            _bHeroManager.UpdatePlayerHpFromServer(result);
+            _bHeroManager.UpdateHeroSShield(heroId, result.HeroSAbilities);
+            _bHeroManager.UpdateHeroState(heroId, result.Stage);
+            _bHeroManager.UpdateHeroActiveState(heroId, result.IsActive);
             return true;
         }
         
@@ -292,7 +297,6 @@ namespace App.BomberLand {
         }
         
         private void OnBurnHero(ISFSObject data) {
-            _storageManager.LastBurnHeroData = null;
             var code = data.GetInt("code");
             if (code == 0) {
                 ParseChestReward(data);
@@ -309,6 +313,62 @@ namespace App.BomberLand {
             ParseChestReward(data);
             var result = new UpgradeShieldResponse(data);
             return result;
+        }
+
+        private void OnHeroStakePushHandler(ISFSObject data) {
+            try {
+                var code = data != null && data.ContainsKey("code") ? data.GetInt("code") : 0;
+                if (code != 0) {
+                    var message = data != null && data.ContainsKey("message")
+                        ? data.GetUtfString("message")
+                        : "<none>";
+                    _logManager.Log($"[BHERO_STAKE_PUSH] error code={code} message={message}");
+                    return;
+                }
+                var hero = HeroDetails.Parse(data);
+                var heroId = new HeroId(hero.Id, hero.AccountType);
+                _bHeroManager.ForceUpdateHero(heroId, hero);
+                _serverDispatcher.DispatchEvent(observer => observer.OnHeroStakePush?.Invoke(hero));
+            } catch (Exception e) {
+                _logManager.Log($"[BHERO_STAKE_PUSH] parse failed: {e.GetType().Name}: {e.Message}\n{e.StackTrace}");
+            }
+        }
+
+        private void OnUpgradeShieldLevelResponseHandler(ISFSObject data) {
+            try {
+                var keys = data != null ? string.Join(",", data.GetKeys()) : "<null>";
+                _logManager.Log($"[UPGRADE_SHIELD_LEVEL_RESPONSE] keys=[{keys}]");
+                var code = data != null && data.ContainsKey("code") ? data.GetInt("code") : 0;
+                if (code != 0) {
+                    var errorMessage = data != null && data.ContainsKey("message")
+                        ? data.GetUtfString("message")
+                        : "Upgrade shield failed";
+                    _logManager.Log($"[UPGRADE_SHIELD_LEVEL_RESPONSE] error code={code} message={errorMessage}");
+                    _serverDispatcher.DispatchEvent(observer =>
+                        observer.OnUpgradeShieldLevelResponse?.Invoke(
+                            new UpgradeShieldLevelPush(false, errorMessage, null)));
+                    return;
+                }
+                ParseChestReward(data);
+                IHeroDetails hero = null;
+                if (data != null && data.ContainsKey(SFSDefine.SFSField.Bomber)) {
+                    var bomberObj = data.GetSFSObject(SFSDefine.SFSField.Bomber);
+                    var bomberKeys = bomberObj != null ? string.Join(",", bomberObj.GetKeys()) : "<null>";
+                    _logManager.Log($"[UPGRADE_SHIELD_LEVEL_RESPONSE] bomber keys=[{bomberKeys}]");
+                    hero = HeroDetails.Parse(bomberObj);
+                    _bHeroManager.ReplaceOneHero(hero);
+                } else {
+                    _logManager.Log("[UPGRADE_SHIELD_LEVEL_RESPONSE] missing 'bomber' field");
+                }
+                _serverDispatcher.DispatchEvent(observer =>
+                    observer.OnUpgradeShieldLevelResponse?.Invoke(
+                        new UpgradeShieldLevelPush(true, null, hero)));
+            } catch (Exception e) {
+                _logManager.Log($"[UPGRADE_SHIELD_LEVEL_RESPONSE] parse failed: {e.GetType().Name}: {e.Message}\n{e.StackTrace}");
+                _serverDispatcher.DispatchEvent(observer =>
+                    observer.OnUpgradeShieldLevelResponse?.Invoke(
+                        new UpgradeShieldLevelPush(false, "Failed to parse upgrade response", null)));
+            }
         }
         
         private IChestReward ParseChestReward(ISFSObject data) {
@@ -332,7 +392,7 @@ namespace App.BomberLand {
             
             var result = new BuyHeroSolResponse(data);
             var newIds = result.Details.Select(iter => iter.Id).ToArray();
-            _playerStorageManager.AddHeroServer(result.Details);
+            _bHeroManager.AddHeroServer(result.Details);
             _serverDispatcher.DispatchEvent(e => e.OnNewHeroServer?.Invoke(newIds, isBuyHero));
             var syncHeroResponse = new SyncHeroResponse(result.Details);
             _serverDispatcher.DispatchEvent(observer => observer.OnSyncHero?.Invoke(syncHeroResponse));
@@ -408,11 +468,11 @@ namespace App.BomberLand {
         
         private ISyncHeroResponse OnSyncHeroServer(ISFSObject data) {
             var result = new SyncHeroServerResponse(data);
-            _playerStorageManager.LoadPlayerFromServer(result.Details);
+            _bHeroManager.LoadPlayerFromServer(result.Details);
             if (result.HeroesSize == -1) {
-                _playerStorageManager.SetTotalHeroesSize(result.Details.Length);
+                _bHeroManager.SetTotalHeroesSize(result.Details.Length);
             } else {
-                _playerStorageManager.SetTotalHeroesSize(result.HeroesSize);
+                _bHeroManager.SetTotalHeroesSize(result.HeroesSize);
             }
             _serverDispatcher.DispatchEvent(observer => observer.OnSyncHero?.Invoke(result));
             return result;
@@ -421,7 +481,7 @@ namespace App.BomberLand {
         private IFusionTonHeroResponse OnFusionServerHero(ISFSObject data) {
             ParseChestReward(data);
             var result = new FusionTonHeroResponse(data);
-            _playerStorageManager.LoadPlayerFromServer(result.Details);
+            _bHeroManager.LoadPlayerFromServer(result.Details);
             if (result.Result) {
                 _serverDispatcher.DispatchEvent(e => e.OnNewHeroServer?.Invoke(result.NewIds, false));
             }
@@ -431,7 +491,7 @@ namespace App.BomberLand {
         private IFusionTonHeroResponse OnMultiFusionServerHero(ISFSObject data) {
             ParseChestReward(data);
             var result = new FusionTonHeroResponse(data);
-            _playerStorageManager.LoadPlayerFromServer(result.Details);
+            _bHeroManager.LoadPlayerFromServer(result.Details);
             if (result.Result) {
                 _serverDispatcher.DispatchEvent(e => e.OnNewHeroServer?.Invoke(result.NewIds, false));
             }
@@ -445,7 +505,7 @@ namespace App.BomberLand {
                 var entry = detailsArray.GetSFSObject(i);
                 details[i] = HeroDetails.Parse(entry);
             }
-            _playerStorageManager.LoadLockedHeroesFromServer(details);
+            _bHeroManager.LoadLockedHeroesFromServer(details);
         }
         
         private void OnGetOnBoardingConfig(ISFSObject data) {

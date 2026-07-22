@@ -1,9 +1,15 @@
 using Animation;
 
+using App;
+
+using Cysharp.Threading.Tasks;
+
 using Engine.Components;
 using Engine.Entities;
 using Engine.Manager;
 using Engine.Utils;
+
+using Senspark;
 
 using UnityEngine;
 
@@ -43,7 +49,14 @@ namespace StoryMode.Entities {
             AddEntityComponent<Updater>(updater);
         }
 
-        public void InitForDie(PlayerType playerType, PlayerColor playerColor) {
+        public async void InitForDie(PlayerType playerType, PlayerColor playerColor) {
+            // Preload cache ấm TRƯỚC khi SetTypeAndColor đọc sync (ghost dùng chung cache singleton với
+            // player vừa chết nên thường đã ấm; await là bảo hiểm cho cold-miss). Ghost ngắn hạn → guard null.
+            var loader = ServiceLocator.Instance.Resolve<IHeroSpriteLoader>();
+            await loader.Preload(playerType, playerColor);
+            if (!heroAnimation) {
+                return;
+            }
             heroAnimation.SetTypeAndColor(playerType, playerColor);
             heroAnimation.PlayDie(PlayAnimation);
         }

@@ -54,7 +54,7 @@ namespace Game.Dialog {
         private int _waitingItemIndex = -1;
         
         private ISoundManager _soundManager;
-        private IPlayerStorageManager _playerStoreManager;
+        private IBHeroManager _playerStoreManager;
         private IBlockchainManager _blockchainManager;
         private IServerManager _serverManager;
         private IFeatureManager _featureManager;
@@ -67,7 +67,7 @@ namespace Game.Dialog {
 
         private void Start() {
             _soundManager = ServiceLocator.Instance.Resolve<ISoundManager>();
-            _playerStoreManager = ServiceLocator.Instance.Resolve<IPlayerStorageManager>();
+            _playerStoreManager = ServiceLocator.Instance.Resolve<IBHeroManager>();
             _blockchainManager = ServiceLocator.Instance.Resolve<IBlockchainManager>();
             _serverManager = ServiceLocator.Instance.Resolve<IServerManager>();
             _featureManager = ServiceLocator.Instance.Resolve<IFeatureManager>(); 
@@ -95,17 +95,17 @@ namespace Game.Dialog {
                     if (result) {
                         waiting.ChangeText("Processing Token Request");
                         result = await ProcessTokenHelper.ProcessTokenRequest(DialogCanvas, _blockchainManager,
-                            _serverManager, true);
+                            _serverManager, true, false, true);
                     }
 
                     if (result) {
                         Hide();
                     } else {
-                        DialogOK.ShowError(DialogCanvas, "Failed");
+                        DialogOK.ShowErrorMsgOnly(DialogCanvas, "Failed");
                         fusionBtn.interactable = CanFusion();
                     }
                 } catch (Exception e) {
-                    DialogOK.ShowError(DialogCanvas, e.Message);
+                    DialogOK.ShowError(DialogCanvas, e);
                 }
                 waiting.End();
             });

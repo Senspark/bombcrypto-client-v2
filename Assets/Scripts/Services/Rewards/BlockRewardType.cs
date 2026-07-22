@@ -21,8 +21,12 @@ namespace App {
         RonDeposited = 26,
         BasDeposited = 27,
         VicDeposited = 28,
-        BcoinTicket,
-        SenTicket,
-        Other,
+        // others
+        BcoinTicket = 29,
+        SenTicket = 30,
+        Other = 31,
+        // New Deposit
+        BcoinBridge = 32,
+        SenBridge = 33,
     }
 }

@@ -16,6 +16,10 @@ namespace Services.Server.ConcreateClasses {
         public Task<bool> ActiveBomber(HeroId id, int value) {
             throw new System.NotImplementedException();
         }
+
+        public Task<bool> ActiveBombers(HeroId[] ids, int value) {
+            throw new System.NotImplementedException();
+        }
         
         public Task<bool> ActiveBomberHouse(string genId, int houseId) {
             throw new System.NotImplementedException();
@@ -49,7 +53,11 @@ namespace Services.Server.ConcreateClasses {
             throw new System.NotImplementedException();
         }
         
-        public Task<bool> CheckBomberStake(HeroId id) {
+        public void RequestFakeStakePush(HeroId id) {
+            throw new System.NotImplementedException();
+        }
+
+        public void RefreshHeroStake(HeroId id, string txHash) {
             throw new System.NotImplementedException();
         }
     }

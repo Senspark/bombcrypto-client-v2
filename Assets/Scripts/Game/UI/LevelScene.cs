@@ -7,8 +7,11 @@ using Com.LuisPedroFonseca.ProCamera2D;
 using Cysharp.Threading.Tasks;
 using DG.Tweening;
 using Senspark;
+using Animation;
 using Engine.Components;
+using Engine.Entities;
 using Engine.Manager;
+using Game.ConnectControl;
 using Game.Dialog;
 using Game.Dialog.BomberLand.BLGacha;
 using Game.Manager;
@@ -17,6 +20,7 @@ using Scenes.FarmingScene.Scripts;
 using Scenes.MainMenuScene.Scripts;
 using Services;
 using Services.Rewards;
+
 using Share.Scripts.Dialog;
 using Share.Scripts.Utils;
 using UnityEngine;
@@ -82,7 +86,7 @@ namespace Game.UI {
         private IServerManager _serverManager;
         private ObserverHandle _handle;
         private LevelView _levelView;
-        private IPlayerStorageManager _playerStore;
+        private IBHeroManager _playerStore;
         private IAnalytics _analytics;
         private IStorageManager _storeManager;
         private ITHModeV2Manager _thModeV2Manager;
@@ -92,7 +96,7 @@ namespace Game.UI {
         private IChestRewardManager _chestRewardManager;
         private ILaunchPadManager _launchPadManager;
         private IPveModeManager _pveModeManager;
-        private IPlayerStorageManager _playerStoreManager;
+        private IBHeroManager _playerStoreManager;
         private IPveHeroStateManager _pveHeroStateManager;
         private IUserAccountManager _userAccountManager;
 
@@ -110,12 +114,12 @@ namespace Game.UI {
             _serverManager = ServiceLocator.Instance.Resolve<IServerManager>();
             _analytics = ServiceLocator.Instance.Resolve<IAnalytics>();
             _storeManager = ServiceLocator.Instance.Resolve<IStorageManager>();
-            _playerStore = ServiceLocator.Instance.Resolve<IPlayerStorageManager>();
+            _playerStore = ServiceLocator.Instance.Resolve<IBHeroManager>();
             _soundManager = ServiceLocator.Instance.Resolve<ISoundManager>();
             _chestRewardManager = ServiceLocator.Instance.Resolve<IChestRewardManager>();
             _launchPadManager = ServiceLocator.Instance.Resolve<ILaunchPadManager>();
             _pveModeManager = ServiceLocator.Instance.Resolve<IPveModeManager>();
-            _playerStoreManager = ServiceLocator.Instance.Resolve<IPlayerStorageManager>();
+            _playerStoreManager = ServiceLocator.Instance.Resolve<IBHeroManager>();
             _pveHeroStateManager = ServiceLocator.Instance.Resolve<IPveHeroStateManager>();
             _userAccountManager = ServiceLocator.Instance.Resolve<IUserAccountManager>();
             _thModeV2Manager = ServiceLocator.Instance.Resolve<IServerManager>().ThModeV2Manager;
@@ -184,7 +188,7 @@ namespace Game.UI {
                 }
             } catch (Exception e) {
                 //waiting.HideImmediately();
-                DialogOK.ShowErrorAndKickToConnectScene(canvasDialog, e.Message);
+                DialogOK.ShowErrorAndKickToConnectScene(canvasDialog, e);
             }
 
             Time.timeScale = 1;
@@ -208,7 +212,11 @@ namespace Game.UI {
         }
 
         private void OnDestroy() {
-            Instance = null;
+            // Additive reload chạy Awake của instance mới (Instance = new) TRƯỚC OnDestroy của instance cũ.
+            // Chỉ clear khi mình đúng là instance đang đăng ký, tránh clobber registration của instance mới.
+            if (Instance == this) {
+                Instance = null;
+            }
             DOTween.KillAll(true);
             _handle.Dispose();
             EventManager.Remove(LoginEvent.UserInitialized, OnUserInitialized);
@@ -269,14 +277,14 @@ namespace Game.UI {
         public static async UniTask LoadScene(GameModeType mode, bool showBanners = true) {
             var sceneName = AppConfig.IsAirDrop() ? "TreasureModeScene" : "FarmingScene";
             await ServiceLocator.Instance.Resolve<IFinanceUserLoader>().LoadAsync();
-            ServiceLocator.Instance.Resolve<IPlayerStorageManager>().LoadMap(mode);
+            ServiceLocator.Instance.Resolve<IBHeroManager>().LoadMap(mode);
             await SceneLoader.LoadSceneAsync(sceneName);
         }
 
         private static async UniTask ReloadScene(GameModeType mode, bool showBanners = true,
             Action<LevelScene> onLoaded = null) {
             await ServiceLocator.Instance.Resolve<IFinanceUserLoader>().LoadAsync();
-            ServiceLocator.Instance.Resolve<IPlayerStorageManager>().LoadMap(mode);
+            ServiceLocator.Instance.Resolve<IBHeroManager>().LoadMap(mode);
             LevelScene levelScene;
 
             ServiceLocator.Instance.Resolve<ISoundManager>().StopImmediateMusic();
@@ -324,9 +332,14 @@ namespace Game.UI {
         public async void EarnReward(BlockRewardType reward, int quantity, Vector2 startPosition, Vector2 endPosition,
             System.Action callbackComplete) {
             _soundManager.PlaySound(Audio.CollectBCoin);
+            var icon = await resources.GetSpriteByRewardType(reward);
+            if (!icon) {
+                Debug.LogError($"Reward icon is null {reward.ToString()}");
+                callbackComplete?.Invoke();
+                return;
+            }
             for (var i = 0; i < quantity; i++) {
                 var rewardObject = Instantiate(rewardTokenPrefab, parent);
-                var icon = await resources.GetSpriteByRewardType(reward);
                 rewardObject.Init(icon);
 
                 var x = Random.Range(30f, 60f) * (Random.Range(0, 2) * 2 - 1);
@@ -352,12 +365,41 @@ namespace Game.UI {
             _waitingAddHeroInMap = false;
         }
 
+        public void RemoveHeroesFromMap(HeroId[] heroIds) {
+            if (!_levelView) {
+                return;
+            }
+            _levelView.EntityManager.PlayerManager.RemoveHeroes(heroIds);
+        }
+
         #endregion
 
         #region BUTTONS EVENTS
 
         public void OnBackButtonClicked() {
             _soundManager.PlaySound(Audio.Tap);
+            if (RuntimeConfig.Landing == LandingMode.Treasure) {
+                PauseStatus.SetValue(this, true);
+                DialogConfirm.Create().ContinueWith(confirm => {
+                    confirm.SetInfo(
+                        "Do you want to play Adventure/PvP Mode?",
+                        "Yes",
+                        "No",
+                        () => SwitchToAdventure(),
+                        () => PauseStatus.SetValue(this, false));
+                    confirm.Show(DialogCanvas);
+                });
+                return;
+            }
+            BackToMainMenu();
+        }
+
+        private void SwitchToAdventure() {
+            GameModeSwitcher.Switch(LandingMode.Adventure, DialogCanvas);
+            PauseStatus.SetValue(this, false);
+        }
+
+        private void BackToMainMenu() {
             PauseStatus.SetValue(this, true);
             var waiting = new WaitingUiManager(canvasDialog);
             waiting.Begin();
@@ -414,7 +456,6 @@ namespace Game.UI {
 
                     void Disconnect() {
                         _serverManager.Disconnect();
-                        //DialogOK.ShowErrorAndKickToConnectScene(canvasDialog, "Failed to reconnect");
                     }
                     async Task TimeOut() {
                         await WebGLTaskDelay.Instance.Delay(60 * 1000);
@@ -549,7 +590,19 @@ namespace Game.UI {
         }
 
         private void OnHeroStateChanged(IPveHeroDangerous data) {
+            // Full-load sprite hero NGAY khi nhận tín hiệu enable (state-change), TRƯỚC khi tới lượt spawn ở
+            // CheckAndChangeHeroState → tới lúc spawn cache đã ấm hẳn → spawn instant, không khựng gameplay.
+            PrewarmHeroSprite(data.HeroId);
             _heroChangeStateQueue.Enqueue(data);
+        }
+
+        private async void PrewarmHeroSprite(HeroId heroId) {
+            var pd = _playerStore.GetPlayerDataFromId(heroId);
+            if (pd == null || !HeroSpriteCatalog.Has(pd.playerType)) {
+                return;
+            }
+            var loader = ServiceLocator.Instance.Resolve<IHeroSpriteLoader>();
+            await loader.Preload(pd.playerType, pd.playercolor, (HeroRarity)pd.rare);
         }
 
         private async UniTask CheckAndChangeHeroState() {
@@ -586,7 +639,7 @@ namespace Game.UI {
                 return;
             }
             if (!_storeManager.EnableAutoMine) {
-                DialogOK.ShowErrorAndKickToConnectScene(canvasDialog, "Fail to load new map");
+                DialogOK.ShowErrorMsgOnlyAndKickToConnectScene(canvasDialog, "Fail to load new map");
             }
         }
 
@@ -618,7 +671,7 @@ namespace Game.UI {
                     await ReLoadLevelScene();
                 } catch (Exception e) {
                     if (!_storeManager.EnableAutoMine) {
-                        DialogOK.ShowErrorAndKickToConnectScene(canvasDialog, e.Message);
+                        DialogOK.ShowErrorAndKickToConnectScene(canvasDialog, e);
                     }
                 } finally {
                     waiting.End();
@@ -632,39 +685,42 @@ namespace Game.UI {
                 return;
             }
 
+            if (_camera == null)
+                _camera = Camera.main;
+            var from = _camera.WorldToScreenPoint(position);
+            var emitActions = new List<Action>();
+
             foreach (var reward in rewards) {
-                // reward th v1
-                if (_camera == null)
-                    _camera = Camera.main;
-                var from = _camera.WorldToScreenPoint(position);
                 var to = chestIcon.position;
-                if (AppConfig.IsTon() && reward.Type.Type == BlockRewardType.BLCoin) { // Star Coin 
+                if (AppConfig.IsTon() && reward.Type.Type == BlockRewardType.BLCoin) {
                     to = starCoreIcon.position;
                 }
                 var value = isBigReward ? Random.Range(4, 8) : 1;
-                EarnReward(reward, value, from, to, () => {
-                    //chestAnim.PlayGettingAnimation();
-                });
+                emitActions.Add(() => EarnReward(reward, value, from, to, null));
+
                 _chestRewardManager.AdjustChestReward(reward.Type, reward.Value);
 
                 if (!AppConfig.IsWebGL() && !AppConfig.IsMobile())
                     continue;
 
-                // reward th v2
                 foreach (var pool in attendPoolsThv2) {
                     var heroRarity = _playerStoreManager.GetPlayerDataFromId(id).rare;
-                    to = _thModeV2Manager.GetPositionPool(heroRarity).position;
-
-                    if (pool == RewardType.Senspark)
-                        EarnReward(BlockRewardType.SenTicket, 1, from, to, () => {
-                            //chestAnim.PlayGettingAnimation();
-                        });
-                    else {
-                        EarnReward(BlockRewardType.BcoinTicket, 1, from, to, () => {
-                            //chestAnim.PlayGettingAnimation();
-                        });
+                    var poolTo = _thModeV2Manager.GetPositionPool(heroRarity).position;
+                    if (pool == RewardType.Senspark) {
+                        emitActions.Add(() => EarnReward(BlockRewardType.SenTicket, 1, from, poolTo, null));
+                    } else {
+                        emitActions.Add(() => EarnReward(BlockRewardType.BcoinTicket, 1, from, poolTo, null));
                     }
                 }
+            }
+            
+            // Random thứ tự hiển thị cho đẹp mắt
+            for (var i = emitActions.Count - 1; i > 0; i--) {
+                var j = Random.Range(0, i + 1);
+                (emitActions[i], emitActions[j]) = (emitActions[j], emitActions[i]);
+            }
+            foreach (var action in emitActions) {
+                action();
             }
         }
 
@@ -681,7 +737,7 @@ namespace Game.UI {
                 await ReloadScene(Mode, _showBanners, level => { waiting.HideImmediately(); });
             } catch (Exception e) {
                 if (!_storeManager.EnableAutoMine) {
-                    DialogOK.ShowErrorAndKickToConnectScene(canvasDialog, e.Message);
+                    DialogOK.ShowErrorAndKickToConnectScene(canvasDialog, e);
                 }
             }
         }
@@ -689,11 +745,9 @@ namespace Game.UI {
         private GameObject GetRewardObject(ITokenReward reward) {
             var network = _userAccountManager.GetRememberedAccount().network;
             var obj = Instantiate(rewardTokenPrefab, parent);
-            var data = _launchPadManager.GetData(reward.Type, NetworkSymbol.TR) ??
-                       _launchPadManager.GetData(reward.Type, NetworkSymbol.Convert(network));
-            if (data != null) {
-                obj.Init(data.icon);
-            }
+            var data = _launchPadManager.GetData(reward.Type, DataType.TR) ??
+                       _launchPadManager.GetData(reward.Type, RewardUtils.ConvertNetworkToDatatype(network));
+            obj.Init(data);
             return obj.gameObject;
         }
 

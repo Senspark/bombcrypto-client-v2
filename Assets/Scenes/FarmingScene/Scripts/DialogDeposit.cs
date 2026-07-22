@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Numerics;
 
 using App;
+using App.BomberLand;
 
 using Cysharp.Threading.Tasks;
 
@@ -43,7 +45,11 @@ namespace Scenes.FarmingScene.Scripts {
         private RpcTokenCategory _depositType;
         private TokenData _depositToken;
         private int _depositValue;
-        
+
+        // preset selection + balance check.
+        private bool _isBridge;
+        private string _bridgeSymbol;
+
         private bool _isClicked;
         private readonly int[] _bcoinValues = { 100, 200, 500 };
         private readonly int[] _senValues = { 500, 1000, 2000 };
@@ -68,16 +74,22 @@ namespace Scenes.FarmingScene.Scripts {
         public DialogDeposit Init(TokenData depositToken) {
             _depositToken = depositToken;
 
-            var t = RewardUtils.ConvertToBlockRewardType(_depositToken.tokenName);
+            var t = _depositToken.tokenName;
+            _isBridge = t is BlockRewardType.BcoinBridge or BlockRewardType.SenBridge;
+            _bridgeSymbol = t == BlockRewardType.SenBridge ? "SEN" : "BCOIN";
             _depositType = (t, _networkType) switch {
                 (BlockRewardType.BCoinDeposited, NetworkType.Binance) => RpcTokenCategory.Bcoin,
                 (BlockRewardType.BCoin, NetworkType.Binance) => RpcTokenCategory.Bcoin,
+                (BlockRewardType.BcoinBridge, NetworkType.Binance) => RpcTokenCategory.Bcoin,
                 (BlockRewardType.BCoinDeposited, NetworkType.Polygon) => RpcTokenCategory.Bomb,
                 (BlockRewardType.BCoin, NetworkType.Polygon) => RpcTokenCategory.Bomb,
+                (BlockRewardType.BcoinBridge, NetworkType.Polygon) => RpcTokenCategory.Bomb,
                 (BlockRewardType.SensparkDeposited, NetworkType.Binance) => RpcTokenCategory.SenBsc,
                 (BlockRewardType.Senspark, NetworkType.Binance) => RpcTokenCategory.SenBsc,
+                (BlockRewardType.SenBridge, NetworkType.Binance) => RpcTokenCategory.SenBsc,
                 (BlockRewardType.SensparkDeposited, NetworkType.Polygon) => RpcTokenCategory.SenPolygon,
                 (BlockRewardType.Senspark, NetworkType.Polygon) => RpcTokenCategory.SenPolygon,
+                (BlockRewardType.SenBridge, NetworkType.Polygon) => RpcTokenCategory.SenPolygon,
                 _ => throw new ArgumentOutOfRangeException(t.ToString())
             };
 
@@ -97,7 +109,7 @@ namespace Scenes.FarmingScene.Scripts {
                 }
                 coinIcons.ForEach(e => e.sprite = _depositToken.icon);
             } catch (Exception) {
-                DialogOK.ShowError(DialogCanvas, "Invalid Token");
+                DialogOK.ShowErrorMsgOnly(DialogCanvas, "Invalid Token");
                 Hide();
             }
             return this;
@@ -122,6 +134,17 @@ namespace Scenes.FarmingScene.Scripts {
             OnConfirmBtnClicked();
         }
 
+        // Best-effort bridge activity report — fire-and-forget so it never blocks the deposit flow.
+        private void FireBridgeNotify(string kind, int serverType, string chain, string txHash = null) {
+            UniTask.Void(async () => {
+                try {
+                    await _serverManager.General.NotifyCrosschainBridge(kind, serverType, chain, txHash);
+                } catch (Exception e) {
+                    UnityEngine.Debug.LogWarning($"[Bridge-notify] {kind} failed: {e.Message}");
+                }
+            });
+        }
+
         public void OnConfirmBtnClicked() {
             _soundManager.PlaySound(Audio.Tap);
 
@@ -134,15 +157,28 @@ namespace Scenes.FarmingScene.Scripts {
                     if (!_featureManager.EnableDeposit) {
                         throw new Exception("Not support");
                     }
-                    var category = _depositType switch {
-                        RpcTokenCategory.Bcoin or RpcTokenCategory.Bomb => 0,
-                        RpcTokenCategory.SenBsc or RpcTokenCategory.SenPolygon => 1,
-                        _ => throw new Exception("Invalid Token")
-                    };
-                    var success = await _blockChainManager.Deposit(_depositValue, category);
+                    bool success;
+                    if (_isBridge) {
+                        var amountWei = (new BigInteger(_depositValue) * BigInteger.Pow(10, 18)).ToString();
+                        var chain = _networkType == NetworkType.Polygon ? "POLYGON" : "BSC";
+                        // Server bridge block-reward-type codes (match BLDialogReward.BridgeIds): BCOIN=29, SEN=30.
+                        var serverType = _bridgeSymbol == "SEN" ? 30 : 29;
+                        FireBridgeNotify(BridgeNotifyKind.DepositPrepare, serverType, chain);
+                        var res = await _blockChainManager.BridgeDeposit(chain, _bridgeSymbol, amountWei);
+                        success = res.success;
+                        if (success) FireBridgeNotify(BridgeNotifyKind.DepositDone, serverType, chain, res.txHash);
+                    } else {
+                        var category = _depositType switch {
+                            RpcTokenCategory.Bcoin or RpcTokenCategory.Bomb => 0,
+                            RpcTokenCategory.SenBsc or RpcTokenCategory.SenPolygon => 1,
+                            _ => throw new Exception("Invalid Token")
+                        };
+                        success = await _blockChainManager.Deposit(_depositValue, category);
+                    }
 
                     if (success) {
-                        await _serverManager.General.SyncDeposited();
+                        await _serverManager.General.SyncDeposited(
+                            _isBridge ? DepositSyncTarget.Bridge : DepositSyncTarget.Old);
                         await App.Utils.WaitForBalanceChange(_depositType, _blockChainManager,
                             _blockchainStorageManager);
                         DialogOK.ShowInfo(DialogCanvas, "Info", "Deposit Successfully");
@@ -155,9 +191,9 @@ namespace Scenes.FarmingScene.Scripts {
                     }
                 } catch (Exception e) {
                     if (e is ErrorCodeException) {
-                        DialogError.ShowError(DialogCanvas, e.Message, () => { _isClicked = false; });
+                        DialogError.ShowError(DialogCanvas, e, () => { _isClicked = false; });
                     } else {
-                        DialogOK.ShowError(DialogCanvas, e.Message, () => { _isClicked = false; });
+                        DialogOK.ShowError(DialogCanvas, e, () => { _isClicked = false; });
                     }
                 } finally {
                     waiting.Hide();

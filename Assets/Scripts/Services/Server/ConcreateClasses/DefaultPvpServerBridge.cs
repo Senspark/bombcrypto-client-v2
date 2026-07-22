@@ -36,6 +36,7 @@ namespace PvpMode.Services {
 
         private readonly bool _enableLog;
         private readonly IServerDispatcher _serverDispatcher;
+        private readonly IDedupServerRequester _dedup;
 
         private PvpRankingResult _cachePvpRankingResult;
         private DateTime _lastTimePvpCache;
@@ -45,12 +46,14 @@ namespace PvpMode.Services {
             [NotNull] IServerDispatcher serverDispatcher,
             bool enableLog,
             [NotNull] IExtensionRequestBuilder requestBuilder,
-            [NotNull] ITaskDelay taskDelay
+            [NotNull] ITaskDelay taskDelay,
+            [NotNull] IDedupServerRequester dedup
         ) {
             _serverDispatcher = serverDispatcher;
             _enableLog = enableLog;
             _requestBuilder = requestBuilder;
             _taskDelay = taskDelay;
+            _dedup = dedup;
         }
 
         public async Task<ISyncPvPConfigResult> SyncPvPConfig() {
@@ -124,19 +127,20 @@ namespace PvpMode.Services {
             return new BoosterResult(response);
         }
 
-        public async Task<IPvpRankingResult> GetPvpRanking(int page = 1, int size = 100) {
-            if (_cachePvpRankingResult == null || (DateTime.Now - _lastTimePvpCache).TotalSeconds > MinTimeUpdate) {
-                var data = new SFSObject().Apply(it => {
-                    it.PutInt("page", page);
-                    it.PutInt("page_size", size);
-                });
-                
-                var response = await _serverDispatcher.SendCmd(new CmdGetPvpRanking(data));
-                _cachePvpRankingResult = new PvpRankingResult(response);
-                _lastTimePvpCache = DateTime.Now;
-            }
-            return _cachePvpRankingResult;
-        }
+        public Task<IPvpRankingResult> GetPvpRanking(int page = 1, int size = 100)
+            => _dedup.Dedup<IPvpRankingResult>($"{SFSDefine.SFSCommand.GET_PVP_RANKING_V2}|{page}|{size}", async () => {
+                if (_cachePvpRankingResult == null || (DateTime.Now - _lastTimePvpCache).TotalSeconds > MinTimeUpdate) {
+                    var data = new SFSObject().Apply(it => {
+                        it.PutInt("page", page);
+                        it.PutInt("page_size", size);
+                    });
+
+                    var response = await _serverDispatcher.SendCmd(new CmdGetPvpRanking(data));
+                    _cachePvpRankingResult = new PvpRankingResult(response);
+                    _lastTimePvpCache = DateTime.Now;
+                }
+                return _cachePvpRankingResult;
+            });
 
         public async Task<IPvpOtherUserInfo> GetOtherUserInfo(int userId, string userName) {
             var data = new SFSObject().Apply(it => {
@@ -211,12 +215,13 @@ namespace PvpMode.Services {
             return new OpenChestResult(response);
         }
 
-        public async Task<IGetEquipmentResult> GetEquipment() {
-            var data = new SFSObject();
+        public Task<IGetEquipmentResult> GetEquipment()
+            => _dedup.Dedup<IGetEquipmentResult>(SFSDefine.SFSCommand.GET_SKIN_INVENTORY_V2, async () => {
+                var data = new SFSObject();
 
-            var response = await _serverDispatcher.SendCmd(new CmdGetSkinInventory(data));
-            return new GetEquipmentResult(response);
-        }
+                var response = await _serverDispatcher.SendCmd(new CmdGetSkinInventory(data));
+                return new GetEquipmentResult(response);
+            });
 
         public async Task Equip(int itemType, IEnumerable<(int, long)> itemList) {
             var data = new SFSObject().Apply(it => {

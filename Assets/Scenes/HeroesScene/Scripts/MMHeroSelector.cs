@@ -230,9 +230,9 @@ namespace GroupMainMenu {
                     await _storyModeManager.StartPlaying(storyMapDetail, bossSkillDetails, boosterChoose.BoosterStatus, true);
                 } catch (Exception e) {
                     if (e is ErrorCodeException) {
-                        await DialogError.ShowError(_canvasDialog, e.Message, () => { _isClicked = false;});    
+                        await DialogError.ShowError(_canvasDialog, e, () => { _isClicked = false;});    
                     } else {
-                        DialogOK.ShowError(_canvasDialog, e.Message,() => { _isClicked = false;});
+                        DialogOK.ShowError(_canvasDialog, e,() => { _isClicked = false;});
                     }
                 } finally {
                     waiting.End();

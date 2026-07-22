@@ -17,25 +17,36 @@ const HARDCODE_BSC_MAINNET: string[] = [
     'https://bsc-dataseed4.binance.org/',
 ];
 
+const HARDCODE_BSC_TESTNET: string[] = [
+    'https://bsc-testnet-dataseed.bnbchain.org',
+    'https://bsc-testnet.bnbchain.org',
+    'https://bsc-prebsc-dataseed.bnbchain.org',
+];
+
 const HARDCODE_POLYGON_MAINNET: string[] = [
     'https://polygon.api.onfinality.io/public',
-    'https://polygon.rpc.subquery.network/public',
+    // 'https://polygon.rpc.subquery.network/public',
     'https://polygon.lava.build',
     'https://poly.api.pocket.network/',
     'https://rpc-mainnet.matic.quiknode.pro'
 ];
 
+const HARDCODE_POLYGON_TESTNET: string[] = [
+    'https://polygon-amoy.drpc.org',
+];
 
 export class RpcService {
     private _bscRpcs: string[] = [];
     private _polygonRpcs: string[] = [];
 
     private readonly _rpcHost: string;
+    private readonly _isProduction: boolean;
 
     constructor(
         private readonly _logger: Logger
     ) {
         this._rpcHost = EnvConfig.rpcHost();
+        this._isProduction = EnvConfig.isProduction();
     }
 
     /**
@@ -71,11 +82,13 @@ export class RpcService {
     getRpc(chainId: number): string {
         switch (chainId) {
             case 56:   // BSC mainnet
-            case 97:   // BSC testnet
                 return this._pickRandom(this._bscRpcs, HARDCODE_BSC_MAINNET);
+            case 97:   // BSC testnet
+                return this._pickRandom(this._bscRpcs, HARDCODE_BSC_TESTNET);
             case 137:  // Polygon mainnet
-            case 80002: // Polygon testnet (Amoy)
                 return this._pickRandom(this._polygonRpcs, HARDCODE_POLYGON_MAINNET);
+            case 80002: // Polygon testnet (Amoy)
+                return this._pickRandom(this._polygonRpcs, HARDCODE_POLYGON_TESTNET);
             default:
                 this._logger.error(`${TAG} Unknown chainId: ${chainId}`);
                 return '';
@@ -118,32 +131,35 @@ export class RpcService {
     // ---------------------------------------------------------------------------
 
     /**
-     * Tries to load the RPC list for a network in this order:
-     *  1. Fetch from remote API and save to localStorage
-     *  2. Read from localStorage
-     *  3. Use hardcoded fallback (NOT saved to localStorage)
+     * Loads the RPC list for a network.
+     *  - Testnet: always use the hardcoded testnet list (no API, no localStorage).
+     *  - Mainnet: fetch from API → cache to localStorage → fallback to hardcoded mainnet list.
      */
     private async _loadRpcList(network: 'bsc' | 'polygon'): Promise<string[]> {
-        const storageKey = network === 'bsc' ? STORAGE_KEY_BSC : STORAGE_KEY_POLYGON;
-        const endpoint = `${this._rpcHost}/${network}`;
-        console.log(`Fetching RPC list for ${endpoint}`);
+        if (!this._isProduction) {
+            const testnetFallback = network === 'bsc' ? HARDCODE_BSC_TESTNET : HARDCODE_POLYGON_TESTNET;
+            this._logger.log(`${TAG} Testnet mode — using hardcoded ${network} testnet list (${testnetFallback.length} entries)`);
+            return testnetFallback;
+        }
 
-        // 1. Try remote API
-        try {
-            const response = await fetch(endpoint);
-            if (response.ok) {
-                const data = await response.json() as string[];
-                if (Array.isArray(data) && data.length > 0) {
-                    // Remove previous item first
-                    localStorage.removeItem(storageKey);
-                    // Save new rpc list we just fetch from server
-                    localStorage.setItem(storageKey, JSON.stringify(data));
-                    this._logger.log(`${TAG} Fetched ${network} RPC list from API (${data.length} entries)`);
-                    return data;
+        const storageKey = network === 'bsc' ? STORAGE_KEY_BSC : STORAGE_KEY_POLYGON;
+
+        // 1. Try remote API (only when rpcHost is configured)
+        if (this._rpcHost) {
+            const endpoint = `${this._rpcHost}/${network}`;
+            try {
+                const response = await fetch(endpoint);
+                if (response.ok) {
+                    const data = await response.json() as string[];
+                    if (Array.isArray(data) && data.length > 0) {
+                        localStorage.setItem(storageKey, JSON.stringify(data));
+                        this._logger.log(`${TAG} Fetched ${network} RPC list from API (${data.length} entries)`);
+                        return data;
+                    }
                 }
+            } catch (e) {
+                this._logger.error(`${TAG} Failed to fetch ${network} RPC list from API: ${e}`);
             }
-        } catch (e) {
-            this._logger.error(`${TAG} Failed to fetch ${network} RPC list from API: ${e}`);
         }
 
         // 2. Try localStorage
@@ -160,7 +176,7 @@ export class RpcService {
             this._logger.error(`${TAG} Failed to read ${network} RPC list from localStorage: ${e}`);
         }
 
-        // 3. Hardcoded fallback — intentionally NOT saved to localStorage
+        // 3. Hardcoded mainnet fallback — intentionally NOT saved to localStorage
         const fallback = network === 'bsc' ? HARDCODE_BSC_MAINNET : HARDCODE_POLYGON_MAINNET;
         this._logger.log(`${TAG} Using hardcoded fallback list for ${network} (${fallback.length} entries)`);
         return fallback;

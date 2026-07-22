@@ -79,8 +79,8 @@ export default class RonBaseWalletService {
             ]);
             if (Array.isArray(result) && result.length === 2) {
                 if(this._walletAddress == null) {
-                    this._walletAddress = result[0];
-                }                
+                    this._walletAddress = (result[0] as string).toLowerCase();
+                }
                 if(this._chainId == null){
                     this._chainId = result[1];
                 }
@@ -105,10 +105,11 @@ export default class RonBaseWalletService {
             return;
         }
 
-        this._logger.log(`${TAG} updateWalletAddress to ${walletAddress}`);
-        this._walletAddress = walletAddress!;
+        const normalized = walletAddress.toLowerCase();
+        this._logger.log(`${TAG} updateWalletAddress to ${normalized}`);
+        this._walletAddress = normalized;
         // Update LoginModal with new wallet address
-        LoginModal.setAddress(walletAddress);
+        LoginModal.setAddress(normalized);
     }
 
     updateWalletProvider(walletProvider: Provider) {
@@ -266,7 +267,7 @@ export default class RonBaseWalletService {
                 this._logger.log(`Waiting for update wallet address`);
                 await sleep(1000);
             }
-            this._walletAddress = addressOnMetaMask;
+            this._walletAddress = addressOnMetaMask?.toLowerCase() ?? null;
         }
         return this._walletAddress;
     }

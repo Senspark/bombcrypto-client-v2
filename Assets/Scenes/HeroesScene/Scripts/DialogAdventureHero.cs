@@ -74,7 +74,7 @@ namespace Scenes.AdventureMenuScene.Scripts {
         private ISoundManager _soundManager;
         private IServerManager _serverManager;
         private ITRHeroManager _trHeroManager;
-        private IPlayerStorageManager _playerStore;
+        private IBHeroManager _playerStore;
         private IStoryModeManager _storyModeManager;
         private IBoosterManager _boosterManager;
         private IUnityAdsManager _unityAdsManager;
@@ -101,7 +101,7 @@ namespace Scenes.AdventureMenuScene.Scripts {
             _soundManager = ServiceLocator.Instance.Resolve<ISoundManager>();
             _serverManager = ServiceLocator.Instance.Resolve<IServerManager>();
             _trHeroManager = ServiceLocator.Instance.Resolve<ITRHeroManager>();
-            _playerStore = ServiceLocator.Instance.Resolve<IPlayerStorageManager>();
+            _playerStore = ServiceLocator.Instance.Resolve<IBHeroManager>();
             _storyModeManager = ServiceLocator.Instance.Resolve<IStoryModeManager>();
             _boosterManager = ServiceLocator.Instance.Resolve<IBoosterManager>();
             _unityAdsManager = ServiceLocator.Instance.Resolve<IUnityAdsManager>();
@@ -262,9 +262,9 @@ namespace Scenes.AdventureMenuScene.Scripts {
                     await _storyModeManager.StartPlaying(storyMapDetail, bossSkillDetails, boosterUi.BoosterStatus);
                 } catch (Exception e) {
                     if (e is ErrorCodeException) {
-                        DialogError.ShowError(DialogCanvas, e.Message);    
+                        DialogError.ShowError(DialogCanvas, e);    
                     } else {
-                        DialogOK.ShowError(DialogCanvas, e.Message);
+                        DialogOK.ShowError(DialogCanvas, e);
                     }
                     playButton.Interactable = true;
                 } finally {

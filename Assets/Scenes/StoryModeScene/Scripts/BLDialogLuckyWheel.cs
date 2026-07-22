@@ -128,7 +128,7 @@ namespace Scenes.StoryModeScene.Scripts {
                         _analytics.TrackAds(category, adsResult);
                     }
                     Hide();
-                    DialogOK.ShowError(canvasDialog, e.Message, _onCompleted);
+                    DialogOK.ShowError(canvasDialog, e, _onCompleted);
                 } finally {
                     waiting.End();
                 }

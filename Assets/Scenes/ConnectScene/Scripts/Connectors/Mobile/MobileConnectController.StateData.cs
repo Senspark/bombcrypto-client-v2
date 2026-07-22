@@ -1,7 +1,5 @@
 using System.Collections.Generic;
 
-using Analytics.Modules;
-
 using App;
 
 using Senspark;
@@ -15,7 +13,6 @@ namespace Scenes.ConnectScene.Scripts.Connectors.Mobile {
         private class StateData {
             public readonly IMasterUnityCommunication UnityCommunicate;
             public readonly ILogManager LogManager;
-            public readonly IAnalyticsModuleLogin Analytics;
             public readonly IAuthManager AuthManager;
             public readonly IUserAccountManager UserAccountManager;
             public readonly ITaskDelay TaskDelay;
@@ -27,7 +24,6 @@ namespace Scenes.ConnectScene.Scripts.Connectors.Mobile {
             public StateData(
                 IMasterUnityCommunication unityCommunicate,
                 ILogManager logManager,
-                IAnalyticsModuleLogin analytics,
                 IAuthManager authManager,
                 IUserAccountManager userAccountManager,
                 ITaskDelay taskDelay,
@@ -37,7 +33,6 @@ namespace Scenes.ConnectScene.Scripts.Connectors.Mobile {
             ) {
                 UnityCommunicate = unityCommunicate;
                 LogManager = logManager;
-                Analytics = analytics;
                 AuthManager = authManager;
                 UserAccountManager = userAccountManager;
                 TaskDelay = taskDelay;

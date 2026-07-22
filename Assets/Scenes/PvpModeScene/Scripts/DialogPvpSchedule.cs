@@ -167,7 +167,7 @@ namespace Scenes.PvpModeScene.Scripts {
 
                     pvpMatches.Models = matchList.OrderBy(x => OrderIndex(x.Status)).ToArray();
                 } catch (Exception e) {
-                    DialogOK.ShowError(DialogCanvas, e.Message);
+                    DialogOK.ShowError(DialogCanvas, e);
                 } finally {
                     waiting.SetActive(false);
                 }
@@ -217,7 +217,7 @@ namespace Scenes.PvpModeScene.Scripts {
         private void ShowPvPMatch(IPvpMatchSchedule model) {
             var roomInfo = FindRoomInfo(model.MatchId);
             if (roomInfo == null) {
-                DialogOK.ShowError(DialogCanvas, $"Can not found match {model.MatchId}");
+                DialogOK.ShowErrorMsgOnly(DialogCanvas, $"Can not found match {model.MatchId}");
                 return;
             }
             DialogPvpStream.Create().ContinueWith(dialog => {

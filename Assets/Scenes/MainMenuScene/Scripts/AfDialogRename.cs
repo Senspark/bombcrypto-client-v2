@@ -107,7 +107,7 @@ namespace Scenes.MainMenuScene.Scripts {
                 }
                 //await _authManager.Rename(_userAccount.jwtToken, nickName);
             } catch (Exception e) {
-                DialogOK.ShowError(DialogCanvas, e.Message, ()=>{_isRenameClicked = false;});
+                DialogOK.ShowError(DialogCanvas, e, ()=>{_isRenameClicked = false;});
             } finally {
                 waiting.End();
             }
@@ -126,7 +126,7 @@ namespace Scenes.MainMenuScene.Scripts {
                 _storageManager.NickName = newNickName;
                 DialogOK.ShowInfo(DialogCanvas, "Successfully");
             } else {
-                DialogOK.ShowError(DialogCanvas, "Rename Failed");
+                DialogOK.ShowErrorMsgOnly(DialogCanvas, "Rename Failed");
             }
 
             _onReload?.Invoke();
@@ -141,7 +141,7 @@ namespace Scenes.MainMenuScene.Scripts {
                 _storageManager.NickName = newNickName;
                 DialogOK.ShowInfo(DialogCanvas, "Successfully");
             } else {
-                DialogOK.ShowError(DialogCanvas, "Rename Failed");
+                DialogOK.ShowErrorMsgOnly(DialogCanvas, "Rename Failed");
             }
 
             _onReload?.Invoke();

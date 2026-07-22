@@ -50,5 +50,11 @@ namespace Share.Scripts.Communicate.UnityReact {
         public const string STAKE_TO_HERO_V2 = "STAKE_TO_HERO_V2";
         public const string GET_STAKE_FROM_HERO_ID_V2 = "GET_STAKE_FROM_HERO_ID_V2";
         public const string GET_FEE_FROM_HERO_ID_V2 = "GET_FEE_FROM_HERO_ID_V2";
+        public const string BRIDGE_GET_DEPOSITED = "BRIDGE_GET_DEPOSITED";
+        public const string BRIDGE_GET_WITHDRAWN = "BRIDGE_GET_WITHDRAWN";
+        public const string BRIDGE_GET_DEPOSIT_ENABLED = "BRIDGE_GET_DEPOSIT_ENABLED";
+        public const string BRIDGE_GET_WITHDRAW_ENABLED = "BRIDGE_GET_WITHDRAW_ENABLED";
+        public const string BRIDGE_DEPOSIT = "BRIDGE_DEPOSIT";
+        public const string BRIDGE_WITHDRAW = "BRIDGE_WITHDRAW";
     }
 }

@@ -1,8 +1,21 @@
 import GeneralContract from './Utils/GeneralContract.js';
 import {getDoubleGasFeeOptionV2} from "./Utils/NetworkUtils";
 import {Contract, parseEther} from "ethers";
+import BHeroToken from "./BHero.ts";
+
+export type ClaimAndProcessResult = {
+    txHash: string;
+    processResult: { result: boolean; fusionFailAmount: number; fusionSuccessHeroIds: number[] } | null;
+};
 
 export default class ClaimManager extends GeneralContract {
+    private readonly _bhero: BHeroToken;
+
+    constructor(address: string, abi: any, bhero: BHeroToken) {
+        super(address, abi);
+        this._bhero = bhero;
+    }
+
     async claimTokens(
         tokenType: string,
         amount: number,
@@ -27,6 +40,46 @@ export default class ClaimManager extends GeneralContract {
             console.error(`exception ${ex}`);
             return "";
         }
+    }
+
+    // Combined claim + post-mint orchestration. For Hero-token claims, ClaimManage.claimTokens
+    // creates pending mint requests on BHero that MUST be processed by BHero.processTokenRequests
+    // in the same flow — otherwise the heroes are stranded on-chain. Putting the orchestration
+    // here keeps blockchain logic in TS so future fixes don't require a Unity/WebGL rebuild.
+    async claimTokensAndProcess(
+        tokenType: string,
+        amount: number,
+        nonce: number,
+        details: string,
+        signature: string,
+        formatType: string,
+        waitConfirmations: number,
+        walletAddress: string,
+    ): Promise<ClaimAndProcessResult> {
+        const txHash = await this.claimTokens(
+            tokenType, amount, nonce, details, signature, formatType, waitConfirmations,
+        );
+        if (!txHash) {
+            return { txHash: "", processResult: null };
+        }
+
+        // tokenType is the int category index (e.g. 1 = Hero on BSC testnet) understood by
+        // ClaimManage. Resolve it to the underlying token contract address via the public
+        // `tokenContracts` mapping, then compare to BHero — only Hero claims need processing.
+        let isHero = false;
+        try {
+            const contract = await this.getContract();
+            const tokenAddress: string = await contract.tokenContracts(tokenType);
+            isHero = tokenAddress?.toLowerCase() === this._bhero._address?.toLowerCase();
+        } catch (ex) {
+            console.error(`tokenContracts lookup failed: ${ex}`);
+        }
+        if (!isHero) {
+            return { txHash, processResult: null };
+        }
+
+        const processResult = await this._bhero.processTokenRequestsV2(walletAddress);
+        return { txHash, processResult };
     }
 
     async userCanUseVoucher(voucherType: string, userAddress: string): Promise<boolean> {

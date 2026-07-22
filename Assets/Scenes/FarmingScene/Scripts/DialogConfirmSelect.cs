@@ -132,17 +132,6 @@ namespace Scenes.FarmingScene.Scripts {
                 .OnHide(() => { gameObject.SetActive(true); })
                 //Sau khi bấm stake hoặc unstake thì đóng popup này luôn
                 .OnStakeOrUnStakeComplete(Hide)
-                //úntake thành công, update lại ui
-                .OnUnStakeComplete(player => {
-                    Hide();
-                    EventManager<PlayerData>.Dispatcher(StakeEvent.AfterStake, player);
-
-                })
-                .OnStakeComplete(player => {
-                    Hide();
-                    EventManager<PlayerData>.Dispatcher(StakeEvent.AfterStake, player);
-
-                })
                 .Create();
             return callback;
         }

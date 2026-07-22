@@ -6,6 +6,10 @@ public class ThModeConstant {
     public const string PoolEpic = "remaining_pool_epic";
     public const string PoolLegend = "remaining_pool_legend";
     public const string PoolSuperLegend = "remaining_pool_super_legend";
+    public const string PoolMega = "remaining_pool_mega";
+    public const string PoolSuperMega = "remaining_pool_super_mega";
+    public const string PoolMystic = "remaining_pool_mystic";
+    public const string PoolSuperMystic = "remaining_pool_super_mystic";
     public const string Period = "period";
     public const string NextTimeFill = "next_time_refill_pool";
     public const string BlockType = "block_type";

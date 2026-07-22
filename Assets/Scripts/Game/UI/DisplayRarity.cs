@@ -14,6 +14,10 @@ public class DisplayRarity : MonoBehaviour {
         new NameColor("Epic", new Color32(255, 18, 241, 255)),
         new NameColor("Legend", new Color32(255, 194, 7, 255)),
         new NameColor("Super Legend", new Color32(255, 0, 84, 255)),
+        new NameColor("Mega", new Color32(53, 160, 208, 255)),
+        new NameColor("Super Mega", new Color32(7, 107, 212, 255)),
+        new NameColor("Mystic", new Color32(107, 109, 230, 255)),
+        new NameColor("Super Mystic", new Color32(200, 86, 142, 255)),
     };
 
     [SerializeField] private TMP_Text rareLbl;

@@ -198,11 +198,11 @@ namespace Scenes.PvpModeScene.Scripts {
         }
 
         public async Task ShowDialogError(Canvas canvasDialog, string message) {
-            await DialogOK.ShowErrorAsync(canvasDialog, message, new DialogOK.Optional { WaitUntilHidden = true });
+            await DialogOK.ShowErrorMsgOnlyAsync(canvasDialog, message, new DialogOK.Optional { WaitUntilHidden = true });
         }
 
         public void ShowErrorAndKick(Canvas canvasDialog, string reason) {
-            DialogOK.ShowError(canvasDialog, reason, () => {
+            DialogOK.ShowErrorMsgOnly(canvasDialog, reason, () => {
                 // Tạm để PVP thoát ra MainMenu
                 const string sceneName = "MainMenuScene";
                 SceneLoader.LoadSceneAsync(sceneName).Forget();
@@ -305,7 +305,7 @@ namespace Scenes.PvpModeScene.Scripts {
         }
 
         public void ShowDialogOk(Canvas canvasDialog, string message) {
-            DialogOK.ShowError(canvasDialog, message);
+            DialogOK.ShowErrorMsgOnly(canvasDialog, message);
         }
 
         public void HideAllDialog(Canvas canvasDialog) {

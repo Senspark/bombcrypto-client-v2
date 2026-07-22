@@ -161,7 +161,7 @@ namespace CreativeSpore.SuperTilemapEditor {
         /// <summary>
         /// The PhysicsMaterial that is applied to this tilemap colliders.
         /// </summary>
-        public PhysicMaterial PhysicMaterial {
+        public PhysicsMaterial PhysicMaterial {
             get { return m_physicMaterial; }
             set { m_physicMaterial = value; }
         }
@@ -403,7 +403,7 @@ namespace CreativeSpore.SuperTilemapEditor {
         private bool m_isTrigger = false;
 
         [SerializeField]
-        private PhysicMaterial m_physicMaterial;
+        private PhysicsMaterial m_physicMaterial;
 
         [SerializeField]
         private PhysicsMaterial2D m_physicMaterial2D;

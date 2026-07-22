@@ -1,3 +1,5 @@
+using Animation;
+
 using Senspark;
 
 using Share.Scripts.PrefabsManager;
@@ -21,7 +23,10 @@ namespace Share.Scripts.Services {
             _isInitialized = true;
             var prefabLoaderManager = new PrefabLoaderManager();
             ServiceLocator.Instance.Provide(prefabLoaderManager);
-            
+
+            // 1 instance dùng chung cho mọi scene (cache hero-sprite không phân mảnh).
+            ServiceLocator.Instance.Provide(new HeroSpriteLoader());
+
             prefabLoaderManager.Initialize().Forget();
         }
     }

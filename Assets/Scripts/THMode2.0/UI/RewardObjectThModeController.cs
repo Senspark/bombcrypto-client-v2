@@ -40,7 +40,7 @@ public class RewardObjectThModeController : MonoBehaviour {
     public float _staggerDelay = 0.2f;
     public float _moveUpOffset = 40f;
     
-    private float[] _startPos = new[] { -130f, -90f, -60f, -20f, 20f, 60f };
+    private float[] _startPos = new[] { -130f, -90f, -60f, -20f, 20f, 60f, 100f, 140f, 180f, 220f };
     
     private void Start() {
         _networkConfig = ServiceLocator.Instance.Resolve<INetworkConfig>();
@@ -149,7 +149,7 @@ public class RewardObjectThModeController : MonoBehaviour {
     
     private void Clear() {
         _animationList.Clear();
-        for (int i = 0; i < 6; i++) {
+        for (int i = 0; i < _startPos.Length; i++) {
             _animationList.Add(new List<AnimationObject>());
         }
     }

@@ -12,6 +12,8 @@ namespace Share.Scripts.PrefabsManager {
     public abstract class TemplatePrefabLoader : MonoBehaviour, IPrefabLoader {
         public Dictionary<Type, AssetReference> Map { get; protected set; }
 
+        public bool IsDestroyed => !this;
+
         public virtual void Initialize() {
             var manager = ServiceLocator.Instance.Resolve<IPrefabLoaderManager>();
             manager.RegisterPrefabLoader(this);
@@ -28,11 +30,6 @@ namespace Share.Scripts.PrefabsManager {
             var handle = assetReference.InstantiateAsync();
             await handle.Task;
             return handle.Result.GetComponent<T>();
-        }
-        
-        public void OnDestroy() {
-            var manager = ServiceLocator.Instance.Resolve<IPrefabLoaderManager>();
-            manager.UnregisterPrefabLoader(this);
         }
     }
 }

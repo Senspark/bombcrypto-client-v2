@@ -26,6 +26,8 @@ namespace Engine.Manager {
 
         public Task FirstInitPlayerPVE(List<Vector2Int> locations);
 
+        public Task FirstInitPlayerPvp();
+
         void SpawnPvpBomb(int slot, int id, int range, Vector2Int position);
         void ExplodePvpBomb(int slot, int id, [NotNull] Dictionary<Direction, int> ranges);
         void RemoveBomb(int slot, int id);

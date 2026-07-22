@@ -65,8 +65,9 @@ export default class RonBaseWalletService {
             return;
         }
 
-        this._logger.log(`${TAG} updateWalletAddress to ${walletAddress}`);
-        this._walletAddress = walletAddress!;
+        const normalized = walletAddress.toLowerCase();
+        this._logger.log(`${TAG} updateWalletAddress to ${normalized}`);
+        this._walletAddress = normalized;
     }
 
     updateWalletProvider(walletProvider: Provider) {
@@ -181,13 +182,21 @@ export default class RonBaseWalletService {
             return;
         }
         try {
-            // await this._etherProvider.send('wallet_requestPermissions', [{eth_accounts: {}}]);
-            // await this._etherProvider.send('wallet_revokePermissions',  [{ eth_accounts: {} }]);
             await this._etherProvider.send('eth_requestAccounts', []);
-            this._switchNetworkFunc?.();
-            // request network
         } catch (e) {
             this._logger.errors(`${TAG} connectWallet error:`, e);
+            return;
+        }
+
+        const networkType = this.currentNetworkType;
+        const rpc = networkType ? getRpc(networkType, this._isProd) : undefined;
+        if (!rpc) {
+            this._switchNetworkFunc?.();
+            return;
+        }
+        const swapped = await forceSwapChain(this._logger, this._etherProvider, rpc);
+        if (!swapped) {
+            this._logger.error(`${TAG} Failed to swap to ${rpc.chainName} during connect`);
         }
     }
 
@@ -273,11 +282,19 @@ export default class RonBaseWalletService {
                 return undefined;
             }
 
+            const loggedInNetworkType = this.currentNetworkType;
+            const loggedInRpc = loggedInNetworkType ? getRpc(loggedInNetworkType, isProd) : undefined;
+            if (!loggedInRpc) {
+                logger.error(`${TAG} No RPC config for chainId ${loggedInNetwork.dec}`);
+                showError("Unsupported network. Please check your wallet connection.");
+                return undefined;
+            }
+
             const network = getSupportedNetworkFromChainId(walletNetwork.dec, isProd);
             if (!network || (network !== 'ronin' && network !== 'base')) {
                 logger.error(`${TAG} Unsupported network: ${network}. Only 'Ronin' and 'Base' are supported.`);
 
-                const swapped = await forceSwapChain(logger, provider, loggedInNetwork);
+                const swapped = await forceSwapChain(logger, provider, loggedInRpc);
                 if (!swapped) {
                     showError(`Failed to switch to Ronin or Base network.`);
                     return undefined;
@@ -285,7 +302,7 @@ export default class RonBaseWalletService {
             } else {
                 if (loggedInNetwork.dec != walletNetwork.dec) {
                     logger.error(`${TAG} Network mismatch: expected ${loggedInNetwork.dec}, got ${walletNetwork.dec}`);
-                    const swapped = await forceSwapChain(logger, provider, loggedInNetwork);
+                    const swapped = await forceSwapChain(logger, provider, loggedInRpc);
                     if (!swapped) {
                         showError(`Failed to switch to previous network.`);
                         return undefined;
@@ -334,9 +351,16 @@ export default class RonBaseWalletService {
                 showError("No chainId found. Please check your wallet connection.");
                 return false;
             }
-            const swapped = await forceSwapChain(logger, provider, chosenChainId);
+            const chosenNetworkType = this.currentNetworkType;
+            const chosenRpc = chosenNetworkType ? getRpc(chosenNetworkType, this._isProd) : undefined;
+            if (!chosenRpc) {
+                logger.error(`${TAG} No RPC config for chainId ${chosenChainId.dec}`);
+                showError("Unsupported network. Please check your wallet connection.");
+                return false;
+            }
+            const swapped = await forceSwapChain(logger, provider, chosenRpc);
             if (!swapped) {
-                showError(`Failed to switch to Ronin or Base network.`);
+                showError(`Failed to switch to ${chosenRpc.chainName} network.`);
                 return false;
             }
             return true;

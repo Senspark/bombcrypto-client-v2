@@ -151,9 +151,9 @@ namespace BomberLand.Inventory {
                 } catch (Exception e) {
                     Utils.Logger.LogEditorError(e);
                     if (e is ErrorCodeException) {
-                        DialogError.ShowError(_canvas, e.Message);
+                        DialogError.ShowError(_canvas, e);
                     } else {
-                        DialogOK.ShowError(_canvas, e.Message);
+                        DialogOK.ShowError(_canvas, e);
                     }
                 } finally {
                     waiting.End();

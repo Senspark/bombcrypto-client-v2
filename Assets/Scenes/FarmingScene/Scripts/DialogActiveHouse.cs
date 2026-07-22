@@ -31,7 +31,7 @@ namespace Scenes.FarmingScene.Scripts
         private Text otherHouseNameTxt;
 
         private IHouseStorageManager houseStore;
-        private IPlayerStorageManager playerStore;
+        private IBHeroManager playerStore;
 
         private HouseData _houseShow;
 
@@ -42,7 +42,7 @@ namespace Scenes.FarmingScene.Scripts
         private void Start()
         {
             houseStore = ServiceLocator.Instance.Resolve<IHouseStorageManager>();
-            playerStore = ServiceLocator.Instance.Resolve<IPlayerStorageManager>();
+            playerStore = ServiceLocator.Instance.Resolve<IBHeroManager>();
             // Fix tạm delay 2 frame để lấy localPosition của leftBottom và rightTop
             UniTask.Void(async () => {
                 await UniTask.DelayFrame(2);

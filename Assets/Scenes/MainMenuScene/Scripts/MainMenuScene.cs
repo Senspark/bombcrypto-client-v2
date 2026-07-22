@@ -135,15 +135,12 @@ namespace Scenes.MainMenuScene.Scripts {
             }
             var launchPadManager = ServiceLocator.Instance.Resolve<ILaunchPadManager>();
             var informationManager = ServiceLocator.Instance.Resolve<IInformationManager>();
-            var gameDataRemoteManager = ServiceLocator.Instance.Resolve<IGameDataRemoteManager>();
             var iapItemManager = ServiceLocator.Instance.Resolve<IIAPItemManager>();
             var productItemManager = ServiceLocator.Instance.Resolve<IProductItemManager>();
             var purchaseManager = ServiceLocator.Instance.Resolve<IUnityPurchaseManager>();
-            await Task.WhenAll(
-                launchPadManager.SyncRemoteData(),
+            await UniTask.WhenAll(
                 launchPadManager.SyncRemoteData(),
                 informationManager.SyncRemoteData(),
-                gameDataRemoteManager.SyncRemoteData(),
                 productItemManager.InitializeAsync(),
                 iapItemManager.SyncOfferShops(),
                 purchaseManager.SyncData()

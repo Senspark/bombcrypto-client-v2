@@ -1,12 +1,6 @@
 using System;
 
-using Analytics.Modules;
-
 using App;
-
-using Communicate;
-
-using CustomSmartFox;
 
 using Cysharp.Threading.Tasks;
 
@@ -21,12 +15,9 @@ using Share.Scripts.PrefabsManager;
 
 using UnityEngine;
 
-using LoginType = Analytics.Modules.LoginType;
-
 namespace Scenes.ConnectScene.Scripts {
     public class DialogRequestNewGuestAccount : Dialog {
         private IAuthManager _authManager;
-        private IAnalyticsModuleLogin _analytics;
 
         private Action<UserAccount> _resolver;
         private Action _reject;
@@ -35,11 +26,9 @@ namespace Scenes.ConnectScene.Scripts {
             return ServiceLocator.Instance.Resolve<IPrefabLoaderManager>().Instantiate<DialogRequestNewGuestAccount>();
         }
 
-        public DialogRequestNewGuestAccount Init(bool isProduction, ILogManager logManager,
-            IAnalyticsModuleLogin analytics, IMasterUnityCommunication unityCommunication) {
-            var signManager = new NullSignManager();
-            _authManager = new DefaultAuthManager(logManager, signManager, new NullEncoder(logManager), unityCommunication, isProduction);
-            _analytics = analytics;
+        public DialogRequestNewGuestAccount Init(bool isProduction, ILogManager logManager, 
+            IMasterUnityCommunication unityCommunication) {
+            _authManager = new DefaultAuthManager(logManager, unityCommunication, isProduction);
             return this;
         }
 
@@ -62,14 +51,14 @@ namespace Scenes.ConnectScene.Scripts {
 
         private void Process(Canvas canvas) {
             if (_authManager == null) {
-                DialogOK.ShowError(canvas, "Auth service not started");
+                DialogOK.ShowErrorMsgOnly(canvas, "Auth service not started");
                 return;
             }
             var waiting = new WaitingUiManager(canvas);
             waiting.Begin();
             UniTask.Void(async () => {
                 try {
-                    UniTask.SwitchToMainThread();
+                    await UniTask.SwitchToMainThread();
                     if (_authManager == null) {
                         throw new Exception("Auth service not started");
                     }
@@ -81,11 +70,9 @@ namespace Scenes.ConnectScene.Scripts {
                         userName = data.UsernameOrWallet,
                         id = data.UserId
                     };
-                    _analytics.TrackAction(ActionType.CreateNewAccountSuccess, LoginType.Guest);
                     OnCompleted(acc);
                 } catch (Exception e) {
-                    _analytics.TrackAction(ActionType.CreateNewAccountFailed, LoginType.Guest);
-                    await DialogOK.ShowErrorAsync(canvas, e.Message, new DialogOK.Optional { WaitUntilHidden = true });
+                    await DialogOK.ShowErrorAsync(canvas, e, new DialogOK.Optional { WaitUntilHidden = true });
                     OnError();
                 } finally {
                     waiting.End();

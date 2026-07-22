@@ -16,21 +16,9 @@ namespace App {
         Task Rename(string jwt, string nickName);
 
         /// <summary>
-        /// Gets auth token by signing wallet.
-        /// </summary>
-        Task<string> GetUserJwtTokenBySign(int networkChainId);
-
-        /// <summary>
         /// Logs in with username and password (Senspark account).
         /// </summary>
         Task<UserLoginToken> GetUserLoginDataByPassword(string username, string password);
-
-        /// <summary>
-        /// Logs in with wallet.
-        /// </summary>
-        /// <param name="networkChainId"></param>
-        /// <returns></returns>
-        Task<UserLoginToken> GetUserLoginDataBySign(int networkChainId);
 
         Task<UserLoginToken> GetUserLoginDataByThirdParty(ThirdPartyLogin type);
         Task<UserLoginToken> GetUserLoginDataByThirdParty(ThirdPartyLogin type, string accessToken);

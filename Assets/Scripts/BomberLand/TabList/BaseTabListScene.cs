@@ -133,9 +133,9 @@ namespace Game.UI {
                     await LoadData(tabType);
                 } catch (Exception e) {
                     if (e is ErrorCodeException) {
-                        DialogError.ShowError(canvasDialog, e.Message);    
+                        DialogError.ShowError(canvasDialog, e);    
                     } else {
-                        DialogOK.ShowError(canvasDialog, e.Message);
+                        DialogOK.ShowError(canvasDialog, e);
                     }
 #if UNITY_EDITOR
                     Debug.LogException(e);

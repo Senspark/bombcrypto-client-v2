@@ -41,6 +41,10 @@ export default class RoninAddress implements IBlockchainAddress {
         return "";
     }
 
+    get DepositBridgeAddress(): string {
+        return "";
+    }
+
     get AirDropAddress(): string {
         return "";
     }

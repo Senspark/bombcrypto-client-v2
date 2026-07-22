@@ -78,9 +78,9 @@ namespace Game.Dialog {
                 UpdateUI();
             } catch (Exception e) {
                 if (e is ErrorCodeException) {
-                    DialogError.ShowError(canvas, e.Message);    
+                    DialogError.ShowError(canvas, e);    
                 } else {
-                    DialogOK.ShowError(canvas, e.Message);
+                    DialogOK.ShowError(canvas, e);
                 }
             }
         }

@@ -35,73 +35,6 @@ namespace Engine.Entities {
         WallDrop,
         Fire
     }
-    public enum PlayerType {
-        Block,
-        BomberMan,
-        Knight,
-        Man,
-        Vampire,
-        Witch,
-        Doge,
-        Pepe,
-        Ninja,
-        King,
-        PilotRabit,
-        Meo2,
-        Monkey,
-        Pilot,
-        BlackCat,
-        Tiger,
-        PugDog,
-        SailorMoon,
-        PepeClown,
-        FrogGentlemen,
-        Dragoon,
-        Ghost,
-        Pumpkin,
-        Werewolves,
-        FootballFrog,
-        FootballKnight,
-        FootballMan,
-        FootballVampire,
-        FootballWitch,
-        FootballDoge,
-        FootballPepe,
-        FootballNinja,
-        Poo = 111,
-        GKu,
-        PinkyToon,
-        Stickman,
-        Monitor,
-        Dragon,
-        Santa,
-        Miner,
-        Calico,
-        Kuroneko,
-        GoldenKat,
-        MrDear,
-        TLion,
-        Frog,
-        DogeTr,
-        KingTr,
-        Cupid,
-        BGuy,
-        PinkyBear,
-        PinkyNeko,
-        Dragoon2,
-        FatTiger,
-        Hesman
-    }
-
-    public enum PlayerColor {
-        Blue,
-        Green,
-        Red,
-        White,
-        Yellow,
-        HeroTr,
-        Skin
-    }
 
     public enum SkinChestType {
         Bomb = 1,
@@ -197,19 +130,6 @@ namespace Engine.Entities {
         Cape,
         DevilWing,
         CandyBall
-    }
-
-    public enum PlayerAbility {
-        TreasureHunter, // +5dmg khi pha ruong
-        JailBreaker, //+5dmg khi pha tu
-        PierceBlock, //Bomb no xuyen block
-        SaveBattery, //+30% ti le khong giam nang luong khi dat bomb
-        FastCharge, //+5 the luc/phut khi nghi ngoi
-        BombPass, //Di xuyen bomb
-        BlockPass, //Di xuyen block
-        BossHunter, //+20% dmg gay len Boss
-        CreepHunter, //+10% dmg gay len Creep
-        Shield //Kich hoat shield moi 60s
     }
 
     public class IndexTree {

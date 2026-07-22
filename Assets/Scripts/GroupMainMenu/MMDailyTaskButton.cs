@@ -52,7 +52,7 @@ namespace GroupMainMenu {
                 try {
                     await _dailyTaskManager.GetDailyTaskConfig();
                 } catch (Exception e) {
-                    DialogError.ShowError(_canvasDialog, e.Message);
+                    DialogError.ShowError(_canvasDialog, e);
                 } finally {
                     button.interactable = true;
                 }

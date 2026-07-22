@@ -9,19 +9,19 @@ using UnityEngine;
 
 namespace App {
     public partial class DefaultPveServerBridge : IPveServerBridge {
-        private readonly IPlayerStorageManager _playerStorageManager;
+        private readonly IBHeroManager _bHeroManager;
         private readonly IHouseStorageManager _houseStorageManager;
         private readonly IStorageManager _storageManager;
         private readonly IServerDispatcher _serverDispatcher;
         private readonly IUserAccountManager _userAccountManager;
 
         public DefaultPveServerBridge(
-            IPlayerStorageManager playerStorageManager,
+            IBHeroManager bHeroManager,
             IHouseStorageManager houseStorageManager,
             IStorageManager storageManager,
             IServerDispatcher serverDispatcher
         ) {
-            _playerStorageManager = playerStorageManager;
+            _bHeroManager = bHeroManager;
             _houseStorageManager = houseStorageManager;
             _storageManager = storageManager;
             _serverDispatcher = serverDispatcher;
@@ -39,7 +39,7 @@ namespace App {
             var tileSet = data.GetInt("tileset_pve_v2");
             var blockData = data.GetUtfString("datas_pve_v2");
             var result = new MapDetails(tileSet, blockData);
-            _playerStorageManager.SetMapDetails(result);
+            _bHeroManager.SetMapDetails(result);
             return result;
         }
         
@@ -54,9 +54,9 @@ namespace App {
             var result = HeroDetails.ParseArray(data);
             foreach (var hero in result) {
                 var heroId = new HeroId(hero.Id, hero.AccountType);
-                _playerStorageManager.UpdatePlayerHpFromServer(hero);
-                _playerStorageManager.UpdateHeroSShield(heroId, hero.HeroSAbilities);
-                _playerStorageManager.UpdateHeroState(heroId, hero.Stage);
+                _bHeroManager.UpdatePlayerHpFromServer(hero);
+                _bHeroManager.UpdateHeroSShield(heroId, hero.HeroSAbilities);
+                _bHeroManager.UpdateHeroState(heroId, hero.Stage);
             }
             _serverDispatcher.DispatchEvent(e => e.OnSyncHero?.Invoke(new SyncHeroResponse(result)));
             return true;
@@ -73,19 +73,53 @@ namespace App {
             var response = await _serverDispatcher.SendCmd(new CmdActiveBomber(data));
             return OnActiveHero(response);
         }
-        
+
         private bool OnActiveHero(ISFSObject data) {
             var result = HeroDetails.Parse(data);
             var heroId = new HeroId(result.Id, result.AccountType);
-            _playerStorageManager.UpdatePlayerHpFromServer(result);
-            _playerStorageManager.UpdateHeroSShield(heroId, result.HeroSAbilities);
-            _playerStorageManager.UpdateHeroState(heroId, result.Stage);
-            _playerStorageManager.UpdateHeroActiveState(heroId, result.IsActive);
+            _bHeroManager.UpdatePlayerHpFromServer(result);
+            _bHeroManager.UpdateHeroSShield(heroId, result.HeroSAbilities);
+            _bHeroManager.UpdateHeroState(heroId, result.Stage);
+            _bHeroManager.UpdateHeroActiveState(heroId, result.IsActive);
 
             // Trick: Nếu deactive hero thì xem như nó vào Home để biến mất khỏi map
             var stage = result.IsActive ? result.Stage : HeroStage.Home;
             var evData = new PveHeroDangerous(heroId, stage, PveDangerousType.NoDanger);
             _serverDispatcher.DispatchEvent(d => d.OnActiveHero?.Invoke(evData, heroId, result.IsActive));
+            return true;
+        }
+
+        public async Task<bool> ActiveBombers(HeroId[] ids, int value) {
+            if (ids == null || ids.Length == 0) {
+                return true;
+            }
+            var data = new SFSObject().Apply(it => {
+                var array = new SFSArray();
+                foreach (var id in ids) {
+                    array.AddInt(id.Id);
+                }
+                it.PutSFSArray(SFSDefine.SFSField.HeroIds, array);
+                it.PutInt(SFSDefine.SFSField.active, value);
+            });
+
+            var response = await _serverDispatcher.SendCmd(new CmdActiveBombers(data));
+            return OnActiveBombers(response);
+        }
+
+        private bool OnActiveBombers(ISFSObject data) {
+            var result = HeroDetails.ParseArray(data);
+            foreach (var hero in result) {
+                var heroId = new HeroId(hero.Id, hero.AccountType);
+                _bHeroManager.UpdatePlayerHpFromServer(hero);
+                _bHeroManager.UpdateHeroSShield(heroId, hero.HeroSAbilities);
+                _bHeroManager.UpdateHeroState(heroId, hero.Stage);
+                _bHeroManager.UpdateHeroActiveState(heroId, hero.IsActive);
+
+                var stage = hero.IsActive ? hero.Stage : HeroStage.Home;
+                var evData = new PveHeroDangerous(heroId, stage, PveDangerousType.NoDanger);
+                _serverDispatcher.DispatchEvent(d => d.OnActiveHero?.Invoke(evData, heroId, hero.IsActive));
+            }
+            _serverDispatcher.DispatchEvent(e => e.OnSyncHero?.Invoke(new SyncHeroResponse(result)));
             return true;
         }
         
@@ -105,11 +139,11 @@ namespace App {
             var bombers = HeroDetails.ParseArray(data);
             foreach (var h in bombers) {
                 var heroId = new HeroId(h.Id, h.AccountType);
-                _playerStorageManager.UpdatePlayerHpFromServer(h);
+                _bHeroManager.UpdatePlayerHpFromServer(h);
                 if (h.Stage != HeroStage.Sleep)
                     continue;
 
-                _playerStorageManager.UpdateHeroState(heroId, h.Stage);
+                _bHeroManager.UpdateHeroState(heroId, h.Stage);
                 var evData = new PveHeroDangerous(heroId, h.Stage, PveDangerousType.NoDanger);
                 _serverDispatcher.DispatchEvent(d => d.OnHeroChangeState?.Invoke(evData));
             }
@@ -131,8 +165,8 @@ namespace App {
             var result = HeroDetails.Parse(data);
             var state = HeroStage.Home;
             var heroId = new HeroId(result.Id, result.AccountType);
-            _playerStorageManager.UpdatePlayerHpFromServer(result);
-            _playerStorageManager.UpdateHeroState(heroId, state);
+            _bHeroManager.UpdatePlayerHpFromServer(result);
+            _bHeroManager.UpdateHeroState(heroId, state);
 
             _serverDispatcher.DispatchEvent(observer =>
                 observer.OnHeroChangeState?.Invoke(new PveHeroDangerous(heroId, state, PveDangerousType.NoDanger)));
@@ -155,8 +189,8 @@ namespace App {
             var isDangerous = (PveDangerousType)data.GetInt("is_dangerous");
             var state = HeroStage.Working;
             var heroId = new HeroId(result.Id, result.AccountType);
-            _playerStorageManager.UpdatePlayerHpFromServer(result);
-            _playerStorageManager.UpdateHeroState(heroId, state);
+            _bHeroManager.UpdatePlayerHpFromServer(result);
+            _bHeroManager.UpdateHeroState(heroId, state);
 
             _serverDispatcher.DispatchEvent(observer =>
                 observer.OnHeroChangeState?.Invoke(new PveHeroDangerous(heroId, state, isDangerous)));
@@ -178,8 +212,8 @@ namespace App {
             var result = HeroDetails.Parse(data);
             var state = HeroStage.Sleep;
             var heroId = new HeroId(result.Id, result.AccountType);
-            _playerStorageManager.UpdatePlayerHpFromServer(result);
-            _playerStorageManager.UpdateHeroState(heroId, state);
+            _bHeroManager.UpdatePlayerHpFromServer(result);
+            _bHeroManager.UpdateHeroState(heroId, state);
 
             _serverDispatcher.DispatchEvent(observer =>
                 observer.OnHeroChangeState?.Invoke(new PveHeroDangerous(heroId, state, PveDangerousType.NoDanger)));
@@ -221,8 +255,8 @@ namespace App {
                 var d = array.GetSFSObject(i);
                 var result = HeroDetails.Parse(d);
                 var heroId = new HeroId(result.Id, result.AccountType);
-                _playerStorageManager.UpdatePlayerHpFromServer(result);
-                _playerStorageManager.UpdateHeroState(heroId, result.Stage);
+                _bHeroManager.UpdatePlayerHpFromServer(result);
+                _bHeroManager.UpdateHeroState(heroId, result.Stage);
 
                 var isDangerous = (PveDangerousType)d.GetInt("is_dangerous");
                 var isSleep = result.Stage == HeroStage.Sleep || result.Stage == HeroStage.Home;
@@ -263,8 +297,8 @@ namespace App {
                 d.PutInt(SFSDefine.SFSField.HeroType, heroType);
                 var result = HeroDetails.Parse(d);
                 var heroId = new HeroId(result.Id, result.AccountType);
-                _playerStorageManager.UpdatePlayerHpFromServer(result);
-                _playerStorageManager.UpdateHeroState(heroId, result.Stage);
+                _bHeroManager.UpdatePlayerHpFromServer(result);
+                _bHeroManager.UpdateHeroState(heroId, result.Stage);
 
                 var isSleep = result.Stage == HeroStage.Sleep || result.Stage == HeroStage.Home;
                 var dangerous = isSleep ? PveDangerousType.NoDanger : isDangerous;
@@ -328,7 +362,7 @@ namespace App {
         
         public async void StartExplode(GameModeType type, HeroId heroId, int bombId, Vector2Int tileLocation,
             List<Vector2Int> brokenList) {
-            var hero = _playerStorageManager.GetPlayerDataFromId(heroId);
+            var hero = _bHeroManager.GetPlayerDataFromId(heroId);
             if (hero == null) {
                 return;
             }
@@ -363,20 +397,25 @@ namespace App {
             return true;
         }
         
-        public async Task<bool> CheckBomberStake(HeroId id) {
+        public void RequestFakeStakePush(HeroId id) {
+            // V3 (async push) thay V2 (sync response). Fire-and-forget — client không chờ response.
+            // Server kiểm tra on-chain rồi đẩy BHERO_STAKE_PUSH async.
+            // Editor pass debug_fake_push=true để server skip on-chain HTTP check (Editor không
+            // stake được, gọi blockchain cũng chỉ trả về state cũ).
             var data = new SFSObject().Apply(it => {
                 it.PutLong(SFSDefine.SFSField.Id, id.Id);
+                it.PutBool("debug_fake_push", true);
             });
-            
-            var response = await _serverDispatcher.SendCmd(new CmdCheckBomberStake(data));
-            return OnStakeBomber(response);
+
+            _serverDispatcher.SendCmd(new CmdCheckBomberStakeV3(data));
         }
-        
-        private bool OnStakeBomber(ISFSObject data) {
-            var result = HeroDetails.Parse(data);
-            var heroId = new HeroId(result.Id, result.AccountType);
-            _playerStorageManager.ForceUpdateHero(heroId, result);
-            return true;
+
+        public void RefreshHeroStake(HeroId id, string txHash) {
+            var data = new SFSObject().Apply(it => {
+                it.PutLong(SFSDefine.SFSField.Id, id.Id);
+                it.PutUtfString(SFSDefine.SFSField.TxHash, txHash);
+            });
+            _serverDispatcher.SendCmd(new CmdRefreshHeroStake(data));
         }
     }
 }

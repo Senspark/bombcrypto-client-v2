@@ -1,8 +1,4 @@
 using System.Collections.Generic;
-using System.Threading.Tasks;
-
-using Analytics.Modules;
-
 using Senspark;
 
 namespace Analytics {

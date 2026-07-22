@@ -36,7 +36,7 @@ namespace Scenes.FarmingScene.Scripts {
 
         private ISoundManager _soundManager;
         private IStorageManager _storeManager;
-        private IPlayerStorageManager _playerStoreManager;
+        private IBHeroManager _playerStoreManager;
         private ILanguageManager _languageManager;
         private IBlockchainManager _blockchainManager;
         private IBlockchainStorageManager _blockchainStorageManager;
@@ -57,7 +57,7 @@ namespace Scenes.FarmingScene.Scripts {
             base.Awake();
             _soundManager = ServiceLocator.Instance.Resolve<ISoundManager>();
             _storeManager = ServiceLocator.Instance.Resolve<IStorageManager>();
-            _playerStoreManager = ServiceLocator.Instance.Resolve<IPlayerStorageManager>();
+            _playerStoreManager = ServiceLocator.Instance.Resolve<IBHeroManager>();
             _languageManager = ServiceLocator.Instance.Resolve<ILanguageManager>();
             _blockchainManager = ServiceLocator.Instance.Resolve<IBlockchainManager>();
             _blockchainStorageManager = ServiceLocator.Instance.Resolve<IBlockchainStorageManager>();
@@ -143,7 +143,7 @@ namespace Scenes.FarmingScene.Scripts {
                         waiting.ChangeText(_languageManager.GetValue(LocalizeKey.info_process_token));
 
                         var result = await ProcessTokenHelper.ProcessTokenRequest(DialogCanvas, _blockchainManager,
-                            _serverManager, true, true);
+                            _serverManager, true, true, true);
 
                         if (result) {
                             Hide();
@@ -155,9 +155,9 @@ namespace Scenes.FarmingScene.Scripts {
                     }
                 } catch (Exception e) {
                     if (e is ErrorCodeException) {
-                        DialogError.ShowError(DialogCanvas, e.Message, () => { _isClicked = false;});    
+                        DialogError.ShowError(DialogCanvas, e, () => { _isClicked = false;});    
                     } else {
-                        DialogOK.ShowError(DialogCanvas, e.Message, () => { _isClicked = false;});
+                        DialogOK.ShowError(DialogCanvas, e, () => { _isClicked = false;});
                     }
                 } finally {
                     waiting.Hide();

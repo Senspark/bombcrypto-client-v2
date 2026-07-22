@@ -13,13 +13,13 @@ namespace Game.Dialog {
         [SerializeField]
         private Canvas canvasDialog;
 
-        private IPlayerStorageManager _playerStoreManager;
+        private IBHeroManager _playerStoreManager;
         private ISoundManager _soundManager;
         private ObserverHandle _handle;
         private IServerManager _serverManager;
 
         private void Awake() {
-            _playerStoreManager = ServiceLocator.Instance.Resolve<IPlayerStorageManager>();
+            _playerStoreManager = ServiceLocator.Instance.Resolve<IBHeroManager>();
             _soundManager = ServiceLocator.Instance.Resolve<ISoundManager>();
             _serverManager = ServiceLocator.Instance.Resolve<IServerManager>();
             

@@ -3,8 +3,6 @@
 using System;
 using System.Collections.Generic;
 
-using Analytics.Modules;
-
 using App;
 
 using Cysharp.Threading.Tasks;
@@ -22,7 +20,6 @@ namespace Scenes.ConnectScene.Scripts.Connectors {
     public class ConnectGuestController {
         private readonly ILogManager _logManager;
         private readonly IUserAccountManager _userAccountManager;
-        private readonly IAnalyticsModuleLogin _analytics;
         private readonly IMasterUnityCommunication _unityCommunication;
 
         private readonly List<ServerAddress.Info> _svAddresses;
@@ -35,7 +32,6 @@ namespace Scenes.ConnectScene.Scripts.Connectors {
             IMasterUnityCommunication unityCommunication,
             ILogManager logManager,
             IUserAccountManager userAccountManager,
-            IAnalyticsModuleLogin analytics,
             List<ServerAddress.Info> svAddresses,
             Action<UserAccount> resolve,
             Action reject,
@@ -44,7 +40,6 @@ namespace Scenes.ConnectScene.Scripts.Connectors {
             _unityCommunication = unityCommunication;
             _logManager = logManager;
             _userAccountManager = userAccountManager;
-            _analytics = analytics;
 
             _svAddresses = svAddresses;
             _resolveCb = resolve;
@@ -113,7 +108,7 @@ namespace Scenes.ConnectScene.Scripts.Connectors {
             }
             var isSvProd = ServerAddress.IsMainServerAddress(sv.Address);
             DialogRequestNewGuestAccount.Create().ContinueWith(dialog => {
-                dialog.Init(isSvProd, _logManager, _analytics, _unityCommunication)
+                dialog.Init(isSvProd, _logManager, _unityCommunication)
                     .StartFlow(Resolve, Canceled, _canvasDialog);
             });
         }

@@ -279,7 +279,7 @@ namespace Scenes.PvpReadyScene.Scripts {
                     Assert.IsNotNull(_interactiveUser);
                     await _interactiveUser.Ready();
                 } catch (Exception ex) {
-                    DialogOK.ShowError(canvasDialog, ex.Message);
+                    DialogOK.ShowError(canvasDialog, ex);
                 } finally {
                     _readying = false;
                     UpdateReadyStatus();
@@ -325,7 +325,7 @@ namespace Scenes.PvpReadyScene.Scripts {
             if (state == ServerConnectionState.LostConnection) {
                 // FIXME: flow disconnect chưa hoàn thiện
                 _stopProcess = true;
-                DialogOK.ShowError(canvasDialog, "Disconnected",
+                DialogOK.ShowErrorMsgOnly(canvasDialog, "Disconnected",
                     () => {
                         const string sceneName = "MainMenuScene";
                         SceneLoader.LoadSceneAsync(sceneName).Forget();

@@ -68,7 +68,7 @@ namespace Scenes.FarmingScene.Scripts {
         public DialogInventory.HeroTypeFilter Filter1 { get; set; } = DialogInventory.HeroTypeFilter.AllHeroesType;
 
         private IServerManager _serverManager;
-        private IPlayerStorageManager _playerStore;
+        private IBHeroManager _playerStore;
         private ISoundManager _soundManager;
 
         private List<InventoryItem> _items;
@@ -102,12 +102,13 @@ namespace Scenes.FarmingScene.Scripts {
         protected override void Awake() {
             base.Awake();
             _serverManager = ServiceLocator.Instance.Resolve<IServerManager>();
-            _playerStore = ServiceLocator.Instance.Resolve<IPlayerStorageManager>();
+            _playerStore = ServiceLocator.Instance.Resolve<IBHeroManager>();
             _uiTaskCancellation = new CancellationTokenSource();
             _soundManager = ServiceLocator.Instance.Resolve<ISoundManager>();
             _handle = new ObserverHandle();
             _handle.AddObserver(_serverManager, new ServerObserver {
-                OnSyncHero = OnSyncHero
+                OnSyncHero = OnSyncHero,
+                OnHeroStakePush = OnHeroStakePush,
             });
             var featureManager = ServiceLocator.Instance.Resolve<IFeatureManager>();
             var enableRepair = featureManager.EnableRepairShield;
@@ -347,7 +348,7 @@ namespace Scenes.FarmingScene.Scripts {
 
             if (_playerStore.GetActivePlayersAmount() >= 15) {
                 var str = ServiceLocator.Instance.Resolve<ILanguageManager>().GetValue(LocalizeKey.err_hero_max_active);
-                DialogOK.ShowError(DialogCanvas, str);
+                DialogOK.ShowErrorMsgOnly(DialogCanvas, str);
                 return;
             }
 
@@ -412,18 +413,16 @@ namespace Scenes.FarmingScene.Scripts {
         }
 
         private StakeCallback.Callback GetCallBack() {
-            var callback = new StakeCallback()
-                .OnStakeComplete(player => {
-                    EventManager<PlayerData>.Dispatcher(StakeEvent.AfterStake, player);
-                    _currentHeroIdSelected = player;
-                })
-                .OnUnStakeComplete(player => {
-                    EventManager<PlayerData>.Dispatcher(StakeEvent.AfterStake, player);
-                    _currentHeroIdSelected = player;
-                })
-                .Create();
-            
-            return callback;
+            // Sau refactor: dispatch StakeEvent.AfterStake do FarmingSceneStakeObserver lo;
+            // việc cập nhật _currentHeroIdSelected handle qua OnHeroStakePush observer ở Awake.
+            return new StakeCallback().Create();
+        }
+
+        private void OnHeroStakePush(IHeroDetails hero) {
+            if (_currentHeroIdSelected == null) return;
+            if (_currentHeroIdSelected.heroId.Id != hero.Id) return;
+            // Hero đã được ForceUpdated trong _playerStore trước event này.
+            _currentHeroIdSelected = _playerStore.GetPlayerDataFromId(_currentHeroIdSelected.heroId);
         }
 
         #endregion
@@ -538,7 +537,7 @@ namespace Scenes.FarmingScene.Scripts {
             
             var result = new List<PlayerData>();
             foreach (var t in list) {
-                result.Add(DefaultPlayerStoreManager.GeneratePlayerData(t));
+                result.Add(BHeroManager.GeneratePlayerData(t));
             }
             return result;
         }            
@@ -561,6 +560,9 @@ namespace Scenes.FarmingScene.Scripts {
                 DialogInventory.HeroTypeFilter.AllHeroesType => input,
                 DialogInventory.HeroTypeFilter.HeroOnly => input.Where(e => !e.IsHeroS || (!e.IsHeroS && e.Shield != null)),
                 DialogInventory.HeroTypeFilter.HeroSOnly => input.Where(e => e.IsHeroS),
+                _ when order3 >= DialogInventory.HeroTypeFilter.RarityCommon
+                       && order3 <= DialogInventory.HeroTypeFilter.RaritySuperMystic
+                    => input.Where(e => e.rare == (int)order3 - (int)DialogInventory.HeroTypeFilter.RarityCommon),
                 _ => throw new ArgumentOutOfRangeException(nameof(order3), order3, null),
             };
 
@@ -580,6 +582,9 @@ namespace Scenes.FarmingScene.Scripts {
                     break;
                 case DialogInventory.SortOrder2.NewestFirst:
                     result2 = result2.ThenByDescending(e => e.heroId);
+                    break;
+                case DialogInventory.SortOrder2.HighStakeFirst:
+                    result2 = result2.ThenByDescending(e => Math.Max(e.stakeBcoin, e.stakeSen));
                     break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(order2), order2, null);

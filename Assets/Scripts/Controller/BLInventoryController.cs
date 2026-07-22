@@ -136,9 +136,9 @@ namespace Controller {
                 await LoadDataOnSell(canvasDialog, _onItemSellChanged);
             } catch (Exception e) {
                 if (e is ErrorCodeException) {
-                    DialogError.ShowError(canvasDialog, e.Message);
+                    DialogError.ShowError(canvasDialog, e);
                 } else {
-                    DialogOK.ShowError(canvasDialog, e.Message);
+                    DialogOK.ShowError(canvasDialog, e);
                 }
             } finally {
                 waiting.End();
@@ -157,9 +157,9 @@ namespace Controller {
                 await LoadDataOnSell(canvasDialog, _onItemSellChanged);
             } catch (Exception e) {
                 if (e is ErrorCodeException) {
-                    DialogError.ShowError(canvasDialog, e.Message);
+                    DialogError.ShowError(canvasDialog, e);
                 } else {
-                    DialogOK.ShowError(canvasDialog, e.Message);
+                    DialogOK.ShowError(canvasDialog, e);
                 }
             } finally {
                 waiting.End();
