@@ -374,9 +374,15 @@ namespace Scenes.FarmingScene.Scripts {
             var parent = scroller.content.transform;
 
             // Cập nhật _heroesIdBurn theo instance player mới
+            // RepairShield/InventoryBurn track selection directly in _heroesIdBurn (Fusion mode
+            // mirrors it into _heroesBurnIds), so the "is selected" check must match that.
+            var isBurnLikeMode = _chooseMode == ChooseMode.RepairShield || _chooseMode == ChooseMode.InventoryBurn;
             for (var i = 0; i < num; i++) {
                 var player = players[i];
-                if (!_heroesBurnIds.Contains(player.heroId.Id)) {
+                var isSelected = isBurnLikeMode
+                    ? _heroesIdBurn.Any(h => h != null && h.heroId.Id == player.heroId.Id)
+                    : _heroesBurnIds.Contains(player.heroId.Id);
+                if (!isSelected) {
                     continue;
                 }
                 for (var j = 0; j < _heroesIdBurn.Count; j++) {
@@ -476,6 +482,9 @@ namespace Scenes.FarmingScene.Scripts {
         }
 
         protected virtual bool IsItemSelected(InventoryItem item) {
+            if (_chooseMode == ChooseMode.RepairShield || _chooseMode == ChooseMode.InventoryBurn) {
+                return _heroesIdBurn.Any(h => h.heroId.Id == item.playerData.heroId.Id);
+            }
             return _heroesBurnIds.Contains(item.playerData.heroId.Id);
         }
 
@@ -993,8 +1002,18 @@ namespace Scenes.FarmingScene.Scripts {
 
             dropDown1.onValueChanged.AddListener(_ => SortInventory());
             dropDown2.onValueChanged.AddListener(_ => SortInventory());
-            dropDownHeroFilter.onValueChanged.AddListener(_ => SortInventory());
-            dropDownActiveFilter.onValueChanged.AddListener(_ => SortInventory());
+            dropDownHeroFilter.onValueChanged.AddListener(_ => OnFilterChanged());
+            dropDownActiveFilter.onValueChanged.AddListener(_ => OnFilterChanged());
+        }
+
+        // Filter changes (unlike sort) drop previously-selected heroes from view, so the repair
+        // selection/cost is cleared here instead of surviving the rebuild like sort does.
+        private void OnFilterChanged() {
+            if (_chooseMode == ChooseMode.RepairShield || _chooseMode == ChooseMode.InventoryBurn) {
+                _heroesIdBurn.Clear();
+                RefreshRepairCostLabel();
+            }
+            SortInventory();
         }
 
         protected async void SortInventory() {
