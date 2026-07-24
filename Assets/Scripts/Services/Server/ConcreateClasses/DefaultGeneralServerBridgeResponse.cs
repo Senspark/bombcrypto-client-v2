@@ -113,6 +113,35 @@ namespace App.BomberLand {
             return true;
         }
         
+        private IRepairShieldBatchResponse OnRepairShieldBatch(ISFSObject data) {
+            var repairedIds = new List<int>();
+            if (data.ContainsKey("repaired_heroes")) {
+                var repairedArray = data.GetSFSArray("repaired_heroes");
+                for (var i = 0; i < repairedArray.Size(); ++i) {
+                    var heroData = repairedArray.GetSFSObject(i);
+                    var result = HeroDetails.Parse(heroData);
+                    var heroId = new HeroId(result.Id, result.AccountType);
+                    _bHeroManager.UpdatePlayerHpFromServer(result);
+                    _bHeroManager.UpdateHeroSShield(heroId, result.HeroSAbilities);
+                    _bHeroManager.UpdateHeroState(heroId, result.Stage);
+                    _bHeroManager.UpdateHeroActiveState(heroId, result.IsActive);
+                    repairedIds.Add(result.Id);
+                }
+            }
+
+            var failedIds = new List<int>();
+            if (data.ContainsKey("failed")) {
+                var failedArray = data.GetSFSArray("failed");
+                for (var i = 0; i < failedArray.Size(); ++i) {
+                    var failObj = failedArray.GetSFSObject(i);
+                    failedIds.Add(failObj.GetInt("hero_id"));
+                }
+            }
+
+            ParseChestReward(data);
+            return new RepairShieldBatchResponse(repairedIds.ToArray(), failedIds.ToArray());
+        }
+
         private bool OnChangeMiningToken(ISFSObject data) {
             ParseCurrentMiningToken(data);
             return true;

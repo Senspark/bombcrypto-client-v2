@@ -303,7 +303,8 @@ namespace Scenes.FarmingScene.Scripts {
             // dấu check còn sót lại từ lần multi-select trước (pool item dùng lại) sẽ không bị tắt.
             var isSelectMode = _chooseMode == DialogInventory.ChooseMode.InventoryBurn ||
                                _chooseMode == DialogInventory.ChooseMode.InventoryFusion ||
-                               _chooseMode == DialogInventory.ChooseMode.MultiActiveToggle;
+                               _chooseMode == DialogInventory.ChooseMode.MultiActiveToggle ||
+                               _chooseMode == DialogInventory.ChooseMode.RepairShield;
             imgCheck.gameObject.SetActive(isSelectMode && _isClicked);
             btnCheck.gameObject.SetActive(isSelectMode);
         }

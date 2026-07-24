@@ -9,6 +9,7 @@ using DG.Tweening;
 using DynamicScrollRect;
 using Game.Dialog;
 using Game.Manager;
+using Game.UI;
 using JetBrains.Annotations;
 using Scenes.TreasureModeScene.Scripts.Dialog;
 using Senspark;
@@ -34,6 +35,7 @@ namespace Scenes.FarmingScene.Scripts {
         void Show(Canvas canvas, DialogInventory.GetPlayer getPlayer, string titleDialog = "INVENTORY");
         void SetChooseHeroForResetRoi(HeroId[] excludeHeroIds, Action<HeroId> onSelectedCallback);
         void SetChooseHeroForInventoryBurnHero(HeroId[] excludeHeroIds, Action<PlayerData[]> callBackBurnHeroId);
+        void SetChooseHeroForRepairShield(HeroId[] excludeHeroIds, Action<PlayerData[]> callBackSelected);
         void SetChooseHeroForResetSkill(Action<HeroId> onSelectedCallback);
         void SetChooseHeroForUpgrade(HeroId baseHeroId, int baseHeroLevel, Action<HeroId> onSelectAsMaterialCallback);
     }
@@ -462,6 +464,7 @@ namespace Scenes.FarmingScene.Scripts {
             foreach (var iter in _items) {
                 iter.Item.OnSelectAllItemClicked(IsItemSelected(iter.Item));
             }
+            RefreshRepairCostLabel();
         }
 
         private void HideAllPooledItems() {
@@ -520,13 +523,13 @@ namespace Scenes.FarmingScene.Scripts {
                 _verticalDynamicScroll.SelectId = item.playerData.heroId.Id;
             }
             UpdateItemInfo(item);
-            if(_chooseMode != ChooseMode.InventoryFusion && _chooseMode != ChooseMode.InventoryBurn)
+            if(_chooseMode != ChooseMode.InventoryFusion && _chooseMode != ChooseMode.InventoryBurn && _chooseMode != ChooseMode.RepairShield)
                 SetHighLight(item);
             _notHover = true;
         }
 
         protected virtual Action<InventoryItem> ResolveItemClickCallback() {
-            if (_chooseMode == ChooseMode.InventoryBurn) {
+            if (_chooseMode == ChooseMode.InventoryBurn ||  _chooseMode == ChooseMode.RepairShield) {
                 return OnItemClickedInventoryBurn;
             }
             if (_chooseMode == ChooseMode.InventoryFusion) {
@@ -551,6 +554,52 @@ namespace Scenes.FarmingScene.Scripts {
                 _heroesIdBurn.Add(playerData);
             } else {
                 _heroesIdBurn.Remove(playerData);
+            }
+            RefreshRepairCostLabel();
+        }
+
+        // Total material cost (price_rock) of the selected heroes, in RepairShield mode
+        private int CalcRepairMaterialCost(List<PlayerData> heroes) {
+            var config = _storeManager.RepairShieldConfig?.Data;
+            if (config == null || heroes == null) {
+                return 0;
+            }
+            var total = 0;
+            foreach (var h in heroes) {
+                if (h == null) {
+                    continue;
+                }
+                if (config.TryGetValue(h.rare, out var levels)
+                    && levels.TryGetValue(h.levelShield, out var price)) {
+                    total += (int)price;
+                }
+            }
+            return total;
+        }
+
+        // In RepairShield mode, shows the total cost on the SELECT button itself.
+        // Uses LocalizeText.SetNewText so the Localize doesn't override it (it only runs on Start/language change).
+        private void RefreshRepairCostLabel() {
+            if (_chooseMode != ChooseMode.RepairShield) {
+                return;
+            }
+            var label = $"REPAIR  {CalcRepairMaterialCost(_heroesIdBurn)}";
+            SetButtonLabel(btnChoose, label);
+            SetButtonLabel(btnRepair, label);
+        }
+
+        private static void SetButtonLabel(Button button, string label) {
+            if (button == null) {
+                return;
+            }
+            var localize = button.GetComponentInChildren<LocalizeText>(true);
+            if (localize != null) {
+                localize.SetNewText(label);
+                return;
+            }
+            var text = button.GetComponentInChildren<Text>(true);
+            if (text != null) {
+                text.text = label;
             }
         }
 
@@ -858,6 +907,7 @@ namespace Scenes.FarmingScene.Scripts {
             HighStatsFirst,
             HighRarityFirst,
             NewestFirst,
+            LowestShieldFirst,
             HighStakeFirst
         }
 
@@ -900,6 +950,10 @@ namespace Scenes.FarmingScene.Scripts {
             dropDown2.options.Add(new Dropdown.OptionData(languageManager.GetValue(LocalizeKey.ui_high_rarity)));
             dropDown2.options.Add(new Dropdown.OptionData(languageManager.GetValue(LocalizeKey.ui_newest)));
             dropDown2.options.Add(new Dropdown.OptionData("High Stake"));
+            // Option exclusive to the reset-shield screen: sorts by the lowest current shield
+            if (_chooseMode == ChooseMode.RepairShield) {
+                dropDown2.options.Add(new Dropdown.OptionData("Lowest Shield"));
+            }
 
             dropDownHeroFilter.options.Add(
                 new Dropdown.OptionData(languageManager.GetValue(LocalizeKey.ui_filter_all_heroes)));
@@ -971,6 +1025,10 @@ namespace Scenes.FarmingScene.Scripts {
             SortOrder2 order2,
             HeroTypeFilter order3,
             ActiveFilter filterActive) {
+            // Reset shield: the "Lowest Shield" option sorts by the lowest current shield
+            if (order2 == SortOrder2.LowestShieldFirst) {
+                return GetRepairShieldSortedData();
+            }
             if (filterActive == ActiveFilter.Locked && _playerStore.GetLockedHeroesData() == null) {
                 var isIos = await _webGlUtils.IsIOSBrowser();
                 if(!isIos) {
@@ -1002,6 +1060,39 @@ namespace Scenes.FarmingScene.Scripts {
                 _onSelectAll?.Invoke(_heroesBurnIds.Count >= _totalHeroIds.Count);
             }
             return result;
+        }
+
+        // List of repairable heroes sorted from the LOWEST shield (most damaged) to the highest,
+        // with manual pagination. Used only in RepairShield mode.
+        private List<PlayerData> GetRepairShieldSortedData() {
+            var excludeSet = new HashSet<int>(
+                (_excludeHeroIds ?? Array.Empty<HeroId>()).Select(e => e.Id));
+
+            var all = _playerStore.GetPlayerDataList(HeroAccountType.Nft)
+                .Where(e => e != null
+                            && e.Shield != null
+                            && e.Shield.CurrentAmount < e.Shield.TotalAmount
+                            && !excludeSet.Contains(e.heroId.Id))
+                // lowest CURRENT shield first (and ratio as tie-breaker)
+                .OrderBy(e => e.Shield.CurrentAmount)
+                .ThenBy(e => (float)e.Shield.CurrentAmount / Mathf.Max(1, e.Shield.TotalAmount))
+                .ToList();
+
+            _totalHeroIds = all.Select(e => e.heroId.Id).ToList();
+            _totalPages = Mathf.Max(1, Mathf.CeilToInt((float)all.Count / Mathf.Max(1, _itemsInPage)));
+            numPages.text = $"/{_totalPages}";
+            pageContent.SetActive(_totalPages > 1);
+
+            if (_totalHeroIds.Count == 0) {
+                _onSelectAll?.Invoke(false);
+            } else {
+                _onSelectAll?.Invoke(_heroesBurnIds.Count >= _totalHeroIds.Count);
+            }
+
+            return all
+                .Skip(_currentPage * _itemsInPage)
+                .Take(_itemsInPage)
+                .ToList();
         }
 
         private List<PlayerData> SortPlayerData(
@@ -1091,6 +1182,16 @@ namespace Scenes.FarmingScene.Scripts {
             _chooseMode = ChooseMode.InventoryBurn;
             _excludeHeroIds = excludeHeroIds;
             OnWillHide(() => { callBackBurnHeroId?.Invoke(_heroesIdBurn.ToArray()); });
+            UpdateUIInventoryBurnHero();
+        }
+
+        public void SetChooseHeroForRepairShield(HeroId[] excludeHeroIds,
+            Action<PlayerData[]> callBackSelected) {
+            _chooseMode = ChooseMode.RepairShield;
+            _excludeHeroIds = excludeHeroIds;
+            // Opens already sorted by the lowest current shield
+            Order2 = SortOrder2.LowestShieldFirst;
+            OnWillHide(() => { callBackSelected?.Invoke(_heroesIdBurn.ToArray()); });
             UpdateUIInventoryBurnHero();
         }
 
@@ -1229,7 +1330,8 @@ namespace Scenes.FarmingScene.Scripts {
             InventoryBurn,
             InventoryFusion,
             PreviewSummary,
-            MultiActiveToggle
+            MultiActiveToggle,
+            RepairShield
         }
     }
 }
