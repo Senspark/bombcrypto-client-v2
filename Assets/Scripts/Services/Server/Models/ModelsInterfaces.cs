@@ -477,6 +477,13 @@ namespace App {
         public int HeroesSize { get; }
     }
 
+    public interface IRepairShieldBatchResponse {
+        int[] RepairedHeroIds { get; }
+        int[] FailedHeroIds { get; }
+        int SuccessCount { get; }
+        int FailedCount { get; }
+    }
+
     public interface IMemberClubInfo {
         string Name { get; }
         double PointTotal { get; }

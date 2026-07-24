@@ -30,6 +30,7 @@ namespace App.BomberLand {
         Task<IRockPackage> BuyRockPack(string packageName, BlockRewardType rewardType);
         Task<bool> StartAutoMine();
         Task RepairShield(HeroId heroId, BlockRewardType rewardType);
+        Task<IRepairShieldBatchResponse> RepairShieldBatch(int[] heroIds, BlockRewardType rewardType);
         Task<bool> ChangeMiningToken(string type, double bcoinInWallet);
         Task<IAirDropResponse> GetAirDrop();
         Task<IAirDropClaimResponse> ClaimAirDrop(string nftCode);

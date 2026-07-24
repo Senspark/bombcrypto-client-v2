@@ -271,6 +271,22 @@ namespace App.BomberLand {
             var response = await _serverDispatcher.SendCmd(new CmdRepairShield(data));
             OnRepairShield(response);
         }
+
+        public async Task<IRepairShieldBatchResponse> RepairShieldBatch(int[] heroIds, BlockRewardType blockRewardType) {
+            var data = new SFSObject().Apply(it => {
+                var rewardType = blockRewardType switch {
+                    BlockRewardType.Senspark => 7,
+                    BlockRewardType.BCoinDeposited => 4,
+                    BlockRewardType.Rock => 23,
+                    _ => throw new Exception("Invalid Request")
+                };
+                it.PutIntArray("hero_list", heroIds);
+                it.PutInt("reward_type", rewardType);
+            });
+
+            var response = await _serverDispatcher.SendCmd(new CmdRepairShieldBatch(data));
+            return OnRepairShieldBatch(response);
+        }
         
         public async Task<bool> ChangeMiningToken(string type, double bcoinInWallet) {
             var data = new SFSObject().Apply(it => {

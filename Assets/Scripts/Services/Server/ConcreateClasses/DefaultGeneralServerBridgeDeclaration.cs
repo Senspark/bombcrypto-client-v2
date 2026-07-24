@@ -868,6 +868,18 @@ namespace App.BomberLand {
             }
         }
         
+        private class RepairShieldBatchResponse : IRepairShieldBatchResponse {
+            public int[] RepairedHeroIds { get; }
+            public int[] FailedHeroIds { get; }
+            public int SuccessCount => RepairedHeroIds.Length;
+            public int FailedCount => FailedHeroIds.Length;
+
+            public RepairShieldBatchResponse(int[] repairedHeroIds, int[] failedHeroIds) {
+                RepairedHeroIds = repairedHeroIds;
+                FailedHeroIds = failedHeroIds;
+            }
+        }
+
         public class MemberClubInfo : IMemberClubInfo
         {
             public string Name { get; }

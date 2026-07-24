@@ -67,6 +67,7 @@ public static partial class SFSDefine {
         public const string CROSSCHAIN_DEPOSIT_BRIDGE_NOTIFY = "CROSSCHAIN_DEPOSIT_BRIDGE_NOTIFY";
         public const string BUY_ROCK_V2 = "BUY_ROCK_V2";
         public const string REPAIR_SHIELD_V2 = "REPAIR_SHIELD_V2";
+        public const string REPAIR_SHIELD_BATCH = "REPAIR_SHIELD_BATCH";
         public const string CHANGE_MINING_TOKEN = "CHANGE_MINING_TOKEN";
         public const string GET_AIR_DROP = "GET_AIR_DROP";
         public const string CLAIM_AIRDROP = "CLAIM_AIRDROP";
