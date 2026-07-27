@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -78,6 +78,8 @@ namespace App.BomberLand {
             public int Capacity { get; }
             public bool IsActive { get; }
             public long EndTimeRent { get; }
+            public int RentalState { get; }
+            public long RentalEndTime { get; }
 
             public static IHouseDetails Parse(ISFSObject data) {
                 var details = data.GetUtfString("house_gen_id");
@@ -86,7 +88,10 @@ namespace App.BomberLand {
                 if (data.ContainsKey("end_time_rent")) {
                     endTimeRent = data.GetLong("end_time_rent");
                 }
-                return new HouseDetails(details, active, endTimeRent);
+                // P2P rental (closed on the market site); absent on networks that do not use it
+                var rentalState = data.ContainsKey("rental_state") ? data.GetInt("rental_state") : 0;
+                var rentalEndTime = data.ContainsKey("rental_end_time") ? data.GetLong("rental_end_time") : 0L;
+                return new HouseDetails(details, active, endTimeRent, rentalState, rentalEndTime);
             }
             
             public static IHouseDetails[] ParseOldSeasonArray(ISFSObject data) {
@@ -100,7 +105,8 @@ namespace App.BomberLand {
             }
             
 
-            private HouseDetails(string details, bool active, long endTimeRent) {
+            private HouseDetails(string details, bool active, long endTimeRent,
+                int rentalState = 0, long rentalEndTime = 0L) {
                 _details = details;
                 var detailsInt = BigInteger.Parse(details);
                 Id = (int) (detailsInt & ((1 << 30) - 1));
@@ -109,6 +115,8 @@ namespace App.BomberLand {
                 Capacity = (int) ((detailsInt >> 60) & 31);
                 IsActive = active;
                 EndTimeRent = endTimeRent;
+                RentalState = rentalState;
+                RentalEndTime = rentalEndTime;
             }
         }
 

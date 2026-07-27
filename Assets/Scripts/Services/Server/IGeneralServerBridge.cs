@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Game.Dialog;
@@ -23,6 +23,13 @@ namespace App.BomberLand {
         Task<float> ConfirmApproveClaimSuccess(int code);
         Task<IChestReward> SyncDeposited(DepositSyncTarget target = DepositSyncTarget.Both);
         IChestReward SyncDeposited(ISFSObject data);
+
+        /// <summary>
+        /// P2P house rental push (closed and managed on the market site).
+        /// Updates the balance and resyncs the houses, since a rented house
+        /// enters and leaves the player's list along with the contract.
+        /// </summary>
+        void OnHouseRentalUpdatePush(ISFSObject data);
         Task<BridgeWithdrawResult> RequestCrosschainBridgeWithdraw(int blockRewardType, string chain);
         Task NotifyCrosschainBridge(string kind, int blockRewardType, string chain, string txHash = null);
         Task<IAutoMinePackages> GetAutoMinePrice();
