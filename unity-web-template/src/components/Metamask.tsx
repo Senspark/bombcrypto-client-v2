@@ -1,5 +1,6 @@
 import {useLocalStorageState} from "ahooks";
 import {useState, useEffect} from "react";
+import {createPortal} from "react-dom";
 import {ethers} from "ethers";
 
 import boardBG from '@assets/images/webgame polygon/boardrpc_bg.png';
@@ -105,7 +106,9 @@ const RightBox = styled.div`
 `;
 
 interface TextInputProps {
-    hasError?: boolean;
+    // Transient prop ($): styled-components keeps it out of the DOM, which was
+    // making React complain about an unknown `hasError` attribute on <input>.
+    $hasError?: boolean;
 }
 
 const TextInput = styled.input<TextInputProps>`
@@ -120,7 +123,7 @@ const TextInput = styled.input<TextInputProps>`
     outline: none;
   
     &::placeholder {
-      color: ${({ hasError }) => (hasError ? 'red' : '#58333c')};
+      color: ${({ $hasError }) => ($hasError ? 'red' : '#58333c')};
       font-weight: bold;
       font-size: 20px;
     }
@@ -197,21 +200,23 @@ const Metamask = (props: IProps) => {
     
     const [canClose, setCanClose] = useState<boolean>(true);
 
-    //DevHoang: Add new airdrop
-    const [ignoreBnb] = useState(true);
-    const [ignorePolygon] = useState(true);
-    const [ignoreRonin] = useState(false);
-    const [ignoreBase] = useState(false);
-    const [ignoreViction] = useState(false);
+    // Which networks this build offers. The same flag drives both the input
+    // shown and whether OK saves it - they used to disagree, so the dialog
+    // listed the networks it would never save and hid the ones it did.
+    const [showBnb] = useState(true);
+    const [showPolygon] = useState(true);
+    const [showRonin] = useState(false);
+    const [showBase] = useState(false);
+    const [showViction] = useState(false);
 
     const onModalOk = async () => {
         setCanClose(false);
         let isError = false;
-        isError = await onModalOkBnb(ignoreBnb);
-        isError = await onModalOkPolygon(ignorePolygon);
-        isError = await onModalOkRonin(ignoreRonin);
-        isError = await onModalOkBase(ignoreBase);
-        isError = await onModalOkViction(ignoreViction);
+        isError = await onModalOkBnb(showBnb);
+        isError = await onModalOkPolygon(showPolygon);
+        isError = await onModalOkRonin(showRonin);
+        isError = await onModalOkBase(showBase);
+        isError = await onModalOkViction(showViction);
 
         setCanClose(true);
         if (!isError && canClose) {
@@ -221,11 +226,11 @@ const Metamask = (props: IProps) => {
 
     const onModalCancel = () => {
         if (canClose) {
-            onModalCancelBnb(ignoreBnb);
-            onModalCancelPolygon(ignorePolygon);
-            onModalCancelRonin(ignoreRonin);
-            onModalCancelBase(ignoreBase);
-            onModalCancelViction(ignoreViction);
+            onModalCancelBnb(showBnb);
+            onModalCancelPolygon(showPolygon);
+            onModalCancelRonin(showRonin);
+            onModalCancelBase(showBase);
+            onModalCancelViction(showViction);
 
             props.setOpen(false);
         }
@@ -233,11 +238,11 @@ const Metamask = (props: IProps) => {
 
     useEffect(() => {
         if (props.open) {
-            setRpcInputBnb(ignoreBnb);
-            setRpcInputPolygon(ignorePolygon);
-            setRpcInputRonin(ignoreRonin);
-            setRpcInputBase(ignoreBase);
-            setRpcInputViction(ignoreViction);
+            setRpcInputBnb(showBnb);
+            setRpcInputPolygon(showPolygon);
+            setRpcInputRonin(showRonin);
+            setRpcInputBase(showBase);
+            setRpcInputViction(showViction);
         }
     }, [props.open]);
 
@@ -436,7 +441,7 @@ const Metamask = (props: IProps) => {
                 <TitleText>Custom RPC</TitleText>
                 <BoardBackground/>
                 <ItemWrapper>
-                    {ignoreBnb ? null : (
+                    {!showBnb ? null : (
                         <ItemBackground>
                             <LeftBox>
                                 <IconImage>
@@ -450,12 +455,12 @@ const Metamask = (props: IProps) => {
                                     value={rpcBnbInput}
                                     onChange={(e) => setRpcBnbInput(e.target.value)}
                                     placeholder={rpcBnbDesc}
-                                    hasError={rpcBnbError !== ""}
+                                    $hasError={rpcBnbError !== ""}
                                 />
                             </RightBox>
                         </ItemBackground>
                     )}
-                    {ignorePolygon ? null : (
+                    {!showPolygon ? null : (
                         <ItemBackground>
                             <LeftBox>
                                 <IconImage>
@@ -469,12 +474,12 @@ const Metamask = (props: IProps) => {
                                     value={rpcPolygonInput}
                                     onChange={(e) => setRpcPolygonInput(e.target.value)}
                                     placeholder={rpcPolygonDesc}
-                                    hasError={rpcPolygonError !== ""}
+                                    $hasError={rpcPolygonError !== ""}
                                 />
                             </RightBox>
                         </ItemBackground>
                     )}
-                    {ignoreRonin ? null : (
+                    {!showRonin ? null : (
                         <ItemBackground>
                             <LeftBox>
                                 <IconImage>
@@ -488,12 +493,12 @@ const Metamask = (props: IProps) => {
                                     value={rpcRoninInput}
                                     onChange={(e) => setRpcRoninInput(e.target.value)}
                                     placeholder={rpcRoninDesc}
-                                    hasError={rpcRoninError !== ""}
+                                    $hasError={rpcRoninError !== ""}
                                 />
                             </RightBox>
                         </ItemBackground>
                     )}
-                    {ignoreBase ? null : (
+                    {!showBase ? null : (
                         <ItemBackground>
                             <LeftBox>
                                 <IconImage>
@@ -507,12 +512,12 @@ const Metamask = (props: IProps) => {
                                     value={rpcBaseInput}
                                     onChange={(e) => setRpcBaseInput(e.target.value)}
                                     placeholder={rpcBaseDesc}
-                                    hasError={rpcBaseError !== ""}
+                                    $hasError={rpcBaseError !== ""}
                                 />
                             </RightBox>
                         </ItemBackground>
                     )}
-                    {ignoreViction ? null : (
+                    {!showViction ? null : (
                         <ItemBackground>
                             <LeftBox>
                                 <IconImage>
@@ -526,7 +531,7 @@ const Metamask = (props: IProps) => {
                                     value={rpcVictionInput}
                                     onChange={(e) => setRpcVictionInput(e.target.value)}
                                     placeholder={rpcVictionDesc}
-                                    hasError={rpcVictionError !== ""}
+                                    $hasError={rpcVictionError !== ""}
                                 />
                             </RightBox>
                         </ItemBackground>
@@ -538,11 +543,12 @@ const Metamask = (props: IProps) => {
             </BoardWrapper>
         </FullScreenWrapper>
     );
-    return (
-        <>
-            {modal}
-        </>
-    );
+    // The button that opens this dialog lives inside the board that
+    // TemplateDisplay scales with `transform: scale()`. A transformed ancestor
+    // becomes the containing block of its `position: fixed` descendants, so
+    // without the portal the overlay is laid out from the top of that board
+    // instead of the top of the window - and ends up below the fold.
+    return createPortal(modal, document.body);
 };
 
     async function isValidUrl(urlStr: string, networkId: number): Promise<boolean> {
