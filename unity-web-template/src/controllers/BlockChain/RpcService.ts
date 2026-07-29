@@ -4,6 +4,10 @@ import Logger from '../Logger.ts';
 
 const TAG = '[RPC]';
 
+// Bounds how long a single RPC candidate/list-fetch can stall this (non-blocking) probe.
+const RPC_TEST_TIMEOUT_MS = 5000;
+const RPC_LIST_FETCH_TIMEOUT_MS = 5000;
+
 // localStorage keys for the fetched/cached RPC lists
 const STORAGE_KEY_BSC = '_rpc_list_bsc';
 const STORAGE_KEY_POLYGON = '_rpc_list_polygon';
@@ -34,6 +38,16 @@ const HARDCODE_POLYGON_MAINNET: string[] = [
 const HARDCODE_POLYGON_TESTNET: string[] = [
     'https://polygon-amoy.drpc.org',
 ];
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+    return new Promise<T>((resolve, reject) => {
+        const timer = setTimeout(() => reject(new Error(`Timed out after ${ms}ms`)), ms);
+        promise.then(
+            (value) => { clearTimeout(timer); resolve(value); },
+            (err) => { clearTimeout(timer); reject(err); }
+        );
+    });
+}
 
 export class RpcService {
     private _bscRpcs: string[] = [];
@@ -148,7 +162,9 @@ export class RpcService {
         if (this._rpcHost) {
             const endpoint = `${this._rpcHost}/${network}`;
             try {
-                const response = await fetch(endpoint);
+                const controller = new AbortController();
+                const abortTimer = setTimeout(() => controller.abort(), RPC_LIST_FETCH_TIMEOUT_MS);
+                const response = await fetch(endpoint, {signal: controller.signal}).finally(() => clearTimeout(abortTimer));
                 if (response.ok) {
                     const data = await response.json() as string[];
                     if (Array.isArray(data) && data.length > 0) {
@@ -193,7 +209,7 @@ export class RpcService {
         const results = await Promise.allSettled(
             unique.map(async (rpc) => {
                 const provider = new JsonRpcProvider(rpc);
-                await provider.getBlockNumber();
+                await withTimeout(provider.getBlockNumber(), RPC_TEST_TIMEOUT_MS);
                 return rpc;
             })
         );
