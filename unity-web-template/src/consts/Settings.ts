@@ -67,7 +67,7 @@ export class sessionStorageSettings {
     }
     private readonly _isProd: boolean;
     
-    getSessionKey = (): SessionKey => {
+    getSessionKey(): SessionKey {
         if (this._isProd) {
             return {
                 isUseWallet: 'app/is_use_wallet',
@@ -78,5 +78,5 @@ export class sessionStorageSettings {
             isUseWallet: 'test/is_use_wallet',
         }
     }
-    
+
 }
