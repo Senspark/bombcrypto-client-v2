@@ -56,5 +56,10 @@ namespace Share.Scripts.Communicate.UnityReact {
         public const string BRIDGE_GET_WITHDRAW_ENABLED = "BRIDGE_GET_WITHDRAW_ENABLED";
         public const string BRIDGE_DEPOSIT = "BRIDGE_DEPOSIT";
         public const string BRIDGE_WITHDRAW = "BRIDGE_WITHDRAW";
+        public const string NATIVE_GET_WALLET_BALANCE = "NATIVE_GET_WALLET_BALANCE";
+        public const string NATIVE_GET_DEPOSIT_ENABLED = "NATIVE_GET_DEPOSIT_ENABLED";
+        public const string NATIVE_GET_WITHDRAW_ENABLED = "NATIVE_GET_WITHDRAW_ENABLED";
+        public const string NATIVE_DEPOSIT = "NATIVE_DEPOSIT";
+        public const string NATIVE_WITHDRAW = "NATIVE_WITHDRAW";
     }
 }

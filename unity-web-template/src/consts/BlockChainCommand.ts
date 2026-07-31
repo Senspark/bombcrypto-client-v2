@@ -55,6 +55,11 @@ class BlockChainCommand {
     static readonly BRIDGE_GET_WITHDRAW_ENABLED: string = "BRIDGE_GET_WITHDRAW_ENABLED";
     static readonly BRIDGE_DEPOSIT: string = "BRIDGE_DEPOSIT";
     static readonly BRIDGE_WITHDRAW: string = "BRIDGE_WITHDRAW";
+    static readonly NATIVE_GET_WALLET_BALANCE: string = "NATIVE_GET_WALLET_BALANCE";
+    static readonly NATIVE_GET_DEPOSIT_ENABLED: string = "NATIVE_GET_DEPOSIT_ENABLED";
+    static readonly NATIVE_GET_WITHDRAW_ENABLED: string = "NATIVE_GET_WITHDRAW_ENABLED";
+    static readonly NATIVE_DEPOSIT: string = "NATIVE_DEPOSIT";
+    static readonly NATIVE_WITHDRAW: string = "NATIVE_WITHDRAW";
 }
 
 export default BlockChainCommand;

@@ -24,6 +24,7 @@ public static partial class SFSDefine {
         public const string GET_COIN_RANKING_V2 = "GET_COIN_RANKING_V2";
         public const string GET_ALL_SEASON_COIN_RANKING_V2 = "GET_ALL_SEASON_COIN_RANKING_V2";
         public const string AUTO_MINE_PRICE_V2 = "AUTO_MINE_PRICE_V2";
+        public const string AUTO_MINE_PRICE_V3 = "AUTO_MINE_PRICE_V3";
         public const string START_AUTO_MINE_V2 = "START_AUTO_MINE_V2";
         public const string SYNC_HOUSE_V4 = "SYNC_HOUSE_V4";
         public const string BUY_AUTO_MINE_V2 = "BUY_AUTO_MINE_V2";
@@ -65,6 +66,8 @@ public static partial class SFSDefine {
         public const string SYNC_DEPOSITED_V4 = "SYNC_DEPOSITED_V4";
         public const string CROSSCHAIN_DEPOSIT_BRIDGE_WITHDRAW = "CROSSCHAIN_DEPOSIT_BRIDGE_WITHDRAW";
         public const string CROSSCHAIN_DEPOSIT_BRIDGE_NOTIFY = "CROSSCHAIN_DEPOSIT_BRIDGE_NOTIFY";
+        public const string WITHDRAW_NATIVE = "WITHDRAW_NATIVE";
+        public const string SYNC_NATIVE_DEPOSIT = "SYNC_NATIVE_DEPOSIT";
         public const string BUY_ROCK_V2 = "BUY_ROCK_V2";
         public const string REPAIR_SHIELD_V2 = "REPAIR_SHIELD_V2";
         public const string REPAIR_SHIELD_BATCH = "REPAIR_SHIELD_BATCH";
@@ -95,6 +98,7 @@ public static partial class SFSDefine {
         public const string GET_MIN_STAKE_HERO_V2 = "GET_MIN_STAKE_HERO_V2";
         public const string GET_REPAIR_SHIELD_CONFIG_V2 = "GET_REPAIR_SHIELD_CONFIG_V2";
         public const string GET_ROCK_PACK_CONFIG_V2 = "GET_ROCK_PACK_CONFIG_V2";
+        public const string GET_ROCK_PACK_CONFIG_V3 = "GET_ROCK_PACK_CONFIG_V3";
         public const string GET_BURN_HERO_CONFIG_V2 = "GET_BURN_HERO_CONFIG_V2";
         public const string CREATE_ROCK_V2 = "CREATE_ROCK_V2";
         public const string GET_UPGRADE_SHIELD_CONFIG_V2 = "GET_UPGRADE_SHIELD_CONFIG_V2";
@@ -164,6 +168,7 @@ public static partial class SFSDefine {
         public const string GET_ON_SELL_V2 = "GET_ON_SELL_V2";
         public const string GET_FREE_HERO_TRADITIONAL = "GET_FREE_HERO_TRADITIONAL";
         public const string GET_GEM_SHOP_V2 = "GET_GEM_SHOP_V2";
+        public const string GET_GEM_SHOP_V3 = "GET_GEM_SHOP_V3";
         public const string GET_GOLD_SHOP_V2 = "GET_GOLD_SHOP_V2";
         public const string BUY_GOLD_V2 = "BUY_GOLD_V2";
         public const string GET_HEROES_TRADITIONAL_V3 = "GET_HEROES_TRADITIONAL_V3";
@@ -196,6 +201,7 @@ public static partial class SFSDefine {
         public const string DELETE_USER_V2 = "DELETE_USER_V2";
         public const string ENTER_PASSCODE = "ENTER_PASSCODE";
         public const string BUY_GEM_V2 = "BUY_GEM_V2";
+        public const string BUY_GEM_BY_NATIVE_TOKEN = "BUY_GEM_BY_NATIVE_TOKEN";
         public const string BUY_PACK_V2 = "BUY_PACK_V2";
         public const string GET_PACK_SHOP_V2 = "GET_PACK_SHOP_V2";
         public const string CHECK_NO_ADS_V2 = "CHECK_NO_ADS_V2";

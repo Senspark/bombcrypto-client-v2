@@ -61,5 +61,13 @@ namespace App {
         Task<BridgeTxResult> BridgeDeposit(string chain, string walletAddress, string token, string amountWei);
         Task<BridgeTxResult> BridgeWithdraw(string chain, string walletAddress, string token, string otherDeposited,
             long deadline, string signature);
+
+        // Native BNB / POL vault. deposit() is payable and withdraw is msg.sender-bound, so the signer
+        // wallet is implicit — no walletAddress param (unlike the ERC20 bridge reads).
+        Task<double> GetNativeWalletBalance(string chain, string walletAddress);
+        Task<bool> GetNativeDepositEnabled(string chain);
+        Task<bool> GetNativeWithdrawEnabled(string chain);
+        Task<BridgeTxResult> NativeDeposit(string chain, string amountWei);
+        Task<BridgeTxResult> NativeWithdraw(string chain, string allowedCumulative, long deadline, string signature);
     }
 }

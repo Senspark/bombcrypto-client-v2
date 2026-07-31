@@ -133,6 +133,15 @@ namespace App {
     public interface IAutoMinePackageDetail {
         string Package { get; }
         double Price { get; }
+        List<ITokenPrice> Prices { get; }
+    }
+
+    // One entry per currency an item can be paid with. RewardType is the server wire value and is
+    // deliberately the same int the buy request takes, so it is echoed back verbatim rather than
+    // converted. Empty means the item is not purchasable in-game on this network.
+    public interface ITokenPrice {
+        int RewardType { get; }
+        double Price { get; }
     }
 
     public interface IAutoMineInfo {
@@ -204,6 +213,7 @@ namespace App {
         public int RockAmount { get; set; }
         public double SenPrice { get; set; }
         public double BcoinPrice { get; set; }
+        public List<ITokenPrice> Prices { get; set; }
     }
 
     public interface IRentHousePackageConfigs {

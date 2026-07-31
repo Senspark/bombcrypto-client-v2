@@ -155,7 +155,7 @@ namespace App {
         public async Task<string> GetGemShop() {
             var data = new SFSObject();
             
-            var result = await _serverManager.SendExtensionRequestAsync(new CmdGetGemShop(data));
+            var result = await _serverManager.SendExtensionRequestAsync(new CmdGetGemShopV3(data));
             return result.ToJson();
         }
 

@@ -235,5 +235,26 @@ namespace App {
             long deadline, string signature) {
             return Task.FromResult(new BridgeTxResult { success = true, txHash = "" });
         }
+
+        public virtual Task<double> GetNativeWalletBalance(string chain) {
+            return Task.FromResult(0d);
+        }
+
+        public virtual Task<bool> GetNativeDepositEnabled(string chain) {
+            return Task.FromResult(true);
+        }
+
+        public virtual Task<bool> GetNativeWithdrawEnabled(string chain) {
+            return Task.FromResult(true);
+        }
+
+        public virtual Task<BridgeTxResult> NativeDeposit(string chain, string amountWei) {
+            return Task.FromResult(new BridgeTxResult { success = true, txHash = "" });
+        }
+
+        public virtual Task<BridgeTxResult> NativeWithdraw(string chain, string allowedCumulative, long deadline,
+            string signature) {
+            return Task.FromResult(new BridgeTxResult { success = true, txHash = "" });
+        }
     }
 }

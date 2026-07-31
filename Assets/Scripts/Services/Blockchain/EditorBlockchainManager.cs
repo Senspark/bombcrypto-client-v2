@@ -256,6 +256,29 @@ namespace App {
             return ParseTx(r);
         }
 
+        public override async Task<double> GetNativeWalletBalance(string chain) {
+            return (await Call("NATIVE_GET_WALLET_BALANCE", new { walletAddress = Wallet }, false, NetworkOf(chain))).Value<double>();
+        }
+
+        public override async Task<bool> GetNativeDepositEnabled(string chain) {
+            return (await Call("NATIVE_GET_DEPOSIT_ENABLED", null, false, NetworkOf(chain))).Value<bool>();
+        }
+
+        public override async Task<bool> GetNativeWithdrawEnabled(string chain) {
+            return (await Call("NATIVE_GET_WITHDRAW_ENABLED", null, false, NetworkOf(chain))).Value<bool>();
+        }
+
+        public override async Task<BridgeTxResult> NativeDeposit(string chain, string amountWei) {
+            var r = await Call("NATIVE_DEPOSIT", new { amountWei }, true, NetworkOf(chain));
+            return ParseTx(r);
+        }
+
+        public override async Task<BridgeTxResult> NativeWithdraw(string chain, string allowedCumulative, long deadline,
+            string signature) {
+            var r = await Call("NATIVE_WITHDRAW", new { allowedCumulative, deadline, signature }, true, NetworkOf(chain));
+            return ParseTx(r);
+        }
+
         private static string NetworkOf(string chain) {
             return (chain ?? "").ToUpperInvariant() == "POLYGON" ? "amoy" : "bsctestnet";
         }

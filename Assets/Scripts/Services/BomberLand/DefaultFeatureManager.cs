@@ -62,6 +62,7 @@ namespace App {
         public bool EnableShopSwapGem => _bridge.EnableShopSwapGem;
         public bool EnableShopChest => _bridge.EnableShopChest;
         public bool EnableShopGem => _bridge.EnableShopGem;
+        public bool EnableBuyGemByNativeToken => _bridge.EnableBuyGemByNativeToken;
         public bool EnableInventoryListingItem => _bridge.EnableInventoryListingItem;
         public bool EnableTreasureHunt => _bridge.EnableTreasureHunt;
         public bool ShowHeroSIcon => _bridge.ShowHeroSIcon;

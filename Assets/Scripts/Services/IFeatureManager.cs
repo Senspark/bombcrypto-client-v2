@@ -43,6 +43,7 @@ namespace App {
         bool EnableShopSwapGem { get; }
         bool EnableShopChest { get; }
         bool EnableShopGem { get; }
+        bool EnableBuyGemByNativeToken { get; }
         bool EnableInventoryListingItem { get; }
         bool EnableTreasureHunt { get; }
         bool ShowHeroSIcon { get; }

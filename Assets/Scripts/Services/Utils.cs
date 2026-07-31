@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -119,6 +120,98 @@ namespace App {
         
         public static string FormatBaseValue(double value) {
             return $"{value:#,0.######}";
+        }
+
+        // Converts to .NET's shortest round-trip decimal string first (exact digits, no scientific
+        // notation), then formats purely on that string — never re-derives precision from the double
+        // a second time.
+        private static (string sign, string intPart, string fracPart) SmartMoneyDigits(double value) {
+            if (value == 0) return ("", "0", "");
+            var sign = value < 0 ? "-" : "";
+            var abs = Math.Abs(value);
+            var s = abs.ToString("G", CultureInfo.InvariantCulture);
+
+            var eIndex = s.IndexOfAny(new[] { 'e', 'E' });
+            string intPart, fracPart;
+            if (eIndex >= 0) {
+                var mantissa = s.Substring(0, eIndex);
+                var exp = int.Parse(s.Substring(eIndex + 1), CultureInfo.InvariantCulture);
+                var dotIndex = mantissa.IndexOf('.');
+                var digits = dotIndex >= 0 ? mantissa.Remove(dotIndex, 1) : mantissa;
+                var pointPos = (dotIndex >= 0 ? dotIndex : mantissa.Length) + exp;
+                if (pointPos <= 0) {
+                    digits = new string('0', -pointPos) + digits;
+                    pointPos = 0;
+                } else if (pointPos >= digits.Length) {
+                    digits += new string('0', pointPos - digits.Length);
+                }
+                intPart = pointPos == 0 ? "0" : digits.Substring(0, pointPos);
+                fracPart = pointPos < digits.Length ? digits.Substring(pointPos) : "";
+            } else {
+                var dotIndex = s.IndexOf('.');
+                if (dotIndex < 0) {
+                    intPart = s;
+                    fracPart = "";
+                } else {
+                    intPart = s.Substring(0, dotIndex);
+                    fracPart = s.Substring(dotIndex + 1);
+                }
+            }
+            fracPart = fracPart.TrimEnd('0');
+            intPart = intPart.TrimStart('0');
+            if (intPart.Length == 0) intPart = "0";
+            return (sign, intPart, fracPart);
+        }
+
+        private static string SmartMoneyGroupThousands(string digits) {
+            if (digits.Length <= 3) return digits;
+            var sb = new StringBuilder();
+            var firstGroup = digits.Length % 3;
+            if (firstGroup == 0) firstGroup = 3;
+            sb.Append(digits, 0, firstGroup);
+            for (var i = firstGroup; i < digits.Length; i += 3) {
+                sb.Append(',');
+                sb.Append(digits, i, 3);
+            }
+            return sb.ToString();
+        }
+
+        // Only cap in the pipeline: how many characters of fractional detail to show, last resort only.
+        private const int SmartMoneyFracCharBudget = 7;
+
+        public static string FormatSmartMoney(double value, bool forceInteger) {
+            if (double.IsNaN(value) || double.IsInfinity(value)) return "0";
+
+            if (forceInteger) {
+                var rounded = Math.Round(value, MidpointRounding.AwayFromZero);
+                var (roundedSign, roundedIntPart, _) = SmartMoneyDigits(rounded);
+                return roundedSign + SmartMoneyGroupThousands(roundedIntPart);
+            }
+
+            var (sign, intPart, fracPart) = SmartMoneyDigits(value);
+            if (fracPart.Length == 0) {
+                return sign + SmartMoneyGroupThousands(intPart);
+            }
+
+            // SmartMoneyDigits already trimmed trailing zeros, so only the cut can expose new ones.
+            var cutFrac = fracPart.Length <= SmartMoneyFracCharBudget
+                ? fracPart
+                : fracPart.Substring(0, SmartMoneyFracCharBudget).TrimEnd('0');
+
+            // Everything the budget can express is zero, so the value rounds to its integer part —
+            // showing "0.0000000" instead would read as a precise zero, which it is not.
+            if (cutFrac.Length == 0) {
+                return sign + SmartMoneyGroupThousands(intPart);
+            }
+            return sign + SmartMoneyGroupThousands(intPart) + "." + cutFrac;
+        }
+
+        public static string FormatSmartMoney(float value, bool forceInteger) {
+            return FormatSmartMoney((double) value, forceInteger);
+        }
+
+        public static string FormatSmartMoney(int value) {
+            return FormatSmartMoney((double) value, true);
         }
 
         public static string ConvertToShortString(int value) {

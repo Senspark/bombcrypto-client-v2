@@ -192,5 +192,14 @@ namespace App {
         Task<bool> GetBridgeWithdrawEnabled(string chain);
         Task<BridgeTxResult> BridgeDeposit(string chain, string token, string amountWei);
         Task<BridgeTxResult> BridgeWithdraw(string chain, string token, string otherDeposited, long deadline, string signature);
+
+        // Native BNB / POL vault (DepositNative). Deposit is payable (no token, no approve); withdraw
+        // relays the server signature and the contract self-computes amount = allowedCumulative −
+        // withdrawn[user]. allowedCumulative is an exact wei string, relayed verbatim.
+        Task<double> GetNativeWalletBalance(string chain);
+        Task<bool> GetNativeDepositEnabled(string chain);
+        Task<bool> GetNativeWithdrawEnabled(string chain);
+        Task<BridgeTxResult> NativeDeposit(string chain, string amountWei);
+        Task<BridgeTxResult> NativeWithdraw(string chain, string allowedCumulative, long deadline, string signature);
     }
 }

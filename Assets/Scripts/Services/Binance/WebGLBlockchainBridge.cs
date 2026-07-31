@@ -965,6 +965,81 @@ namespace App {
             }
         }
 
+        public async Task<double> GetNativeWalletBalance(string chain, string walletAddress) {
+            try {
+                _logManager.Log();
+                var data = new JObject { ["chain"] = chain, ["walletAddress"] = walletAddress };
+                var response = await _unityCommunication.UnityToReact.CallBlockChain(BlockChainCommand.NATIVE_GET_WALLET_BALANCE, data);
+                _logManager.Log($"result = {response}");
+                return double.Parse(response, NumberStyles.Number, CultureInfo.InvariantCulture);
+            } catch (Exception ex) {
+                Debug.LogException(ex);
+                throw;
+            }
+        }
+
+        public async Task<bool> GetNativeDepositEnabled(string chain) {
+            try {
+                _logManager.Log();
+                var data = new JObject { ["chain"] = chain };
+                var response = await _unityCommunication.UnityToReact.CallBlockChain(BlockChainCommand.NATIVE_GET_DEPOSIT_ENABLED, data);
+                _logManager.Log($"result = {response}");
+                return bool.TryParse(response, out var enabled) && enabled;
+            } catch (Exception ex) {
+                Debug.LogException(ex);
+                throw;
+            }
+        }
+
+        public async Task<bool> GetNativeWithdrawEnabled(string chain) {
+            try {
+                _logManager.Log();
+                var data = new JObject { ["chain"] = chain };
+                var response = await _unityCommunication.UnityToReact.CallBlockChain(BlockChainCommand.NATIVE_GET_WITHDRAW_ENABLED, data);
+                _logManager.Log($"result = {response}");
+                return bool.TryParse(response, out var enabled) && enabled;
+            } catch (Exception ex) {
+                Debug.LogException(ex);
+                throw;
+            }
+        }
+
+        public async Task<BridgeTxResult> NativeDeposit(string chain, string amountWei) {
+            try {
+                _logManager.Log();
+                var data = new JObject {
+                    ["chain"] = chain,
+                    ["amountWei"] = amountWei
+                };
+                var response = await _unityCommunication.UnityToReact.CallBlockChain(BlockChainCommand.NATIVE_DEPOSIT, data);
+                var result = JsonConvert.DeserializeObject<BridgeTxResult>(response) ?? new BridgeTxResult { success = false, txHash = "" };
+                _logManager.Log($"native deposit success={result.success} tx={result.txHash}");
+                return result;
+            } catch (Exception ex) {
+                Debug.LogException(ex);
+                throw;
+            }
+        }
+
+        public async Task<BridgeTxResult> NativeWithdraw(string chain, string allowedCumulative, long deadline, string signature) {
+            try {
+                _logManager.Log();
+                var data = new JObject {
+                    ["chain"] = chain,
+                    ["allowedCumulative"] = allowedCumulative,
+                    ["deadline"] = deadline,
+                    ["signature"] = signature
+                };
+                var response = await _unityCommunication.UnityToReact.CallBlockChain(BlockChainCommand.NATIVE_WITHDRAW, data);
+                var result = JsonConvert.DeserializeObject<BridgeTxResult>(response) ?? new BridgeTxResult { success = false, txHash = "" };
+                _logManager.Log($"native withdraw success={result.success} tx={result.txHash}");
+                return result;
+            } catch (Exception ex) {
+                Debug.LogException(ex);
+                throw;
+            }
+        }
+
 #warning This method is not used
         public async Task<bool> BirthdayEvent_IsUserUsedDiscount(string walletAddress) {
             try {

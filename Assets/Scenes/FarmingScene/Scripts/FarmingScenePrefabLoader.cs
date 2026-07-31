@@ -35,6 +35,7 @@ namespace Scenes.FarmingScene.Scripts {
         public AssetReference dialogDeposit;
         public AssetReference dialogBridgeAmount;
         public AssetReference dialogBridgeWithdrawAmount;
+        public AssetReference dialogNativeAmount;
         public AssetReference bLDialogReward;
         public AssetReference dialogLegacyHeroes;
         public AssetReference dialogConfirmSelect;
@@ -55,6 +56,7 @@ namespace Scenes.FarmingScene.Scripts {
         public AssetReference dialogForge;
         public AssetReference dialogConfirmBurnOrFusion;
         public AssetReference dialogCommunityLink;
+        public AssetReference dialogGemShop;
 
         public override void Initialize() {
             Map = new Dictionary<Type, AssetReference>() {
@@ -82,6 +84,7 @@ namespace Scenes.FarmingScene.Scripts {
                 {typeof(DialogDeposit), dialogDeposit},
                 {typeof(DialogBridgeAmount), dialogBridgeAmount},
                 {typeof(DialogBridgeWithdrawAmount), dialogBridgeWithdrawAmount},
+                {typeof(DialogNativeAmount), dialogNativeAmount},
                 {typeof(BLDialogReward), bLDialogReward},
                 {typeof(DialogLegacyHeroes), dialogLegacyHeroes},
                 {typeof(DialogConfirmSelect), dialogConfirmSelect},
@@ -102,6 +105,7 @@ namespace Scenes.FarmingScene.Scripts {
                 {typeof(DialogForge), dialogForge},
                 {typeof(DialogConfirmBurnOrFusion), dialogConfirmBurnOrFusion},
                 {typeof(DialogCommunityLink), dialogCommunityLink},
+                {typeof(DialogGemShop), dialogGemShop},
             };
             base.Initialize();
         }

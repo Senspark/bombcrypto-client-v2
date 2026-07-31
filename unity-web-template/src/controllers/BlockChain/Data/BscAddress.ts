@@ -65,6 +65,12 @@ export default class BscAddress implements IBlockchainAddress {
             : "0xb34e148821082C7c73f094Be1E194b3474209bba";
     }
 
+    get DepositNativeAddress(): string {
+        return this._production
+            ? "0xd3dDD6A5559fF902E58eA1508d1F6171bB5a1eec"
+            : "0xa32ff6Ea5805cF2D4c5c0900692EACC7d9122340";
+    }
+
     get AirDropAddress(): string {
         return this._production
             ? "0x4b70D3Cd925b21363DB045F9a8B0cf4B16937CeA"

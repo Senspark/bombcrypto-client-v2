@@ -89,6 +89,10 @@ namespace App.BomberLand {
             return chestReward;
         }
         
+        private IChestReward OnBuyGemByNativeToken(ISFSObject data) {
+            return ParseChestReward(data);
+        }
+
         private IRockPackage OnBuyRockPack(ISFSObject data) {
             var info = new RockPackage(data);
             ParseChestReward(data);

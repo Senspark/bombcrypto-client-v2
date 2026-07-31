@@ -48,6 +48,32 @@ namespace App.BomberLand {
         }
     }
 
+    // Native (BNB / POL) withdraw signature. The user relays
+    // withdraw(allowedCumulative, deadline, signature) to ContractAddress on the given chain and
+    // pays their own gas. AllowedCumulative is an exact wei string — relayed verbatim, never parsed
+    // to a float (a 1-wei rounding breaks signature verification). Modeled on BridgeWithdrawResult.
+    public class NativeWithdrawResult {
+        public int Code;
+        public string Message;
+        public string Signature;
+        public string AllowedCumulative;
+        public long Deadline;
+        public string ContractAddress;
+        public long ChainId;
+        public string Chain;
+
+        public NativeWithdrawResult(ISFSObject data) {
+            Code = data.ContainsKey("code") ? data.GetInt("code") : 0;
+            Message = data.ContainsKey("message") ? data.GetUtfString("message") : null;
+            Signature = data.ContainsKey("signature") ? data.GetUtfString("signature") : null;
+            AllowedCumulative = data.ContainsKey("allowed_cumulative") ? data.GetUtfString("allowed_cumulative") : null;
+            Deadline = data.ContainsKey("deadline") ? data.GetLong("deadline") : 0;
+            ContractAddress = data.ContainsKey("contract_address") ? data.GetUtfString("contract_address") : null;
+            ChainId = data.ContainsKey("chain_id") ? data.GetLong("chain_id") : 0;
+            Chain = data.ContainsKey("chain") ? data.GetUtfString("chain") : null;
+        }
+    }
+
     public partial class DefaultGeneralServerBridge {
         private class SendExtensionRequestResult<T> {
             [JsonProperty("ec")]
@@ -134,10 +160,16 @@ namespace App.BomberLand {
         private class AutoMinePackageDetail : IAutoMinePackageDetail {
             public string Package { get; }
             public double Price { get; }
+            public List<ITokenPrice> Prices { get; }
 
+            // V3 moved `price` into `prices[]`; V2 still carries the flat field. Price stays the figure
+            // this user pays in the chain's list currency either way, so the callers that render one
+            // price keep working on both commands.
             public AutoMinePackageDetail(ISFSObject data) {
                 Package = data.GetUtfString("package");
-                Price = data.GetDouble("price");
+                Prices = TokenPrices.Parse(data);
+                var listed = Prices.FindListed();
+                Price = listed?.Price ?? data.GetDouble("price");
             }
         }
 
@@ -644,13 +676,16 @@ namespace App.BomberLand {
             public int RockAmount { get; set; }
             public double SenPrice { get; set; }
             public double BcoinPrice { get; set; }
-            
+            public List<ITokenPrice> Prices { get; set; }
+
+            // V3 replaced sen_price / bcoin_price with `prices[]`; both are kept so the existing BCOIN
+            // and SEN call sites read the same fields on either command.
             public RockPackConfig(ISFSObject data) {
                 PackageName = data.GetUtfString("pack_name");
                 RockAmount = data.GetInt("rock_amount");
-                SenPrice = data.GetDouble("sen_price");
-                BcoinPrice = data.GetDouble("bcoin_price");
-                
+                Prices = TokenPrices.Parse(data);
+                SenPrice = Prices.Find(ServerRewardTypes.Senspark)?.Price ?? data.GetDouble("sen_price");
+                BcoinPrice = Prices.Find(ServerRewardTypes.Bcoin)?.Price ?? data.GetDouble("bcoin_price");
             }
         }
 

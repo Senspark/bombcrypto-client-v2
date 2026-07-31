@@ -274,6 +274,26 @@ namespace App {
         public Task<BridgeTxResult> BridgeWithdraw(string chain, string token, string otherDeposited, long deadline, string signature) {
             return _bridge.BridgeWithdraw(chain, _accountManager.Account, token, otherDeposited, deadline, signature);
         }
+
+        public Task<double> GetNativeWalletBalance(string chain) {
+            return _bridge.GetNativeWalletBalance(chain, _accountManager.Account);
+        }
+
+        public Task<bool> GetNativeDepositEnabled(string chain) {
+            return _bridge.GetNativeDepositEnabled(chain);
+        }
+
+        public Task<bool> GetNativeWithdrawEnabled(string chain) {
+            return _bridge.GetNativeWithdrawEnabled(chain);
+        }
+
+        public Task<BridgeTxResult> NativeDeposit(string chain, string amountWei) {
+            return _bridge.NativeDeposit(chain, amountWei);
+        }
+
+        public Task<BridgeTxResult> NativeWithdraw(string chain, string allowedCumulative, long deadline, string signature) {
+            return _bridge.NativeWithdraw(chain, allowedCumulative, deadline, signature);
+        }
     }
 }
 #endif

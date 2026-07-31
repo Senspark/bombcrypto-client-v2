@@ -77,6 +77,7 @@ namespace Scenes.FarmingScene.Scripts {
         private List<DataWallet> _walletDataFull;
         private DataWallet? _currentSelectedWallet;
         private bool _bridgeWithdrawInFlight;
+        private bool _nativeInFlight;
         private double _bridgeFeePercent = 5;
         private bool _bridgeFeeLoaded;
         private List<DataWallet> _bridgeRows;
@@ -707,6 +708,8 @@ namespace Scenes.FarmingScene.Scripts {
                     });
                 } else if (t is BlockRewardType.BcoinBridge or BlockRewardType.SenBridge) {
                     OpenBridgeDepositDialog(dataWallet);
+                } else if (t is BlockRewardType.BnbDeposited or BlockRewardType.PolDeposited) {
+                    OpenNativeDepositDialog(dataWallet);
                 } else {
                     DialogDeposit.Create().ContinueWith(dialog => {
                         dialog.Init(dataWallet.RefTokenData).Show(DialogCanvas);
@@ -787,6 +790,139 @@ namespace Scenes.FarmingScene.Scripts {
             return isBsc ? RpcTokenCategory.Bcoin : RpcTokenCategory.Bomb;
         }
 
+        // ── Native coin (BNB / POL) deposit + withdraw ─────────────────────────────
+        // Server block-reward-type codes: BNB_DEPOSITED = 31 (BSC), POL_DEPOSITED = 32 (POLYGON).
+        // The reward type is chain-specific, so it also picks the network. Deposit is payable (an
+        // amount dialog); withdraw is withdraw-MAX (no amount) with 0% fee, mirroring BCOIN_DEPOSITED.
+        private static (int serverType, string chain, string symbol) NativeIds(BlockRewardType type) {
+            return type == BlockRewardType.PolDeposited
+                ? (32, DialogBridgeAmount.ChainPolygon, "POL")
+                : (31, DialogBridgeAmount.ChainBsc, "BNB");
+        }
+
+        private void OpenNativeDepositDialog(DataWallet wallet) {
+            var (_, chain, symbol) = NativeIds(wallet.RefRewardType.Type);
+            var networkName = chain == DialogBridgeAmount.ChainBsc ? "BNB Chain" : "Polygon";
+            UniTask.Void(async () => {
+                var waiting = await ShowDialogWaiting();
+                double available;
+                try {
+                    available = await _blockchainManager.GetNativeWalletBalance(chain);
+                } catch (Exception e) {
+                    if (this) _logManager.Log($"[Native] wallet balance read failed {chain}: {e.Message}");
+                    available = 0;
+                } finally {
+                    waiting.Hide();
+                }
+                if (!this) return;
+                var dialog = await DialogNativeAmount.Create();
+                if (!this) return;
+                dialog.Show(symbol, networkName, available, wallet.RefTokenData?.icon, DialogCanvas,
+                    amount => ExecuteNativeDeposit(wallet, chain, amount));
+            });
+        }
+
+        private void ExecuteNativeDeposit(DataWallet wallet, string chain, double amount) {
+            if (_nativeInFlight) return;
+            _nativeInFlight = true;
+            var (serverType, _, _) = NativeIds(wallet.RefRewardType.Type);
+            UniTask.Void(async () => {
+                var waiting = await ShowDialogWaiting();
+                try {
+                    var enabled = await _blockchainManager.GetNativeDepositEnabled(chain);
+                    if (!this) return;
+                    if (!enabled) {
+                        DialogOK.ShowInfo(DialogCanvas, "Info", "Deposit is currently disabled");
+                        return;
+                    }
+                    // 9+9 decimal split keeps the 18-decimal wei exact without a double overflow.
+                    var nano = new BigInteger(Math.Floor(amount * 1e9));
+                    var amountWei = (nano * BigInteger.Pow(10, 9)).ToString();
+                    var res = await _blockchainManager.NativeDeposit(chain, amountWei);
+                    if (!this) return;
+                    if (res.success) {
+                        // Fire the sync hint + pull fresh rewards. Deposit crediting is at confirmed depth,
+                        // so the balance may lag briefly (login + reconciler also converge) — accepted.
+                        await _serverManager.General.SyncNativeDeposit(serverType);
+                        if (!this) return;
+                        await _serverManager.General.GetChestReward();
+                        if (!this) return;
+                        DialogOK.ShowInfo(DialogCanvas, "Info", "Deposit Successfully");
+                    } else {
+                        DialogOK.ShowInfo(DialogCanvas, "Info", "Deposit Failed");
+                    }
+                } catch (Exception e) {
+                    if (this) DialogOK.ShowError(DialogCanvas, e);
+                } finally {
+                    _nativeInFlight = false;
+                    waiting.Hide();
+                }
+            });
+        }
+
+        private void NativeWithdrawFlow(DataWallet wallet) {
+            if (_nativeInFlight) return;
+            var (_, chain, symbol) = NativeIds(wallet.RefRewardType.Type);
+            if (wallet.ClaimValue <= 0) {
+                DialogOK.ShowInfo(DialogCanvas, "Info", "Nothing to withdraw");
+                return;
+            }
+            var networkName = chain == DialogBridgeAmount.ChainBsc ? "BNB Chain" : "Polygon";
+            var desc = $"Withdraw {wallet.ClaimValue:0.#########} {symbol}\n" +
+                       $"Network: {networkName}\n" +
+                       "You receive the full amount (no fee)";
+            UniTask.Void(async () => {
+                var confirm = await DialogConfirm.Create();
+                if (!this) return;
+                confirm.SetInfo(desc, "Confirm", "Cancel",
+                        () => ExecuteNativeWithdraw(wallet, chain), null)
+                    .Show(DialogCanvas);
+            });
+        }
+
+        private void ExecuteNativeWithdraw(DataWallet wallet, string chain) {
+            if (_nativeInFlight) return;
+            _nativeInFlight = true;
+            var (serverType, _, symbol) = NativeIds(wallet.RefRewardType.Type);
+            UniTask.Void(async () => {
+                var waiting = await ShowDialogWaiting();
+                try {
+                    var enabled = await _blockchainManager.GetNativeWithdrawEnabled(chain);
+                    if (!this) return;
+                    if (!enabled) {
+                        DialogOK.ShowInfo(DialogCanvas, "Info", "Withdraw is currently disabled");
+                        return;
+                    }
+                    var res = await _serverManager.General.RequestNativeWithdraw(serverType);
+                    if (!this) return;
+                    if (res.Code != 0 || string.IsNullOrEmpty(res.Signature)) {
+                        DialogOK.ShowInfo(DialogCanvas, "Info", "Cannot withdraw right now");
+                        return;
+                    }
+                    // allowed_cumulative is relayed verbatim (exact wei string) — never parsed to a float.
+                    var tx = await _blockchainManager.NativeWithdraw(chain, res.AllowedCumulative, res.Deadline, res.Signature);
+                    if (!this) return;
+                    if (tx.success) {
+                        await _serverManager.General.SyncNativeDeposit(serverType);
+                        if (!this) return;
+                        await _serverManager.General.GetChestReward();
+                        if (!this) return;
+                        var reward = await DialogBCoinReward.Create();
+                        if (!this) return;
+                        reward.SetReward(new TokenData { displayName = symbol, icon = wallet.RefTokenData?.icon }, tx.net, DialogCanvas)
+                            .Show(DialogCanvas);
+                    } else {
+                        DialogOK.ShowInfo(DialogCanvas, "Info", "Withdraw Failed");
+                    }
+                } catch (Exception e) {
+                    if (this) DialogOK.ShowError(DialogCanvas, e);
+                } finally {
+                    _nativeInFlight = false;
+                    waiting.Hide();
+                }
+            });
+        }
+
         private void OnWithdraw(DataWallet dataWallet) {
             if (_claimTokenManager.Phase == ClaimPhase.None
                 && dataWallet.RefRewardType.Type == BlockRewardType.Hero
@@ -814,6 +950,10 @@ namespace Scenes.FarmingScene.Scripts {
                 case BlockRewardType.BcoinBridge:
                 case BlockRewardType.SenBridge:
                     BridgeWithdrawFlow(dataWallet);
+                    return;
+                case BlockRewardType.BnbDeposited:
+                case BlockRewardType.PolDeposited:
+                    NativeWithdrawFlow(dataWallet);
                     return;
                 default:
                     ClaimOtherToken(dataWallet);

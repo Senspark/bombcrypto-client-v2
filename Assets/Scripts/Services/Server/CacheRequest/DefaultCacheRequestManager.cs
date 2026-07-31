@@ -34,7 +34,7 @@ namespace App {
         };
 
         private static readonly (string, int)[] KeyForOneUser = {
-            (SFSDefine.SFSCommand.GET_GEM_SHOP_V2,3600),
+            (SFSDefine.SFSCommand.GET_GEM_SHOP_V3,3600),
             (SFSDefine.SFSCommand.GET_PACK_SHOP_V2, 600),
             (SFSDefine.SFSCommand.GET_PVP_RANKING_V2, 300),
             (SFSDefine.SFSCommand.GET_COIN_RANKING_V2, 300),

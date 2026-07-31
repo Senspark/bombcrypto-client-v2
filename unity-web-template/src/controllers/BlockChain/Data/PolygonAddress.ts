@@ -59,6 +59,12 @@ export default class PolygonAddress implements IBlockchainAddress {
             : "0x97D80e2914bcBd6F957eE804c7B6fe844A0A1cd7";
     }
 
+    get DepositNativeAddress(): string {
+        return this._production
+            ? "0xEe58fF994552c3314303459AE2D3e4Abde092e5B"
+            : "0x775861412413b8CeACf37069B3476a2C9Be8eFe3";
+    }
+
     get AirDropAddress(): string {
         return "";
     }
