@@ -56,6 +56,7 @@ namespace App {
         public bool EnableShopSwapGem { get; }
         public bool EnableShopChest { get; }
         public bool EnableShopGem { get; }
+        public bool EnableBuyGemByNativeToken { get; }
         public bool EnableInventoryListingItem { get; }
         public bool EnableTreasureHunt { get; }
         public bool ShowHeroSIcon { get; }
@@ -103,6 +104,10 @@ namespace App {
             EnableDailyMission = false;
             EnableShopSwapGem = userFi; // & !Application.isMobilePlatform;
             EnableShopChest = userFi; // && !Application.isMobilePlatform;
+            // Paying with the native balance is the only in-game gem purchase, and it exists only where a
+            // wallet holds BNB / POL. Kept off the mobile builds on purpose: an alternative payment path
+            // for a digital good breaks the app-store rules that the IAP path is there to satisfy.
+            EnableBuyGemByNativeToken = walletOnly && (bscOnly || polygonOnly) && !Application.isMobilePlatform;
             EnableShopGem = Application.isMobilePlatform;
             EnableInventoryListingItem = userFi;
             EnableTreasureHunt = userFi;

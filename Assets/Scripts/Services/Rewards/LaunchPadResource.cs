@@ -21,11 +21,15 @@ namespace Services.Rewards {
         public Sprite vicDeposited;
         public Sprite bcoinBridge;
         public Sprite senBridge;
+        public Sprite bnbDeposited;
+        public Sprite polDeposited;
 
         public Sprite GetIcon(BlockRewardType token, DataType network) {
             return token switch {
                 BlockRewardType.BcoinBridge => bcoinBridge ? bcoinBridge : bcoinDeposited,
                 BlockRewardType.SenBridge => senBridge ? senBridge : sensparkDeposited,
+                BlockRewardType.BnbDeposited => bnbDeposited,
+                BlockRewardType.PolDeposited => polDeposited,
                 BlockRewardType.BCoin => bcoin,
                 BlockRewardType.Hero => network is DataType.BSC or DataType.POLYGON ? bombermanS : bomberman,
                 BlockRewardType.Key => key,
@@ -57,6 +61,8 @@ namespace Services.Rewards {
             if (!ronDeposited) missing.Add(nameof(ronDeposited));
             if (!basDeposited) missing.Add(nameof(basDeposited));
             if (!vicDeposited) missing.Add(nameof(vicDeposited));
+            if (!bnbDeposited) missing.Add(nameof(bnbDeposited));
+            if (!polDeposited) missing.Add(nameof(polDeposited));
             return missing;
         }
     }

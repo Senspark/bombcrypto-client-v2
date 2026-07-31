@@ -29,6 +29,8 @@ namespace App {
                 "VIC_DEPOSITED" => BlockRewardType.VicDeposited,
                 "BCOIN_BRIDGE" => BlockRewardType.BcoinBridge,
                 "SEN_BRIDGE" => BlockRewardType.SenBridge,
+                "BNB_DEPOSITED" => BlockRewardType.BnbDeposited,
+                "POL_DEPOSITED" => BlockRewardType.PolDeposited,
                 _ => BlockRewardType.Other,
             };
         }
@@ -67,7 +69,22 @@ namespace App {
                 BlockRewardType.VicDeposited => "VIC_DEPOSITED",
                 BlockRewardType.BcoinBridge => "BCOIN_BRIDGE",
                 BlockRewardType.SenBridge => "SEN_BRIDGE",
+                BlockRewardType.BnbDeposited => "BNB_DEPOSITED",
+                BlockRewardType.PolDeposited => "POL_DEPOSITED",
                 _ => throw new Exception($"Wrong Block Reward Type {type}")
+            };
+        }
+
+        // Types that are always whole units in-game — any fraction on these is display noise, not
+        // real precision, so callers should round (App.Utils.FormatSmartMoney's forceInteger) rather
+        // than show decimals.
+        public static bool IsIntegerDisplayType(BlockRewardType type) {
+            return type switch {
+                BlockRewardType.Hero => true,
+                BlockRewardType.Rock => true,
+                BlockRewardType.BcoinTicket => true,
+                BlockRewardType.SenTicket => true,
+                _ => false,
             };
         }
 

@@ -9,6 +9,7 @@ using Game.Manager;
 using Scenes.FarmingScene.Scripts;
 
 using Senspark;
+using Server.Models;
 using Services.Server.Exceptions;
 
 using Share.Scripts.Dialog;
@@ -34,6 +35,8 @@ public class BuyRock : MonoBehaviour
     private Action<int> OnSelectInfo;
     private IServerManager _serverManager;
     private IStorageManager _storageManager;
+    private ILaunchPadManager _launchPadManager;
+    private INetworkConfig _networkConfig;
     private Canvas _dialogCanvas;
     
     protected void Start() {
@@ -45,6 +48,8 @@ public class BuyRock : MonoBehaviour
         
         _serverManager = ServiceLocator.Instance.Resolve<IServerManager>();
         _storageManager = ServiceLocator.Instance.Resolve<IStorageManager>();
+        _launchPadManager = ServiceLocator.Instance.Resolve<ILaunchPadManager>();
+        _networkConfig = ServiceLocator.Instance.Resolve<INetworkConfig>();
         InitSubSegmentMaterial();
     }
     
@@ -177,6 +182,9 @@ public class BuyRock : MonoBehaviour
             try {
                 await _serverManager.General.BuyRockPack(dataRock.PackageName, blockRewardType);
                 DialogForge.ShowInfo(_dialogCanvas, "Successfully");
+            } catch (NotEnoughRewardException) {
+                // ec 1019 loses its message inside Postgres, so name the token from the request instead.
+                DialogForge.ShowError(_dialogCanvas, $"Not enough {TokenName(blockRewardType)}");
             } catch (Exception e) {
                 if (e is ErrorCodeException) {
                     DialogError.ShowErrorMsgOnly(_dialogCanvas, "Purchase Failed");
@@ -186,5 +194,11 @@ public class BuyRock : MonoBehaviour
             }
             confirmBuyRock.Hide();
         });
+    }
+
+    private string TokenName(BlockRewardType type) {
+        var network = RewardUtils.ConvertNetworkToDatatype(_networkConfig.NetworkType);
+        var data = _launchPadManager.GetData(new RewardType(type), network);
+        return data != null ? data.displayName : type.ToString();
     }
 }

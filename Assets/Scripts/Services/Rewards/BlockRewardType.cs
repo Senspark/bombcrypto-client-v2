@@ -28,5 +28,8 @@ namespace App {
         // New Deposit
         BcoinBridge = 32,
         SenBridge = 33,
+        // Native coin deposit (BNB on BSC, POL on Polygon)
+        BnbDeposited = 34,
+        PolDeposited = 35,
     }
 }

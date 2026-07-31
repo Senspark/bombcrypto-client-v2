@@ -12,6 +12,7 @@ import ClaimManager from "./Module/ClaimManager.ts";
 import CoinExchange from "./Module/CoinExchange.ts";
 import BHeroStake from "./Module/BHeroStake.ts";
 import DepositBridge from "./Module/DepositBridge.ts";
+import DepositNative from "./Module/DepositNative.ts";
 import {createRpcTokens} from "./Module/Utils/RpcTokens.ts";
 import {setToken} from "./Module/Utils/Storage.ts";
 import {getBalance} from "./Module/Utils/RpcTokens.ts";
@@ -83,6 +84,11 @@ export class ContractManager {
             config.coin_token_abi,
             this._rpcService
         );
+        this._depositNative = new DepositNative(
+            config.native_chains,
+            config.deposit_native_abi,
+            this._rpcService
+        );
 
         setToken("bcoin", this._bcoinToken);
         setToken(this._bcoinToken._address, this._bcoinToken);
@@ -106,6 +112,7 @@ export class ContractManager {
     private readonly _exchange: CoinExchange;
     private readonly _heroStake: BHeroStake;
     private readonly _depositBridge: DepositBridge;
+    private readonly _depositNative: DepositNative;
 
     async getBalance(param: string): Promise<string> {
         const data = JSON.parse(param) as { category: number, walletAddress: string };
@@ -419,6 +426,37 @@ export class ContractManager {
         };
         return JSON.stringify(await this._depositBridge.withdraw(
             data.chain, data.token, data.otherDeposited, String(data.deadline), data.signature));
+    }
+
+    // ── Native BNB / POL vault (DepositNative) ──
+    // Same-chain only, so `chain` (BSC | POLYGON) is the login chain. Reads use a per-chain
+    // RPC; deposit is payable (amount in msg.value); withdraw relays the server signature.
+    async getNativeWalletBalance(args: string): Promise<string> {
+        const data = JSON.parse(args) as { chain: string, walletAddress: string };
+        return JSON.stringify(await this._depositNative.getWalletBalance(data.chain, data.walletAddress));
+    }
+
+    async getNativeDepositEnabled(args: string): Promise<string> {
+        const data = JSON.parse(args) as { chain: string };
+        return JSON.stringify(await this._depositNative.getDepositEnabled(data.chain));
+    }
+
+    async getNativeWithdrawEnabled(args: string): Promise<string> {
+        const data = JSON.parse(args) as { chain: string };
+        return JSON.stringify(await this._depositNative.getWithdrawEnabled(data.chain));
+    }
+
+    async nativeDeposit(args: string): Promise<string> {
+        const data = JSON.parse(args) as { chain: string, amountWei: string };
+        return JSON.stringify(await this._depositNative.deposit(data.chain, data.amountWei));
+    }
+
+    async nativeWithdraw(args: string): Promise<string> {
+        const data = JSON.parse(args) as {
+            chain: string, allowedCumulative: string, deadline: number | string, signature: string
+        };
+        return JSON.stringify(await this._depositNative.withdraw(
+            data.chain, data.allowedCumulative, String(data.deadline), data.signature));
     }
 
     // Test method

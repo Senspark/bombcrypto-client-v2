@@ -421,7 +421,7 @@ namespace Scenes.ShopScene.Scripts {
                     TrackBuyGem(dataGem, result);
                     switch (result.State) {
                         case PurchaseState.Done: {
-                            _serverManager.ClearCache(SFSDefine.SFSCommand.GET_GEM_SHOP_V2);
+                            _serverManager.ClearCache(SFSDefine.SFSCommand.GET_GEM_SHOP_V3);
                             await _serverManager.General.GetChestReward();
                             var gemData = await _itemManager.GetGemItemsAsync();
                             ReloadSubSegmentGem(gemData);

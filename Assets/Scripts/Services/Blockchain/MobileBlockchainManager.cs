@@ -320,5 +320,25 @@ namespace App {
         public Task<BridgeTxResult> BridgeWithdraw(string chain, string token, string otherDeposited, long deadline, string signature) {
             throw _notSupportException;
         }
+
+        public Task<double> GetNativeWalletBalance(string chain) {
+            throw _notSupportException;
+        }
+
+        public Task<bool> GetNativeDepositEnabled(string chain) {
+            throw _notSupportException;
+        }
+
+        public Task<bool> GetNativeWithdrawEnabled(string chain) {
+            throw _notSupportException;
+        }
+
+        public Task<BridgeTxResult> NativeDeposit(string chain, string amountWei) {
+            throw _notSupportException;
+        }
+
+        public Task<BridgeTxResult> NativeWithdraw(string chain, string allowedCumulative, long deadline, string signature) {
+            throw _notSupportException;
+        }
     }
 }

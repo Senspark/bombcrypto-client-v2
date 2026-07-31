@@ -156,6 +156,18 @@ namespace Services.Rewards {
                     code = 28, sortOrder = 6, tokenName = BlockRewardType.BLCoin, displayName = "STAR CORE",
                     displayOnLaunchPad = true, alwaysDisplay = true, networkSymbol = DataType.VIC
                 },
+                // Native coin deposit/withdraw. useTax = false (a user's own principal is not taxed on the
+                // way out, mirroring BCOIN_DEPOSITED); minValueToClaim = 0 since withdraw is withdraw-MAX.
+                new() {
+                    code = 31, sortOrder = 7, tokenName = BlockRewardType.BnbDeposited, displayName = "BNB",
+                    displayOnLaunchPad = true, alwaysDisplay = true, enableClaim = true, enableDeposit = true,
+                    useTax = false, minValueToClaim = 0, networkSymbol = DataType.BSC
+                },
+                new() {
+                    code = 32, sortOrder = 7, tokenName = BlockRewardType.PolDeposited, displayName = "POL",
+                    displayOnLaunchPad = true, alwaysDisplay = true, enableClaim = true, enableDeposit = true,
+                    useTax = false, minValueToClaim = 0, networkSymbol = DataType.POLYGON
+                },
             };
         }
     }

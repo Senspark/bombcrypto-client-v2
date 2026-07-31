@@ -1,5 +1,4 @@
-﻿using System;
-using App;
+﻿using App;
 using Senspark;
 
 using UnityEngine;
@@ -18,11 +17,20 @@ namespace Game.UI {
         
         [SerializeField]
         private WalletDisplayInfo walletDisplayInfo;
-        
+
+        // Hide the whole display when the build's network is not the one dataType names. Off by default:
+        // most displays are shared across networks and must keep showing whatever the balance is.
+        [SerializeField]
+        private bool hideOnOtherNetwork;
+
         private IChestRewardManager _chestRewardManager;
         private ObserverHandle _handle;
-        
+
         private void Awake() {
+            if (hideOnOtherNetwork && !MatchesCurrentNetwork()) {
+                gameObject.SetActive(false);
+                return;
+            }
             _chestRewardManager = ServiceLocator.Instance.Resolve<IChestRewardManager>();
             _handle = new ObserverHandle();
             _handle.AddObserver(_chestRewardManager, new ChestRewardManagerObserver() {
@@ -37,7 +45,16 @@ namespace Game.UI {
         }
         
         private void OnDestroy() {
-            _handle.Dispose();
+            _handle?.Dispose();
+        }
+
+        // TR is the cross-network scope, so there is nothing for it to mismatch.
+        private bool MatchesCurrentNetwork() {
+            if (dataType == DataType.TR) {
+                return true;
+            }
+            var network = ServiceLocator.Instance.Resolve<INetworkConfig>().NetworkType;
+            return RewardUtils.ConvertNetworkToDatatype(network) == dataType;
         }
         
         private void UpdateValue(BlockRewardType type, DataType scope, double value) {
@@ -51,7 +68,7 @@ namespace Game.UI {
         }
 
         private void UpdateValue(double value) {
-            var totalVal = Math.Truncate(value).ToString("N0");
+            var totalVal = App.Utils.FormatSmartMoney(value, App.RewardUtils.IsIntegerDisplayType(tokenType));
             coinTxt.text = totalVal;
             walletDisplayInfo.SetInfo(totalVal);
         }

@@ -84,6 +84,12 @@ export class BlockChainConfig{
         this.actions.set(BlockChainCommand.BRIDGE_GET_WITHDRAW_ENABLED, this._contractManager.getBridgeWithdrawEnabled.bind(this._contractManager));
         this.actions.set(BlockChainCommand.BRIDGE_DEPOSIT, this._contractManager.bridgeDeposit.bind(this._contractManager));
         this.actions.set(BlockChainCommand.BRIDGE_WITHDRAW, this._contractManager.bridgeWithdraw.bind(this._contractManager));
+
+        this.actions.set(BlockChainCommand.NATIVE_GET_WALLET_BALANCE, this._contractManager.getNativeWalletBalance.bind(this._contractManager));
+        this.actions.set(BlockChainCommand.NATIVE_GET_DEPOSIT_ENABLED, this._contractManager.getNativeDepositEnabled.bind(this._contractManager));
+        this.actions.set(BlockChainCommand.NATIVE_GET_WITHDRAW_ENABLED, this._contractManager.getNativeWithdrawEnabled.bind(this._contractManager));
+        this.actions.set(BlockChainCommand.NATIVE_DEPOSIT, this._contractManager.nativeDeposit.bind(this._contractManager));
+        this.actions.set(BlockChainCommand.NATIVE_WITHDRAW, this._contractManager.nativeWithdraw.bind(this._contractManager));
     }
     
     public async callAction(actionName: string, param: string): Promise<string | null> {

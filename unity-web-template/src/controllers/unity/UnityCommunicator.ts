@@ -395,7 +395,9 @@ export default class UnityCommunicator {
             return null;
         }
         const rpcService = new RpcService(this._logger);
-        await rpcService.initialize();
+        // Don't block login/SmartFox connect on RPC probing — getRpc() already falls back to the
+        // hardcoded list while this resolves in the background.
+        rpcService.initialize().catch((e) => this._logger.error(`${TAG} RPC probing failed: ${e}`));
         this._blockChainConfig = new BlockChainConfig(chainId.dec.toString(), this._isProd, this._logger, this._aesHelper, rpcService);
 
         return null;

@@ -47,6 +47,7 @@ namespace App {
         public bool EnableShopSwapGem => true;
         public bool EnableShopChest => true;
         public bool EnableShopGem => true;
+        public bool EnableBuyGemByNativeToken => true;
         public bool EnableInventoryListingItem => true;
         public bool EnableTreasureHunt => true;
         public bool EnableInventory => true;

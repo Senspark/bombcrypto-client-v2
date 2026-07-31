@@ -302,5 +302,26 @@ namespace App {
             }
             return result;
         }
+
+        public Task<double> GetNativeWalletBalance(string chain) {
+            return _manager.GetNativeWalletBalance(chain);
+        }
+
+        public Task<bool> GetNativeDepositEnabled(string chain) {
+            return _manager.GetNativeDepositEnabled(chain);
+        }
+
+        public Task<bool> GetNativeWithdrawEnabled(string chain) {
+            return _manager.GetNativeWithdrawEnabled(chain);
+        }
+
+        public Task<BridgeTxResult> NativeDeposit(string chain, string amountWei) {
+            return _manager.NativeDeposit(chain, amountWei);
+        }
+
+        public Task<BridgeTxResult> NativeWithdraw(string chain, string allowedCumulative, long deadline,
+            string signature) {
+            return _manager.NativeWithdraw(chain, allowedCumulative, deadline, signature);
+        }
     }
 }

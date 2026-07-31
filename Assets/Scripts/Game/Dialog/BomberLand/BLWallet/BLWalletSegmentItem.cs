@@ -58,17 +58,9 @@ namespace Game.Dialog.BomberLand.BLWallet {
             }
             Balance = data.ClaimValue;
             RewardType = data.RefRewardType;
-            //DevHoang_20250715: Another format for Base
-            if (AppConfig.IsBase()) {
-                balanceLbl.text = App.Utils.FormatBaseValue(data.ClaimValue);
-            } else {
-                balanceLbl.text = App.Utils.FormatBcoinValue(data.ClaimValue);
-            }
-            if (AppConfig.IsBase()) {
-                pendingLbl.text = App.Utils.FormatBaseValue(data.PendingValue);
-            } else {
-                pendingLbl.text = App.Utils.FormatBcoinValue(data.PendingValue);
-            }
+            var isIntegerType = data.RefRewardType != null && App.RewardUtils.IsIntegerDisplayType(data.RefRewardType.Type);
+            balanceLbl.text = App.Utils.FormatSmartMoney(data.ClaimValue, isIntegerType);
+            pendingLbl.text = App.Utils.FormatSmartMoney(data.PendingValue, isIntegerType);
             if (data.RefTokenData != null) {
                 lbNetwork.text = RewardUtils.NetworkDisplayName(data.RefTokenData.networkSymbol);
             }
@@ -81,7 +73,7 @@ namespace Game.Dialog.BomberLand.BLWallet {
             }
             Balance = data.ClaimValue;
             RewardType = data.RefRewardType;
-            balanceLbl.text = data.BridgeBalanceKnown ? App.Utils.FormatBcoinValue(data.ClaimValue) : "-";
+            balanceLbl.text = data.BridgeBalanceKnown ? App.Utils.FormatSmartMoney(data.ClaimValue, false) : "-";
             if (pendingLbl) {
                 pendingLbl.text = "";
             }

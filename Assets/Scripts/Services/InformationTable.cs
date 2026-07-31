@@ -123,8 +123,9 @@ namespace App {
                     content =
                         "Auto Mine is the feature that let Heroes automatically go Home or Rest then go back to work.\n\n" +
                         "Price of 2 Auto Mine packages:\n" +
-                        "7 Days = 12% of total tokens mined in the last 7 days (Minimum cost = 10 BCOIN).\n" +
-                        "30 Days = 35% of total token mined in the last 7 days (Minumum cost = 30 BCOIN)."
+                        "7 Days = 12% of total tokens mined in the last 7 days (Minimum cost equals to 10 BCOIN).\n" +
+                        "30 Days = 35% of total token mined in the last 7 days (Minumum cost equals to 30 BCOIN).\n\n" +
+                        "On BNB Chain or Polygon network, you must pay with BNB or POL instead of BCOIN."
                 },
                 new InformationData {
                     displayName = "Auto Mine",
@@ -274,6 +275,22 @@ namespace App {
                     content =
                         "You can claim SEN in deposit with 5% fees\n\n" +
                         "SEN can be withdrawn/deposited in BNB or POLYGON network\n"
+                },
+                new InformationData {
+                    displayName = "BNB Deposit",
+                    code = new[] { "BNB_DEPOSITED" },
+                    network = "BSC",
+                    content =
+                        "Deposit BNB to spend in game. Withdraw returns your balance with no fee.\n\n" +
+                        "BNB can only be deposited/withdrawn while logging in to the BNB network\n"
+                },
+                new InformationData {
+                    displayName = "POL Deposit",
+                    code = new[] { "POL_DEPOSITED" },
+                    network = "POLYGON",
+                    content =
+                        "Deposit POL to spend in game. Withdraw returns your balance with no fee.\n\n" +
+                        "POL can only be deposited/withdrawn while logging in to the Polygon network\n"
                 },
             };
         }

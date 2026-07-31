@@ -191,6 +191,27 @@ namespace App.BomberLand {
                 .TimeoutAfter(BridgeWithdrawTimeoutMs);
         }
 
+        // User-relayed native (BNB / POL) withdraw-MAX. Synchronous request-response: the server reads the
+        // on-chain counters, runs the row-locked request, signs, and replies on the request itself. The
+        // reward type (BNB=BSC, POL=POLYGON) implies the network server-side, so no chain param is sent.
+        public async Task<NativeWithdrawResult> RequestNativeWithdraw(int blockRewardType) {
+            var data = new SFSObject();
+            data.PutInt("block_reward_type", blockRewardType);
+            var response = await _serverDispatcher.SendCmd(new CmdWithdrawNative(data))
+                .TimeoutAfter(BridgeWithdrawTimeoutMs);
+            return new NativeWithdrawResult(response);
+        }
+
+        // Client hint to sync native deposits fast (optional — the server also syncs on login and via the
+        // background reconciler, so correctness never depends on this arriving). Fire after a deposit or a
+        // relayed withdraw so the balance refreshes promptly; the updated rewards[] flow through the normal path.
+        public async Task SyncNativeDeposit(int blockRewardType) {
+            var data = new SFSObject();
+            data.PutInt("block_reward_type", blockRewardType);
+            await _serverDispatcher.SendCmd(new CmdSyncNativeDeposit(data))
+                .TimeoutAfter(BridgeWithdrawTimeoutMs);
+        }
+
         public async Task<float> ConfirmApproveClaimSuccess(int code) {
             var data = new SFSObject().Apply(it => {
                 it.PutInt("block_reward_type", code);
@@ -216,36 +237,44 @@ namespace App.BomberLand {
             return result;
         }
         
+        // V3 carries prices[] and is only wired up on BSC / POLYGON; the airdrop chains stay on V2, whose
+        // response has no native entry to render anyway.
         public async Task<IAutoMinePackages> GetAutoMinePrice() {
             var data = new SFSObject();
 
-            var response = await _serverDispatcher.SendCmd(new CmdAutoMinePrice(data));
+            var response = AppConfig.IsAirDrop()
+                ? await _serverDispatcher.SendCmd(new CmdAutoMinePrice(data))
+                : await _serverDispatcher.SendCmd(new CmdAutoMinePriceV3(data));
             return OnGetAutoMinePrice(response);
         }
-        
+
         public async Task<IChestReward> BuyAutoMine(string packageName, BlockRewardType blockRewardType) {
             var data = new SFSObject().Apply(it => {
                 it.PutUtfString("package", packageName);
-                it.PutInt("reward_type", (int)blockRewardType);
+                it.PutInt("reward_type", ServerRewardTypes.ToWire(blockRewardType));
             });
 
             var response = await _serverDispatcher.SendCmd(new CmdBuyAutoMine(data));
             return OnBuyAutoMine(response);
         }
-        
+
         public async Task<IRockPackage> BuyRockPack(string packageName, BlockRewardType blockRewardType) {
             var data = new SFSObject().Apply(it => {
                 it.PutUtfString("package", packageName);
-                var rewardType = blockRewardType switch {
-                    BlockRewardType.Senspark => 7,
-                    BlockRewardType.BCoin => 1,
-                    _ => throw new Exception("Invalid Request")
-                };
-                it.PutInt("reward_type", rewardType);
+                it.PutInt("reward_type", ServerRewardTypes.ToWire(blockRewardType));
             });
 
             var response = await _serverDispatcher.SendCmd(new CmdBuyRock(data));
             return OnBuyRockPack(response);
+        }
+
+        public async Task<IChestReward> BuyGemByNativeToken(string productId) {
+            var data = new SFSObject().Apply(it => {
+                it.PutUtfString("product_id", productId);
+            });
+
+            var response = await _serverDispatcher.SendCmd(new CmdBuyGemByNativeToken(data));
+            return OnBuyGemByNativeToken(response);
         }
         
         public async Task<bool> StartAutoMine() {
@@ -552,7 +581,7 @@ namespace App.BomberLand {
         public async Task GetRockPackConfig() {
             var data = new SFSObject();
 
-            var response = await _serverDispatcher.SendCmd(new CmdGetRockPackConfig(data));
+            var response = await _serverDispatcher.SendCmd(new CmdGetRockPackConfigV3(data));
             OnGetRockPackConfig(response);
         }
 

@@ -25,9 +25,12 @@ namespace App.BomberLand {
         IChestReward SyncDeposited(ISFSObject data);
         Task<BridgeWithdrawResult> RequestCrosschainBridgeWithdraw(int blockRewardType, string chain);
         Task NotifyCrosschainBridge(string kind, int blockRewardType, string chain, string txHash = null);
+        Task<NativeWithdrawResult> RequestNativeWithdraw(int blockRewardType);
+        Task SyncNativeDeposit(int blockRewardType);
         Task<IAutoMinePackages> GetAutoMinePrice();
         Task<IChestReward> BuyAutoMine(string packageName, BlockRewardType blockRewardType);
         Task<IRockPackage> BuyRockPack(string packageName, BlockRewardType rewardType);
+        Task<IChestReward> BuyGemByNativeToken(string productId);
         Task<bool> StartAutoMine();
         Task RepairShield(HeroId heroId, BlockRewardType rewardType);
         Task<IRepairShieldBatchResponse> RepairShieldBatch(int[] heroIds, BlockRewardType rewardType);

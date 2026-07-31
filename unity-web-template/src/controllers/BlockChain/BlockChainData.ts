@@ -14,6 +14,7 @@ import HouseTokenAbi from './Data/Abi/HouseTokenAbi.json';
 import HouseDesignAbi from './Data/Abi/HouseDesignAbi.json';
 import DepositAbi from './Data/Abi/DepositAbi.json';
 import DepositBridgeAbi from './Data/Abi/DepositBridgeAbi.json';
+import DepositNativeAbi from './Data/Abi/DepositNativeAbi.json';
 import AirDropAbi from './Data/Abi/AirDropAbi.json';
 import ClaimManagerAbi from './Data/Abi/ClaimManagerAbi.json';
 import CoinExchangeAbi from './Data/Abi/CoinExchangeAbi.json';
@@ -37,6 +38,13 @@ export interface IBridgeChain {
 
 export const BRIDGE_CHAIN_BSC = "BSC";
 export const BRIDGE_CHAIN_POLYGON = "POLYGON";
+
+// Per-chain native vault (DepositNative). Native is same-chain only — BNB on BSC,
+// POL on Polygon — so `chain` is just the login chain, keyed the same way.
+export interface INativeChain {
+    chainId: number;
+    nativeAddress: string;
+}
 
 export default class BlockChainData implements IBlockchainData {
     coin_token_address: string;
@@ -66,8 +74,11 @@ export default class BlockChainData implements IBlockchainData {
     exchange_event_abi: JSON = {} as JSON;
     hero_stake_abi: JSON = {} as JSON;
 
+    deposit_native_abi: JSON = {} as JSON;
+
     rpcTokens: IRpcToken[];
     bridge_chains: { [chain: string]: IBridgeChain };
+    native_chains: { [chain: string]: INativeChain };
 
     private readonly _bscAddress: IBlockchainAddress;
     private readonly _polygonAddress: IBlockchainAddress;
@@ -101,6 +112,20 @@ export default class BlockChainData implements IBlockchainData {
 
         this.rpcTokens = this.getRpc(isProd);
         this.bridge_chains = this.getBridgeChains(isProd);
+        this.native_chains = this.getNativeChains(isProd);
+    }
+
+    private getNativeChains(isProd: boolean): { [chain: string]: INativeChain } {
+        return {
+            [BRIDGE_CHAIN_BSC]: {
+                chainId: isProd ? 56 : 97,
+                nativeAddress: this._bscAddress.DepositNativeAddress ?? "",
+            },
+            [BRIDGE_CHAIN_POLYGON]: {
+                chainId: isProd ? 137 : 80002,
+                nativeAddress: this._polygonAddress.DepositNativeAddress ?? "",
+            },
+        };
     }
 
     private getBridgeChains(isProd: boolean): { [chain: string]: IBridgeChain } {
@@ -135,6 +160,7 @@ export default class BlockChainData implements IBlockchainData {
         this.house_design_abi = JSON.parse(JSON.stringify(HouseDesignAbi));
         this.deposit_abi = JSON.parse(JSON.stringify(DepositAbi));
         this.deposit_bridge_abi = JSON.parse(JSON.stringify(DepositBridgeAbi));
+        this.deposit_native_abi = JSON.parse(JSON.stringify(DepositNativeAbi));
         this.air_drop_abi = JSON.parse(JSON.stringify(AirDropAbi));
         this.claim_manager_abi = JSON.parse(JSON.stringify(ClaimManagerAbi));
         this.exchange_event_abi = JSON.parse(JSON.stringify(CoinExchangeAbi));
