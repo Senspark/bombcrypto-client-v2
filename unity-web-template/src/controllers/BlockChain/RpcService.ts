@@ -1,4 +1,3 @@
-import {JsonRpcProvider} from 'ethers';
 import {EnvConfig} from '../../configs/EnvConfig.ts';
 import Logger from '../Logger.ts';
 
@@ -39,19 +38,17 @@ const HARDCODE_POLYGON_TESTNET: string[] = [
     'https://polygon-amoy.drpc.org',
 ];
 
-function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
-    return new Promise<T>((resolve, reject) => {
-        const timer = setTimeout(() => reject(new Error(`Timed out after ${ms}ms`)), ms);
-        promise.then(
-            (value) => { clearTimeout(timer); resolve(value); },
-            (err) => { clearTimeout(timer); reject(err); }
-        );
-    });
-}
-
 export class RpcService {
     private _bscRpcs: string[] = [];
     private _polygonRpcs: string[] = [];
+
+    // Everything that was offered for each network, working or not. Probing runs
+    // in the background, so callers that need an URL before it finishes fall back
+    // to these instead of to a single hardcoded entry.
+    private _bscCandidates: string[] = [];
+    private _polygonCandidates: string[] = [];
+
+    private readonly _listeners: Array<() => void> = [];
 
     private readonly _rpcHost: string;
     private readonly _isProduction: boolean;
@@ -76,9 +73,12 @@ export class RpcService {
             this._loadRpcList('polygon'),
         ]);
 
+        this._bscCandidates = [...new Set(bscRpcs)];
+        this._polygonCandidates = [...new Set(polygonRpcs)];
+
         const [bscWorking, polygonWorking] = await Promise.all([
-            this._filterWorkingRpcs(bscRpcs),
-            this._filterWorkingRpcs(polygonRpcs),
+            this._filterWorkingRpcs(this._bscCandidates),
+            this._filterWorkingRpcs(this._polygonCandidates),
         ]);
 
         this._bscRpcs = bscWorking;
@@ -87,6 +87,73 @@ export class RpcService {
         this._logger.log(`${TAG} BSC working RPCs (${this._bscRpcs.length}): ${this._bscRpcs.join(', ')}`);
         this._logger.log(`${TAG} Polygon working RPCs (${this._polygonRpcs.length}): ${this._polygonRpcs.join(', ')}`);
         this._logger.log(`${TAG} Initialized`);
+
+        this._notifyUpdated();
+    }
+
+    /**
+     * True when no RPC answered for this chain, so getRpc() is handing out an
+     * unverified entry. The caller warns the player instead of leaving them
+     * wondering why balances are empty and actions keep failing.
+     */
+    hasNoWorkingRpc(chainId: number): boolean {
+        switch (chainId) {
+            case 56:
+            case 97:
+                return this._bscRpcs.length === 0;
+            case 137:
+            case 80002:
+                return this._polygonRpcs.length === 0;
+            default:
+                return false;
+        }
+    }
+
+    /**
+     * Every usable URL for this chain: the verified ones once probing finished,
+     * otherwise the full candidate list, so the caller can walk it until one
+     * answers instead of being stuck with a single unverified entry.
+     */
+    getRpcs(chainId: number): string[] {
+        switch (chainId) {
+            case 56:
+            case 97:
+                return this._pickList(this._bscRpcs, this._bscCandidates, chainId);
+            case 137:
+            case 80002:
+                return this._pickList(this._polygonRpcs, this._polygonCandidates, chainId);
+            default:
+                this._logger.error(`${TAG} Unknown chainId: ${chainId}`);
+                return [];
+        }
+    }
+
+    private _pickList(working: string[], candidates: string[], chainId: number): string[] {
+        if (working.length > 0) {
+            return [...working];
+        }
+        if (candidates.length > 0) {
+            return [...candidates];
+        }
+        return [...this._fallbackList(chainId)];
+    }
+
+    /**
+     * Called whenever a probing round finishes and the working lists changed.
+     * Consumers built before probing ended use it to swap in the verified URLs.
+     */
+    onRpcsUpdated(listener: () => void): void {
+        this._listeners.push(listener);
+    }
+
+    private _notifyUpdated(): void {
+        for (const listener of this._listeners) {
+            try {
+                listener();
+            } catch (e) {
+                this._logger.error(`${TAG} RPC update listener failed: ${e}`);
+            }
+        }
     }
 
     /**
@@ -96,13 +163,11 @@ export class RpcService {
     getRpc(chainId: number): string {
         switch (chainId) {
             case 56:   // BSC mainnet
-                return this._pickRandom(this._bscRpcs, HARDCODE_BSC_MAINNET);
             case 97:   // BSC testnet
-                return this._pickRandom(this._bscRpcs, HARDCODE_BSC_TESTNET);
+                return this._pickRandom(this._bscRpcs, this._fallbackList(chainId));
             case 137:  // Polygon mainnet
-                return this._pickRandom(this._polygonRpcs, HARDCODE_POLYGON_MAINNET);
             case 80002: // Polygon testnet (Amoy)
-                return this._pickRandom(this._polygonRpcs, HARDCODE_POLYGON_TESTNET);
+                return this._pickRandom(this._polygonRpcs, this._fallbackList(chainId));
             default:
                 this._logger.error(`${TAG} Unknown chainId: ${chainId}`);
                 return '';
@@ -119,6 +184,24 @@ export class RpcService {
         }
         this._logger.error(`${TAG} Working RPC list is empty, using random hardcoded fallback`);
         return fallback[Math.floor(Math.random() * fallback.length)] ?? '';
+    }
+
+    /**
+     * The built-in list for a chain, used when nothing was verified yet.
+     */
+    private _fallbackList(chainId: number): string[] {
+        switch (chainId) {
+            case 56:
+                return HARDCODE_BSC_MAINNET;
+            case 97:
+                return HARDCODE_BSC_TESTNET;
+            case 137:
+                return HARDCODE_POLYGON_MAINNET;
+            case 80002:
+                return HARDCODE_POLYGON_TESTNET;
+            default:
+                return [];
+        }
     }
 
 
@@ -208,8 +291,7 @@ export class RpcService {
 
         const results = await Promise.allSettled(
             unique.map(async (rpc) => {
-                const provider = new JsonRpcProvider(rpc);
-                await withTimeout(provider.getBlockNumber(), RPC_TEST_TIMEOUT_MS);
+                await this._probe(rpc);
                 return rpc;
             })
         );
@@ -226,6 +308,42 @@ export class RpcService {
         }
 
         return working;
+    }
+
+    /**
+     * Single eth_blockNumber call, by hand. Rejects when the node does not
+     * answer with a usable result.
+     *
+     * A JsonRpcProvider was used here, and it brings two behaviors this step
+     * does not want. It reads HTTP 429 as throttling and retries on its own,
+     * backing off and obeying Retry-After, so a rate limited node kept the
+     * probe busy after the timeout had already given up on it. Worse, when its
+     * network detection fails it retries that every second - forever, and
+     * destroy() does not stop it - so every probed bad node left a loop of
+     * requests behind, which is what showed up in the network tab. The probe
+     * only asks whether the node answers right now: one request, no retry,
+     * nothing left running.
+     */
+    private async _probe(rpc: string): Promise<void> {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), RPC_TEST_TIMEOUT_MS);
+        try {
+            const response = await fetch(rpc, {
+                method: 'POST',
+                headers: {'content-type': 'application/json'},
+                body: JSON.stringify({jsonrpc: '2.0', id: 1, method: 'eth_blockNumber', params: []}),
+                signal: controller.signal,
+            });
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+            const body = await response.json();
+            if (body?.error || typeof body?.result !== 'string') {
+                throw new Error(`bad response: ${JSON.stringify(body?.error ?? body)}`);
+            }
+        } finally {
+            clearTimeout(timer);
+        }
     }
 }
 
