@@ -21,8 +21,12 @@ import {getSupportedNetworkFromChainId, getRpc, SupportedNetwork} from "../RpcNe
 import {RpcService} from "../BlockChain/RpcService.ts";
 import BlockChainCommand from "../../consts/BlockChainCommand.ts";
 import {buildLandingUrl, openLandingMode} from "../LandingUtils.ts";
+import {sleep} from "../../utils/Time.ts";
 
 const TAG = '[UC]';
+
+// How long to wait before probing the RPCs again while none of them answers.
+const RPC_RETRY_DELAY_MS = 10000;
 const K_TRANSFER_AIRDROP_PREFIX = 'DEP';
 
 export default class UnityCommunicator {
@@ -52,6 +56,10 @@ export default class UnityCommunicator {
     private _pendingConnectionResolve: ((value: string | null) => void) | null = null;
 
     private _isContinue = false;
+
+    // Guards against a second retry loop (and a second warning) when the
+    // blockchain config is initialized again while the first one is running.
+    private _watchingRpcHealth = false;
 
     async handShakeFromUnity(requestData: string): Promise<string | null> {
         try {
@@ -397,10 +405,51 @@ export default class UnityCommunicator {
         const rpcService = new RpcService(this._logger);
         // Don't block login/SmartFox connect on RPC probing — getRpc() already falls back to the
         // hardcoded list while this resolves in the background.
-        rpcService.initialize().catch((e) => this._logger.error(`${TAG} RPC probing failed: ${e}`));
+        rpcService.initialize()
+            .then(() => this._watchRpcHealth(rpcService, chainId.dec))
+            .catch((e) => this._logger.error(`${TAG} RPC probing failed: ${e}`));
         this._blockChainConfig = new BlockChainConfig(chainId.dec.toString(), this._isProd, this._logger, this._aesHelper, rpcService);
 
         return null;
+    }
+
+    /**
+     * Login is not held back when every node is down, but the player used to
+     * get no explanation either - just empty balances and actions that fail.
+     * Warns instead, and keeps probing until a node answers: the RpcService
+     * hands the verified URLs to whoever is already using it, so the game
+     * recovers on its own without a reload.
+     */
+    private async _watchRpcHealth(rpcService: RpcService, chainId: number): Promise<void> {
+        if (!rpcService.hasNoWorkingRpc(chainId) || this._watchingRpcHealth) {
+            return;
+        }
+        this._watchingRpcHealth = true;
+
+        this._notiService.show(
+            'Connection problem',
+            'Could not reach any node for this network, so balances and blockchain actions ' +
+            'will not work. Retrying automatically - you can also set your own node in "RPC urls".',
+            0,          // stays on screen: nothing on chain works until this clears
+            'error',
+        );
+
+        try {
+            while (rpcService.hasNoWorkingRpc(chainId)) {
+                this._logger.error(
+                    `${TAG} No working RPC for chain ${chainId}, retrying in ${RPC_RETRY_DELAY_MS}ms`);
+                await sleep(RPC_RETRY_DELAY_MS);
+                await rpcService.initialize();
+            }
+
+            this._logger.log(`${TAG} An RPC answered, blockchain calls should work again`);
+            this._notiService.clear();
+            this._notiService.show('Connected', 'A node answered, blockchain is back.', 3, 'success');
+        } catch (e) {
+            this._logger.error(`${TAG} RPC health watch stopped: ${e}`);
+        } finally {
+            this._watchingRpcHealth = false;
+        }
     }
 
     async callBlockChainMethod(data: string): Promise<string | null> {
