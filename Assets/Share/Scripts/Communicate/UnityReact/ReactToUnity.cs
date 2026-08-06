@@ -1,10 +1,8 @@
 using System;
 using System.Collections.Generic;
 using Communicate;
-using Communicate.Encrypt;
 using Scenes.TreasureModeScene.Scripts.Solana;
 using Senspark;
-using Share.Scripts.Constant;
 using UnityEngine;
 
 namespace Scenes.TreasureModeScene.Scripts.Service {
@@ -13,12 +11,10 @@ namespace Scenes.TreasureModeScene.Scripts.Service {
         void CancelListen(string tag, Action<string> action);
     }
     public class ReactToUnity : IReactToUnity{
-        private readonly UnityEncryption _encryption;
         private readonly IJavascriptProcessor _reactProcess;
         private readonly ILogManager _logManager;
         private readonly Dictionary<string, Action<string>> _unityRegisterEvent = new();
-        public ReactToUnity(UnityEncryption encryption, ILogManager logManager) {
-            _encryption = encryption;
+        public ReactToUnity(ILogManager logManager) {
             _logManager = logManager;
             _reactProcess = NewJavascriptProcessor.Instance;
             _reactProcess.RegisterUnityAction(OnReactCall);
@@ -50,39 +46,14 @@ namespace Scenes.TreasureModeScene.Scripts.Service {
                 return;
             }
             try {
-                // Đây là các event đặc biệt đc gọi từ react có thể trước cả khi encryption đc tạo
-                // nên ko cần decrypt, ví dụ reload
-                if (CheckSpecialMessage(message)) {
-                    return;
-                }
-                
-                var data = _encryption.Aes().Decrypt(message.Data);
                 _logManager.Log($"Calling tag {message.Cmd}");
-                value?.Invoke(data);
+                value?.Invoke(message.Data);
             } catch (Exception e) {
-                _logManager.Log($"Error when decryption {message.Cmd}: {e.Message}");
+                _logManager.Log($"Error when handling {message.Cmd}: {e.Message}");
             }
 
         }
-        
-        private bool CheckSpecialMessage(ReactMessage message) {
-            _logManager.Log($"Calling from react {message.Cmd}");
-            // Reload lại client ko cần decrypt data, có thể gọi trực tiếp
-            if (message.Cmd == UnityCommand.RELOAD) {
-                _logManager.Log($"Calling Logout {message.Cmd}");
-                _unityRegisterEvent[message.Cmd]?.Invoke(message.Data);
-                return true;
-            }
-            
-            //DevHoang_20250626: Message received by REACT_SEND_LOG is not encrypted
-            if (message.Cmd == UnityCommand.REACT_SEND_LOG) {
-                _unityRegisterEvent[message.Cmd]?.Invoke(message.Data);
-                return true;
-            }
-            
-            return false;
-        }
-        
+
         private void AddDefaultUnityAction(IDefaultUnityEvent defaultUnityEvent) {
             foreach (var (tag, action) in defaultUnityEvent.DefaultUnityEvent) {
                 ListenFromReact(tag, action);

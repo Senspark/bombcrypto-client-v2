@@ -17,7 +17,6 @@ import NotificationService from "../controllers/NotificationService.ts";
 import ConfirmationService from "../controllers/ConfirmationService.ts";
 import EncryptedStorageService from "../controllers/EncryptedStorageService.ts";
 import SECRET from "../configs/Secret.ts";
-import PermutationObfuscate from "../controllers/encrypt/PermutationObfuscate.ts";
 import UnityCommunicator from "../controllers/unity/UnityCommunicator.ts";
 import unityBridge from "../controllers/unity/UnityBridge.ts";
 import {AppendBytesObfuscate} from "../controllers/encrypt/AppendBytesObfuscate.ts";
@@ -71,7 +70,6 @@ export const sessionSetting = new sessionStorageSettings(isProd)
 const secret = new SECRET();
 export const customSessionStorage = new EncryptedStorageService(secret.LOCAL_SECRET, secret.LOCAL_IV, logger, StorageProviderBuilder.sessionStorage());
 
-const unityReactObfuscate = new PermutationObfuscate(secret.PERMUTATION_ORDER_32);
 const reactApiObfuscate = new AppendBytesObfuscate(secret.APPEND_BYTES);
 const versionManager = new VersionManager(logger, notificationService)
 
@@ -79,7 +77,7 @@ export const apiService = new ApiService(isProd, logger, apiHost, reactApiObfusc
 export const shareService = new ShareService(logger, apiService);
 export const walletService = new WalletService(isProd, secret.SIGN_SECRET, secret.SIGN_PADDING, logger, notificationService);
 export const authService = new AuthService(isProd, customSessionStorage, walletService, logger, versionManager, apiService);
-export const unityCommunicator = new UnityCommunicator(logger, authService, walletService, unityReactObfuscate, isProd, notificationService);
+export const unityCommunicator = new UnityCommunicator(logger, authService, walletService, isProd, notificationService);
 export const serverService = new CheckServerService(apiHost, apiService, ignoreIpCheck);
 export const checkIpService = new CheckIpService(logger, checkIpHost);
 export const ethereumService = new EthereumService(logger);
