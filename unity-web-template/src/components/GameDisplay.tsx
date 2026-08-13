@@ -8,6 +8,7 @@ import { unityService } from "../hooks/GlobalServices.ts";
 import { UnityInstance } from "react-unity-webgl/declarations/unity-instance";
 import { StyleContext } from "./StyleContext.tsx";
 import { debounce } from "../utils/Debounce.ts";
+import { useAdaptiveDevicePixelRatio } from "../hooks/useAdaptiveDevicePixelRatio.ts";
 import YouTubePlayer from './YouTubePlayer';
 
 declare global {
@@ -20,25 +21,13 @@ const maxWidth = 1000;
 const maxHeight = 620;
 
 // devicePixelRatio quyết định độ phân giải render target: 2 = gấp 4 lần diện tích pixel,
-// đo được 26 MB cho TempBuffer 1940x1180. Cho phép ép qua URL (?dpr=1) để so sánh visual và
-// GPU trên máy yếu mà không phải build lại. Không truyền gì thì giữ nguyên 2 như cũ.
-const defaultDevicePixelRatio = 2;
-
-function resolveDevicePixelRatio(): number {
-    const raw = new URLSearchParams(window.location.search).get("dpr");
-    if (!raw) {
-        return defaultDevicePixelRatio;
-    }
-    const value = Number(raw);
-    return Number.isFinite(value) && value > 0 ? value : defaultDevicePixelRatio;
-}
-
+// đo được 26 MB cho TempBuffer 1940x1180. useAdaptiveDevicePixelRatio tự chọn theo sức máy
+// và theo kích thước canvas thật; `?dpr=1` vẫn ép cứng để so sánh visual mà không build lại.
 export default function GameDisplay() {
     const [zoom, setZoom] = useState(1);
     const styleContext = useContext(StyleContext);
     const canAutoResize = useRef(false);
     const [showVideo, enableBgVideo] = useState(true);
-    const [devicePixelRatio] = useState(resolveDevicePixelRatio);
 
     if (!styleContext) {
         throw new Error("StyleContext must be used within a StyleProvider");
@@ -63,6 +52,13 @@ export default function GameDisplay() {
         codeUrl,
         streamingAssetsUrl: `${unityFolder}/StreamingAssets`,
     });
+
+    const devicePixelRatio = useAdaptiveDevicePixelRatio(
+        UNSAFE__unityInstance ?? null,
+        maxWidth,
+        maxHeight,
+        zoom,
+    );
 
     useEffect(() => {
         if (UNSAFE__unityInstance) {
