@@ -1,4 +1,4 @@
-﻿using Engine.Manager;
+using Engine.Manager;
 
 using UnityEngine;
 
@@ -22,54 +22,31 @@ namespace Engine.Components {
                 return false;
             }
 
-            var count = botManager.safeLocationList.Count;
-            if (count == 0) {
-                //Debug.Log("destroybrick: reachable = 0 - " + gameObject.name);
+            if (botManager.safeLocationList.Count == 0) {
                 botMove.Waiting();
                 return false;
             }
 
-            float vmax = 0;
-            var iresult = -1;
-            for (var i = 0; i < botManager.safeLocationList.Count; i++) {
-                var location = botManager.safeLocationList[i];
-                if (location == currentLocation) {
-                    continue;
-                }
+            // A lista safeLocationList já está ordenada por distância no BotManager.
+            // Pegamos a primeira (mais próxima) que tenha um bloco ao redor.
+            foreach (var location in botManager.safeLocationList) {
+                if (location == currentLocation) continue;
+                if (mapManager.HadBomb(location)) continue;
 
-                if (mapManager.HadBomb(location)) {
-                    continue;
-                }
-
-                var v = MaxValueBlockAround(location);
-                if (v > vmax) {
-                    vmax = v;
-                    iresult = i;
-                }
-            }
-
-            if (iresult >= 0) {
-                SetTargetLocation(botManager.safeLocationList[iresult]);
-                //mapManager.SetHadBomb(botManager.targetLocation);
-                isMovingToTarget = true;
-            } else {
-                foreach (var location in botManager.safeLocationList) {
-                    if (mapManager.HadBomb(location)) {
-                        continue;
-                    }
-                    if (!HasBrickAround(location)) {
-                        continue;
-                    }
-
+                if (HasBrickAround(location)) {
                     SetTargetLocation(location);
-                    //mapManager.SetHadBomb(botManager.targetLocation);
                     isMovingToTarget = true;
                     return true;
                 }
-                SetTargetLocation(botManager.safeLocationList[0]);
-                //botManager.ChooseNextAction();
             }
-            return true;
+
+            // Fallback: se nenhuma posição "safe" tem blocos, escolhe a primeira disponível
+            if (botManager.safeLocationList.Count > 0) {
+                SetTargetLocation(botManager.safeLocationList[0]);
+                return true;
+            }
+
+            return false;
         }
 
         private float MaxValueBlockAround(Vector2Int location) {

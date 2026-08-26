@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 using Animation;
@@ -56,10 +56,10 @@ namespace Engine.Entities {
         private BombMovable _movable;
         private Action<Bomb> _onExplodedCallback;
 
-        public float Damage { set; get; }
+        public CodeStage.AntiCheat.ObscuredTypes.ObscuredFloat Damage { set; get; }
         private float DamageJail { set; get; }
 
-        public int ExplosionLength { set; get; }
+        public CodeStage.AntiCheat.ObscuredTypes.ObscuredInt ExplosionLength { set; get; }
         public bool ThroughBrick { set; get; }
         protected ICountDown CountDown { set; get; }
 
