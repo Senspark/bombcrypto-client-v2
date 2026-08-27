@@ -8,6 +8,7 @@ using CustomSmartFox.SolCommands;
 using Game.Dialog;
 using Senspark;
 using Sfs2X.Entities.Data;
+using Utils;
 
 namespace App.BomberLand {
     public partial class DefaultGeneralServerBridge : IGeneralServerBridge {
@@ -235,6 +236,16 @@ namespace App.BomberLand {
             var result = OnSyncDeposited(data);
             _serverDispatcher.DispatchEvent(observer => observer.OnBlockchainDataRefreshed?.Invoke());
             return result;
+        }
+
+        public void OnHouseRentalUpdatePush(ISFSObject data) {
+            OnHouseRentalUpdate(data);
+            _serverDispatcher.DispatchEvent(observer => observer.OnBlockchainDataRefreshed?.Invoke());
+
+            // A rented house enters/leaves the player's list along with the
+            // contract, and the server is what decides that: a sync brings the
+            // list already correct.
+            SyncHouse().Forget();
         }
         
         // V3 carries prices[] and is only wired up on BSC / POLYGON; the airdrop chains stay on V2, whose

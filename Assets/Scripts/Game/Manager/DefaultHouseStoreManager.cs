@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -47,6 +47,12 @@ namespace App {
         public ObscuredDouble PriceTokenNetwork;
         public ObscuredLong EndTimeRent;
 
+        /// P2P rental: 0 = not rented, 1 = rented by me, 2 = my house rented out
+        public ObscuredInt RentalState;
+
+        /// End of the paid P2P rental cycle (epoch ms)
+        public ObscuredLong RentalEndTime;
+
         public HouseData(HouseType type, HouseSize size, float charge, int slot, double price, int supply, int mintLimits, double priceTokenNetwork)
         {
             isActive = false;
@@ -93,6 +99,8 @@ namespace App {
                 houseData.Slot = entry.Capacity;
                 _houseDatas[i] = houseData;
                 houseData.EndTimeRent = entry.EndTimeRent;
+                houseData.RentalState = entry.RentalState;
+                houseData.RentalEndTime = entry.RentalEndTime;
 
                 if (houseData.isActive) {
                     _activeIndex = i;

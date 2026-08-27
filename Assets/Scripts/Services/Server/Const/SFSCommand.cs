@@ -1,4 +1,4 @@
-public static partial class SFSDefine {
+﻿public static partial class SFSDefine {
     public static class SFSCommand {
         public const string USER_LOGIN = "USER_LOGIN";
 
@@ -250,6 +250,10 @@ public static partial class SFSDefine {
         public const string SYNC_HERO_RESPONSE = "SYNC_HERO_RESPONSE";
         public const string SYNC_HOUSE_RESPONSE = "SYNC_HOUSE_RESPONSE";
         public const string SYNC_DEPOSIT_RESPONSE = "SYNC_DEPOSIT_RESPONSE";
+
+        // P2P house rental: server push whenever a contract changes (rented,
+        // charged, ended). Published by the market backend.
+        public const string HOUSE_RENTAL_UPDATE_RESPONSE = "HOUSE_RENTAL_UPDATE_RESPONSE";
         public const string APPROVE_CLAIM_RESPONSE = "APPROVE_CLAIM_RESPONSE";
         public const string CROSSCHAIN_DEPOSIT_BRIDGE_WITHDRAW_RESPONSE = "CROSSCHAIN_DEPOSIT_BRIDGE_WITHDRAW_RESPONSE";
         public const string BHERO_STAKE_PUSH = "BHERO_STAKE_PUSH";

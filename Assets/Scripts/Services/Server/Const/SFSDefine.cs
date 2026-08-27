@@ -41,6 +41,9 @@ public static partial class SFSDefine
         [1037] = "Event ended",
         [1038] = "Reward has expired",
         
-        [1052] = "Your hero is being delivered"
+        [1052] = "Your hero is being delivered",
+
+        // House rental (P2P)
+        [1063] = "This house is rented by another player"
     };
 }
