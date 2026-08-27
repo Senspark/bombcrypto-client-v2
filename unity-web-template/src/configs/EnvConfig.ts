@@ -68,6 +68,6 @@ export const EnvConfig = {
         return import.meta.env.VITE_WALLET_PROJECT_ID;
     },
     rpcHost():string {
-        return import.meta.env.VITE_RPC_HOST
+        return '/api/rpc';
     },
 }
