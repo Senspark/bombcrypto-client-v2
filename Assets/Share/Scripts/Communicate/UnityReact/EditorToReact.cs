@@ -189,7 +189,7 @@ namespace Communicate {
                 return AppConfig.EditorAccount;
             }
             if (AppConfig.IsTon()) {
-                return AppConfig.WalletTon;
+                return AppConfig.TestWalletTonHex;
             }
             return AppConfig.EditorAccount;
         }

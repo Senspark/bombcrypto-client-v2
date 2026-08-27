@@ -39,6 +39,8 @@ namespace App
 
         private bool _pause = false;
 
+        public AudioClip CurrentMusicClip => _bgmSource ? _bgmSource.clip : null;
+
         public bool MusicEnabled
         {
             get => _musicEnabled;

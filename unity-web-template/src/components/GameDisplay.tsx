@@ -8,6 +8,7 @@ import { unityService } from "../hooks/GlobalServices.ts";
 import { UnityInstance } from "react-unity-webgl/declarations/unity-instance";
 import { StyleContext } from "./StyleContext.tsx";
 import { debounce } from "../utils/Debounce.ts";
+import { useAdaptiveDevicePixelRatio } from "../hooks/useAdaptiveDevicePixelRatio.ts";
 import YouTubePlayer from './YouTubePlayer';
 
 declare global {
@@ -19,6 +20,9 @@ declare global {
 const maxWidth = 1000;
 const maxHeight = 620;
 
+// devicePixelRatio quyết định độ phân giải render target: 2 = gấp 4 lần diện tích pixel,
+// đo được 26 MB cho TempBuffer 1940x1180. useAdaptiveDevicePixelRatio tự chọn theo sức máy
+// và theo kích thước canvas thật; `?dpr=1` vẫn ép cứng để so sánh visual mà không build lại.
 export default function GameDisplay() {
     const [zoom, setZoom] = useState(1);
     const styleContext = useContext(StyleContext);
@@ -48,6 +52,13 @@ export default function GameDisplay() {
         codeUrl,
         streamingAssetsUrl: `${unityFolder}/StreamingAssets`,
     });
+
+    const devicePixelRatio = useAdaptiveDevicePixelRatio(
+        UNSAFE__unityInstance ?? null,
+        maxWidth,
+        maxHeight,
+        zoom,
+    );
 
     useEffect(() => {
         if (UNSAFE__unityInstance) {
@@ -119,7 +130,7 @@ export default function GameDisplay() {
                 }}
             >
                 <Unity
-                    devicePixelRatio={2}
+                    devicePixelRatio={devicePixelRatio}
                     matchWebGLToCanvasSize={true}
                     unityProvider={unityProvider}
                     style={{ width: "100%", height: "100%" }}

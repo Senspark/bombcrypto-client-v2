@@ -7,54 +7,51 @@ using Org.BouncyCastle.Crypto;
 using Org.BouncyCastle.Crypto.Encodings;
 using Org.BouncyCastle.Crypto.Engines;
 using Org.BouncyCastle.Crypto.Generators;
-using Org.BouncyCastle.Pkcs;
+using Org.BouncyCastle.Crypto.Parameters;
 using Org.BouncyCastle.Security;
 using Org.BouncyCastle.X509;
 
 namespace Communicate.Encrypt {
+    /// <summary>
+    /// Khoá công khai và khoá riêng được giữ TÁCH RỜI, không gộp thành AsymmetricCipherKeyPair.
+    ///
+    /// Lý do: bên gửi lệnh lên SmartFox chỉ cần khoá công khai của server để Encrypt — nó không hề
+    /// có, và không cần, một khoá riêng. Bản cũ gộp cặp khoá nên buộc phải gọi GenerateKeyPair()
+    /// (RSA 2048-bit, hàng giây trên WebGL máy yếu) chỉ để có chỗ nhét khoá riêng và để gán
+    /// _maxLength, rồi vứt luôn khoá công khai vừa sinh.
+    /// </summary>
     public class RsaEncryption {
         private readonly char _delimiter = AppConfig.EncryptionData?.rsaDelimiter ?? '*';
         private const int PaddingOverhead = 42; // PCKS1 padding = 11, OAEP padding = 42
 
-        private AsymmetricCipherKeyPair _keyPair;
+        private AsymmetricKeyParameter _publicKey;
+        private AsymmetricKeyParameter _privateKey;
         private int _maxLength;
 
         public void GenerateKeyPair(int keySize = 2048) {
             var keyGenerationParameters = new KeyGenerationParameters(new SecureRandom(), keySize);
             var keyPairGenerator = new RsaKeyPairGenerator();
             keyPairGenerator.Init(keyGenerationParameters);
-            _keyPair = keyPairGenerator.GenerateKeyPair();
-            _maxLength = keySize / 8 - PaddingOverhead;
-        }
-
-        public string GetPrivateKeyBase64() {
-            AssertKeyPair();
-            var privateKeyInfo = PrivateKeyInfoFactory.CreatePrivateKeyInfo(_keyPair.Private);
-            return Convert.ToBase64String(privateKeyInfo.GetEncoded());
-        }
-
-        public void ImportPrivateKeyBase64(string base64Key) {
-            AssertKeyPair();
-            var keyBytes = Convert.FromBase64String(base64Key);
-            var privateKey = PrivateKeyFactory.CreateKey(keyBytes);
-            _keyPair = new AsymmetricCipherKeyPair(_keyPair.Public, privateKey);
+            var keyPair = keyPairGenerator.GenerateKeyPair();
+            _publicKey = keyPair.Public;
+            _privateKey = keyPair.Private;
+            _maxLength = MaxLengthOf(_publicKey, keySize);
         }
 
         public string GetPublicKeyBase64() {
-            AssertKeyPair();
-            var publicKeyInfo = SubjectPublicKeyInfoFactory.CreateSubjectPublicKeyInfo(_keyPair.Public);
+            AssertPublicKey();
+            var publicKeyInfo = SubjectPublicKeyInfoFactory.CreateSubjectPublicKeyInfo(_publicKey);
             return Convert.ToBase64String(publicKeyInfo.GetEncoded());
         }
 
         public void ImportPublicKeyBase64(string base64Key) {
-            AssertKeyPair();
             var keyBytes = Convert.FromBase64String(base64Key);
-            var publicKey = PublicKeyFactory.CreateKey(keyBytes);
-            _keyPair = new AsymmetricCipherKeyPair(publicKey, _keyPair.Private);
+            _publicKey = PublicKeyFactory.CreateKey(keyBytes);
+            _maxLength = MaxLengthOf(_publicKey, 0);
         }
 
         public string Encrypt(string data) {
-            AssertKeyPair();
+            AssertPublicKey();
 
             var sb = new StringBuilder();
             for (var i = 0; i < data.Length; i += _maxLength) {
@@ -68,7 +65,7 @@ namespace Communicate.Encrypt {
         }
 
         public string Decrypt(string encryptedData) {
-            AssertKeyPair();
+            AssertPrivateKey();
 
             var sb = new StringBuilder();
             var parts = encryptedData.Split(_delimiter);
@@ -84,36 +81,49 @@ namespace Communicate.Encrypt {
         }
 
         private string EncryptPart(string data) {
-            AssertKeyPair();
-
             if (data.Length > _maxLength)
                 throw new Exception("Data is too long to encrypt");
 
             var encryptEngine = new OaepEncoding(new RsaEngine());
-            encryptEngine.Init(true, _keyPair.Public);
+            encryptEngine.Init(true, _publicKey);
 
             var encryptedBytes = encryptEngine.ProcessBlock(Encoding.UTF8.GetBytes(data), 0, data.Length);
             return Convert.ToBase64String(encryptedBytes);
         }
 
         private string DecryptPart(string encryptedData) {
-            AssertKeyPair();
-
             if (string.IsNullOrEmpty(encryptedData))
                 throw new Exception("Encrypted data is empty");
 
             var encryptedBytes = Convert.FromBase64String(encryptedData);
 
             var decryptEngine = new OaepEncoding(new RsaEngine());
-            decryptEngine.Init(false, _keyPair.Private);
+            decryptEngine.Init(false, _privateKey);
 
             var decryptedBytes = decryptEngine.ProcessBlock(encryptedBytes, 0, encryptedBytes.Length);
             return Encoding.UTF8.GetString(decryptedBytes);
         }
 
-        private void AssertKeyPair() {
-            if (_keyPair == null)
-                throw new Exception("Key pair is null");
+        /// <summary>
+        /// Suy độ dài khối tối đa từ modulus của chính khoá, thay vì phải biết trước keySize.
+        /// Bỏ qua bước này thì _maxLength = 0 và vòng lặp trong Encrypt sẽ chạy vô hạn.
+        /// </summary>
+        private static int MaxLengthOf(AsymmetricKeyParameter key, int fallbackKeySize) {
+            var keySize = key is RsaKeyParameters rsa ? rsa.Modulus.BitLength : fallbackKeySize;
+            if (keySize <= 0) {
+                throw new Exception("Cannot determine RSA key size");
+            }
+            return keySize / 8 - PaddingOverhead;
+        }
+
+        private void AssertPublicKey() {
+            if (_publicKey == null)
+                throw new Exception("Public key is null");
+        }
+
+        private void AssertPrivateKey() {
+            if (_privateKey == null)
+                throw new Exception("Private key is null");
         }
     }
 }

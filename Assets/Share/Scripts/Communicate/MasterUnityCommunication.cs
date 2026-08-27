@@ -155,11 +155,8 @@ namespace Share.Scripts.Communicate {
         /// </summary>
         /// <returns></returns>
         private IUnityReactCommunication InitializeUnityToReact() {
-            // unity react hoán đổi vị trí data
-            var obfuscate = new PermutationObfuscate(Secret.ReactPermutationOrder32);
-            // unity react sử dụng bộ encryption riêng với smartFox
-            var encryption = new UnityEncryption(obfuscate);
-            return new UnityReactCommunication(encryption, _logManager, _mobileRequest, _jwtSession);
+            // Kênh Unity <-> React là plaintext: nó chỉ chống user dựng bot, mà policy đã cho phép bot.
+            return new UnityReactCommunication(_logManager, _mobileRequest, _jwtSession);
         }
 
         private IUnitySmartFoxCommunication InitializeUnitySmartFox() {

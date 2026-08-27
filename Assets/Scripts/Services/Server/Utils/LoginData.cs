@@ -75,7 +75,7 @@ namespace Services.Server {
             UserName = userName;
             UserData = userData;
             Platform = platform;
-            LoginType = (int)App.LoginType.Telegram;
+            LoginType = 6; // ton
             DeviceType = AppConfig.IsMobile()
                 ? DeviceType.Mobile
                 : DeviceType.Web;
@@ -100,7 +100,7 @@ namespace Services.Server {
             UserName = userName;
             UserData = userData;
             Platform = platform;
-            LoginType = (int)App.LoginType.Solana;;
+            LoginType = 7; // solana
             DeviceType = AppConfig.IsMobile()
                 ? DeviceType.Mobile
                 : DeviceType.Web;
