@@ -1,6 +1,5 @@
 using App;
 using Communicate;
-using Communicate.Encrypt;
 using Cysharp.Threading.Tasks;
 using Scenes.TreasureModeScene.Scripts.Service;
 using Senspark;
@@ -20,11 +19,11 @@ namespace Share.Scripts.Communicate.UnityReact {
     }
     
     public class UnityReactCommunication: IUnityReactCommunication {
-        public UnityReactCommunication(UnityEncryption encryption, ILogManager logManager, IMobileRequest mobileRequest, IPublicJwtSession jwtSession) {
-            ReactToUnity = new ReactToUnity(encryption, logManager);
+        public UnityReactCommunication(ILogManager logManager, IMobileRequest mobileRequest, IPublicJwtSession jwtSession) {
+            ReactToUnity = new ReactToUnity(logManager);
             UnityToReact = AppConfig.IsEditor && !AppConfig.IsMobile()
                 ? new EditorToReact(jwtSession)
-                : new UnityToReact(encryption, logManager, mobileRequest, jwtSession);
+                : new UnityToReact(logManager, mobileRequest, jwtSession);
         }
 
         public IReactToUnity ReactToUnity { get; }

@@ -153,35 +153,6 @@ namespace App {
             AssetDatabase.Refresh();
         }
 
-        [MenuItem("Tools/Change Language To English")]
-        public static void _ChangeLanguageToEnglish() {
-            ServiceLocator.Instance.Resolve<ILanguageManager>().SetLanguage(LocalizeLang.English);
-        }
-
-        [MenuItem("Tools/Change Language To VietNam")]
-        public static void _ChangeLanguageToVietNam() {
-            ServiceLocator.Instance.Resolve<ILanguageManager>().SetLanguage(LocalizeLang.VietNam);
-        }
-
-        [MenuItem("Tools/Change Language To Brazil")]
-        public static void _ChangeLanguageToBrazil() {
-            ServiceLocator.Instance.Resolve<ILanguageManager>().SetLanguage(LocalizeLang.Brazil);
-        }
-
-        [MenuItem("Tools/Change Language To Philippine")]
-        public static void _ChangeLanguageToPhilippine() {
-            ServiceLocator.Instance.Resolve<ILanguageManager>().SetLanguage(LocalizeLang.Philippine);
-        }
-
-        [MenuItem("Tools/Change Language To Spanish")]
-        public static void _ChangeLanguageToSpanish() {
-            ServiceLocator.Instance.Resolve<ILanguageManager>().SetLanguage(LocalizeLang.Spanish);
-        }
-
-        [MenuItem("Tools/Change Language To Thai")]
-        public static void _ChangeLanguageToThai() {
-            ServiceLocator.Instance.Resolve<ILanguageManager>().SetLanguage(LocalizeLang.Thai);
-        }
 #endif
     }
 }

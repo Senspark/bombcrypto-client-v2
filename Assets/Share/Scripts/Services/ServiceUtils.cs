@@ -151,7 +151,7 @@ namespace Share.Scripts.Services {
             var sceneManager = new SceneManager();
             var languageManager = new DefaultLanguageManager();
             var dataManager = new DefaultDataManager(new LocalDataStorage());
-            var soundManager = new DefaultSoundManager(dataManager);
+            var soundManager = new LazySoundManager(dataManager);
             var networkConfig = new NullNetworkConfig();
             var userAccountManager = new DefaultUserAccountManager(logManager);
             var iapManager = new DefaultUnityPurchaseManager(logManager, analytics);

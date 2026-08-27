@@ -43,7 +43,7 @@ namespace Scenes.TreasureModeScene.Scripts {
                 new DefaultPveHeroStateManager(new DefaultLogManager(true), new NullServerManager()),
                 new NullStorageManager(),
                 new EditorFeatureManager(),
-                new DefaultSoundManager(new DefaultDataManager(new LocalDataStorage())),
+                new LazySoundManager(new DefaultDataManager(new LocalDataStorage())),
                 new TonNetworkConfig(),
                 new TaskNone(),
                 new DefaultFusionManager(),

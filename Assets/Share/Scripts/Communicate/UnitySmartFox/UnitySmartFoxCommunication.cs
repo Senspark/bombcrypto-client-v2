@@ -49,7 +49,8 @@ namespace Communicate {
 
             var data = await _unityToReactCommunicate.UnityToReact.RequestJwt(type);
 
-            _encryption.Rsa().GenerateKeyPair();
+            // Chỉ cần khoá công khai của server để Encrypt payload login — không cần khoá riêng,
+            // nên không sinh cặp khoá ở đây nữa.
             _encryption.Rsa().ImportPublicKeyBase64(data.ServerPublicKey);
             _jwtSession.SetRawJwt(data.Jwt);
             _jwtSession.SetPublicKey(data.ServerPublicKey);

@@ -1,9 +1,5 @@
 import Logger from "../Logger.ts";
-import RsaEncryption from "../encrypt/RsaEncryption.ts";
 import {Account, HandshakeType} from "../WalletService.ts";
-import AesEncryptionHelper from "../encrypt/AesEncryptionHelper.ts";
-import AesEncryption from "../encrypt/AesEncryption.ts";
-import IObfuscate from "../encrypt/IObfuscate.ts";
 import {BlockChainConfig} from "../BlockChain/BlockChainConfig.ts";
 import {
     depositServiceWithInvoice,
@@ -21,12 +17,8 @@ import {getSupportedNetworkFromChainId, getRpc, SupportedNetwork} from "../RpcNe
 import {RpcService} from "../BlockChain/RpcService.ts";
 import BlockChainCommand from "../../consts/BlockChainCommand.ts";
 import {buildLandingUrl, openLandingMode} from "../LandingUtils.ts";
-import {sleep} from "../../utils/Time.ts";
 
 const TAG = '[UC]';
-
-// How long to wait before probing the RPCs again while none of them answers.
-const RPC_RETRY_DELAY_MS = 10000;
 const K_TRANSFER_AIRDROP_PREFIX = 'DEP';
 
 export default class UnityCommunicator {
@@ -34,20 +26,10 @@ export default class UnityCommunicator {
         private readonly _logger: Logger,
         private readonly _authService: IAuthService,
         private readonly _walletService: WalletService,
-        private readonly _obfuscate32: IObfuscate,
         private readonly _isProd: boolean,
         private readonly _notiService: NotificationService,
     ) {
-        this._unityRsa = new RsaEncryption();
-        this._serverRsa = new RsaEncryption();
-        this._baseAes = new AesEncryption();
-        this._aesHelper = new AesEncryptionHelper(this._baseAes, this._obfuscate32);
     }
-
-    private readonly _unityRsa: RsaEncryption;
-    private readonly _serverRsa: RsaEncryption
-    private readonly _baseAes: AesEncryption;
-    private readonly _aesHelper: AesEncryptionHelper;
 
     private _blockChainConfig: BlockChainConfig | null = null;
     private _handShakeCompleted = false;
@@ -57,21 +39,10 @@ export default class UnityCommunicator {
 
     private _isContinue = false;
 
-    // Guards against a second retry loop (and a second warning) when the
-    // blockchain config is initialized again while the first one is running.
-    private _watchingRpcHealth = false;
-
     async handShakeFromUnity(requestData: string): Promise<string | null> {
         try {
             this._logger.log(`${TAG} handShakeFromUnity: ${requestData}`);
-            const rsaPublicKey = this._obfuscate32.deobfuscate(requestData);
-            this._logger.log(`${TAG} publicKey: ${rsaPublicKey}`);
-            this._unityRsa.importPublicKey(rsaPublicKey);
-            this._baseAes.generateKey();
-
-            const aesKey = this._baseAes.getKeyBase64();
-            const encryptedAesKey = this._unityRsa.encrypt(this._obfuscate32.obfuscate(aesKey));
-            const response = this._obfuscate32.obfuscate(encryptedAesKey);
+            const response = '';
             this._handShakeCompleted = true;
             this._logger.log(`${TAG} handShakeFromUnity completed: ${this._handShakeCompleted}`);
             window.onReactSendLog?.(); // Allow to send log to Unity
@@ -228,7 +199,7 @@ export default class UnityCommunicator {
     // Opens the requested game mode (treasure/adventure) in a new browser tab.
     async openGameMode(data: string): Promise<string | null> {
         try {
-            const decrypted = this._aesHelper.decrypt(data);
+            const decrypted = data;
             if (decrypted == null) {
                 this._logger.error(`${TAG} openGameMode: cannot decrypt data`);
                 return null;
@@ -272,7 +243,7 @@ export default class UnityCommunicator {
             this._logger.log(`${TAG} getJwtForUnity`);
 
             let type: HandshakeType = "Login";
-            const decrypted = this._aesHelper.decrypt(handshakeType);
+            const decrypted = handshakeType;
             if (decrypted == null) {
                 this._logger.error(`${TAG} Cannot decrypt account data or no data`);
             } else {
@@ -291,8 +262,6 @@ export default class UnityCommunicator {
                 return null;
             }
 
-            this._serverRsa.importPublicKey(serverPublicKey);
-
             const chainId = this._walletService.getChainId();
             const data: CmdDataGetJwt = {
                 walletAddress: jwtData.walletAddress,
@@ -307,7 +276,7 @@ export default class UnityCommunicator {
 
 
             const json = JSON.stringify(data);
-            return this._aesHelper.encrypt(json);
+            return json;
         } catch (e) {
             this._logger.error((e as Error).message);
             return null;
@@ -341,8 +310,6 @@ export default class UnityCommunicator {
                 this._logger.error(`${TAG} Server public key is null`);
                 return null;
             }
-
-            this._serverRsa.importPublicKey(serverPublicKey);
 
             const dataAccount: CmdDataGetJwtForAccount = {
                 encryptedJwt: jwtData.jwt,
@@ -380,7 +347,7 @@ export default class UnityCommunicator {
             await customSessionStorage.set(sessionSetting.getSessionKey().isUseWallet, 'false');
 
 
-            return this._aesHelper.encrypt(json);
+            return json;
         } catch (e) {
             this._logger.error((e as Error).message);
             return null;
@@ -388,7 +355,7 @@ export default class UnityCommunicator {
     }
 
     private parseAccountData(data: string): Account | null {
-        const decrypted = this._aesHelper.decrypt(data);
+        const decrypted = data;
         if (decrypted == null) {
             this._logger.error(`${TAG} Cannot decrypt account data`);
             return null;
@@ -405,51 +372,10 @@ export default class UnityCommunicator {
         const rpcService = new RpcService(this._logger);
         // Don't block login/SmartFox connect on RPC probing — getRpc() already falls back to the
         // hardcoded list while this resolves in the background.
-        rpcService.initialize()
-            .then(() => this._watchRpcHealth(rpcService, chainId.dec))
-            .catch((e) => this._logger.error(`${TAG} RPC probing failed: ${e}`));
-        this._blockChainConfig = new BlockChainConfig(chainId.dec.toString(), this._isProd, this._logger, this._aesHelper, rpcService);
+        rpcService.initialize().catch((e) => this._logger.error(`${TAG} RPC probing failed: ${e}`));
+        this._blockChainConfig = new BlockChainConfig(chainId.dec.toString(), this._isProd, this._logger, rpcService);
 
         return null;
-    }
-
-    /**
-     * Login is not held back when every node is down, but the player used to
-     * get no explanation either - just empty balances and actions that fail.
-     * Warns instead, and keeps probing until a node answers: the RpcService
-     * hands the verified URLs to whoever is already using it, so the game
-     * recovers on its own without a reload.
-     */
-    private async _watchRpcHealth(rpcService: RpcService, chainId: number): Promise<void> {
-        if (!rpcService.hasNoWorkingRpc(chainId) || this._watchingRpcHealth) {
-            return;
-        }
-        this._watchingRpcHealth = true;
-
-        this._notiService.show(
-            'Connection problem',
-            'Could not reach any node for this network, so balances and blockchain actions ' +
-            'will not work. Retrying automatically - you can also set your own node in "RPC urls".',
-            0,          // stays on screen: nothing on chain works until this clears
-            'error',
-        );
-
-        try {
-            while (rpcService.hasNoWorkingRpc(chainId)) {
-                this._logger.error(
-                    `${TAG} No working RPC for chain ${chainId}, retrying in ${RPC_RETRY_DELAY_MS}ms`);
-                await sleep(RPC_RETRY_DELAY_MS);
-                await rpcService.initialize();
-            }
-
-            this._logger.log(`${TAG} An RPC answered, blockchain calls should work again`);
-            this._notiService.clear();
-            this._notiService.show('Connected', 'A node answered, blockchain is back.', 3, 'success');
-        } catch (e) {
-            this._logger.error(`${TAG} RPC health watch stopped: ${e}`);
-        } finally {
-            this._watchingRpcHealth = false;
-        }
     }
 
     async callBlockChainMethod(data: string): Promise<string | null> {
@@ -460,7 +386,7 @@ export default class UnityCommunicator {
             return null;
         }
         try {
-            const decrypted = this._aesHelper.decrypt(data);
+            const decrypted = data;
             if (decrypted == null) {
                 this._logger.error(`${TAG} Cannot decrypt blockchain data`);
                 return null;
@@ -560,16 +486,16 @@ export default class UnityCommunicator {
 
     async changeNickName(data: string): Promise<string | null> {
         try {
-            const decrypted = this._aesHelper.decrypt(data);
+            const decrypted = data;
             if (decrypted == null) {
                 this._logger.error(`${TAG} Cannot decrypt account data`);
-                return this._aesHelper.encrypt(JSON.stringify(false));
+                return JSON.stringify(false);
             }
 
 
             const {userName, newNickName} = JSON.parse(decrypted) as { userName: string, newNickName: string };
             const result = await this._authService.changeNickName(userName, newNickName);
-            return this._aesHelper.encrypt(JSON.stringify(result));
+            return JSON.stringify(result);
         } catch (e) {
             this._logger.error(`${TAG} Create guest account fail: ${e}`);
             return null;
@@ -605,12 +531,12 @@ export default class UnityCommunicator {
         if (!this._handShakeCompleted) {
             this._logger.error(`${TAG} Handshake is not completed`);
 
-            return this._aesHelper.encrypt(JSON.stringify(false));
+            return JSON.stringify(false);
         }
-        const decrypted = this._aesHelper.decrypt(data);
+        const decrypted = data;
         if (!decrypted) {
             this._logger.error(`${TAG} Cannot decrypt data`);
-            return this._aesHelper.encrypt(JSON.stringify(false));
+            return JSON.stringify(false);
         }
         const depositData = JSON.parse(decrypted) as { invoice: string, amount: string, chainId: string };
         let result = false;
@@ -622,18 +548,17 @@ export default class UnityCommunicator {
                 const result = await walletService.forceSwapChain()
                 if (!result) {
                     this._logger.error(`${TAG} Failed to switch chain`);
-                    return this._aesHelper.encrypt(JSON.stringify(false));
+                    return JSON.stringify(false);
                 }
             }
             result = await depositServiceWithInvoice.deposit(depositData.amount, depositData.invoice);
         }
-        return this._aesHelper.encrypt(JSON.stringify(result));
+        return JSON.stringify(result);
     }
 
     sendMessageToUnity(cmd: string, data: string) {
         this._logger.log(`${TAG} send message to unity: ${data}`);
-        const decrypted = this._aesHelper.encrypt(data);
-        const message = JSON.stringify({cmd: cmd, data: decrypted});
+        const message = JSON.stringify({cmd: cmd, data: data});
         window.unityInstance?.SendMessage('JsProcessor', 'CallUnity', message);
     }
 

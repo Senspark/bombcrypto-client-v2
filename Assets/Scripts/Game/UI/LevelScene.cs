@@ -60,7 +60,7 @@ namespace Game.UI {
         private ItemGettingAnim chestAnim;
 
         [SerializeField]
-        private BLGachaRes resources;
+        private TreasureModeRes resources;
 
         [SerializeField]
         private RectTransform bottomPanner;
@@ -329,12 +329,15 @@ namespace Game.UI {
             DOTween.Sequence().SetDelay(3).OnComplete(() => callbackComplete?.Invoke());
         }
 
-        public async void EarnReward(BlockRewardType reward, int quantity, Vector2 startPosition, Vector2 endPosition,
+        public void EarnReward(BlockRewardType reward, int quantity, Vector2 startPosition, Vector2 endPosition,
             System.Action callbackComplete) {
             _soundManager.PlaySound(Audio.CollectBCoin);
-            var icon = await resources.GetSpriteByRewardType(reward);
-            if (!icon) {
-                Debug.LogError($"Reward icon is null {reward.ToString()}");
+            Sprite icon;
+            try {
+                icon = resources.GetSpriteByRewardType(reward);
+            } catch (KeyNotFoundException e) {
+                // Nằm trong gameplay loop — để exception thoát ra sẽ bỏ qua callbackComplete và kẹt chuỗi animation.
+                Debug.LogError(e.Message);
                 callbackComplete?.Invoke();
                 return;
             }

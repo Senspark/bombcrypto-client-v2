@@ -1,6 +1,5 @@
 using System;
 using App;
-using Communicate.Encrypt;
 using Cysharp.Threading.Tasks;
 using Newtonsoft.Json.Linq;
 using Senspark;
@@ -12,12 +11,10 @@ using UnityEngine;
 namespace Communicate {
     public class UnityToReact : IUnityToReact {
         public UnityToReact(
-            UnityEncryption encryption,
             ILogManager logger,
             IMobileRequest mobileRequest,
             IPublicJwtSession jwtSession
         ) {
-            _encryption = encryption;
             _logger = logger;
             _mobileRequest = mobileRequest;
             _jwtSession = jwtSession;
@@ -26,7 +23,6 @@ namespace Communicate {
 
         private readonly ILogManager _logger;
         private readonly IJavascriptProcessor _reactSender;
-        private readonly UnityEncryption _encryption;
         private readonly IMobileRequest _mobileRequest;
         private readonly IPublicJwtSession _jwtSession;
         private ILoginWith _loginWith;
@@ -40,8 +36,7 @@ namespace Communicate {
         public async UniTask<bool> RequestConnection() {
             try {
                 _logger.Log($"{_tag} RequestConnection start");
-                _encryption.Rsa().GenerateKeyPair();
-                var result = await _reactSender.CallReact(ReactCommand.GET_CONNECTION, _encryption.Rsa().ExportData());
+                var result = await _reactSender.CallReact(ReactCommand.GET_CONNECTION, string.Empty);
                 bool.TryParse(result, out var connection);
                 _logger.Log($"{_tag} RequestConnection done, result: {connection}");
                 return connection;
@@ -55,8 +50,7 @@ namespace Communicate {
         public async UniTask RequestLoginData() {
             try {
                 _logger.Log($"{_tag} RequestLoginData start");
-                _encryption.Rsa().GenerateKeyPair();
-                var json = await _reactSender.CallReact(ReactCommand.GET_LOGIN_DATA, _encryption.Rsa().ExportData());
+                var json = await _reactSender.CallReact(ReactCommand.GET_LOGIN_DATA, string.Empty);
                 var resultAcc = JsonUtility.FromJson<LoginAccount>(json);
                 _userAccount = new UserAccount() {
                     userName = resultAcc.userName,
@@ -97,13 +91,7 @@ namespace Communicate {
 
                 //Mobile ko có react template nên bỏ qua bước này
                 if (!AppConfig.IsMobile()) {
-                    _encryption.Rsa().GenerateKeyPair();
-                    var received = await _reactSender.CallReact(ReactCommand.INIT, _encryption.Rsa().ExportData());
-                    var aesKey = _encryption.Rsa().ImportData(received);
-                    if (string.IsNullOrEmpty(aesKey)) {
-                        throw new Exception("Handshake failed");
-                    }
-                    _encryption.Aes().SetKeyAndIv(aesKey, _encryption.Aes().GetIv());
+                    await _reactSender.CallReact(ReactCommand.INIT, string.Empty);
                 }
                 
                 _initialized = true;
@@ -137,14 +125,12 @@ namespace Communicate {
                 }
 
                 _logger.Log($"{_tag} SendToReact {cmd} - {data}");
-                var encrypted = _encryption.Aes().Encrypt(data);
-                var response = await _reactSender.CallReact(cmd, encrypted);
+                var response = await _reactSender.CallReact(cmd, data);
                 if (response == null) {
                     _logger.Log($"{_tag} SendToReact: response is null");
                     return string.Empty;
                 }
-                var decrypted = _encryption.Aes().Decrypt(response);
-                return decrypted;
+                return response;
             } catch (Exception e) {
                 _logger.Log($"{_tag} SendToReact error: {e.Message}");
                 throw new Exception("Something went wrong\nPlease try again");

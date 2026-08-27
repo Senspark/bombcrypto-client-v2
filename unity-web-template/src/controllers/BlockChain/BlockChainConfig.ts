@@ -1,5 +1,4 @@
 import Logger from "../Logger.ts";
-import AesEncryptionHelper from "../encrypt/AesEncryptionHelper.ts";
 import {ContractManager} from "./ContractManager.ts";
 import BlockChainCommand from "../../consts/BlockChainCommand.ts";
 import {RpcService} from "./RpcService.ts";
@@ -13,7 +12,6 @@ export class BlockChainConfig{
     constructor(data: string,
                 isProd: boolean,
                 private readonly _logger: Logger,
-                private readonly _aesHelper: AesEncryptionHelper,
                 private readonly _rpcService: RpcService)
     {
         this._contractManager = new ContractManager(data, this._logger, isProd, this._rpcService);
@@ -102,7 +100,7 @@ export class BlockChainConfig{
                     this._logger.error(`${TAG} Action ${actionName} returned empty/null (param=${param})`);
                     return null;
                 }
-                return this._aesHelper.encrypt(result);
+                return result;
             } else {
                 this._logger.error(`${TAG} Action ${actionName} not found`);
                 return null;
