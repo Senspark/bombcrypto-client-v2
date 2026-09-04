@@ -60,6 +60,7 @@ namespace App {
         public bool EnableInventoryListingItem { get; }
         public bool EnableTreasureHunt { get; }
         public bool ShowHeroSIcon { get; }
+        public bool EnableNftShield { get; }
 
         public BomberLandFeatureManager(UserAccount acc) {
             var userFi = acc.isUserFi;
@@ -112,6 +113,7 @@ namespace App {
             EnableInventoryListingItem = userFi;
             EnableTreasureHunt = userFi;
             ShowHeroSIcon = true;
+            EnableNftShield = true;
         }
     }
 }

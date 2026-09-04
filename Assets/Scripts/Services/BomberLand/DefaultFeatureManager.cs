@@ -66,5 +66,6 @@ namespace App {
         public bool EnableInventoryListingItem => _bridge.EnableInventoryListingItem;
         public bool EnableTreasureHunt => _bridge.EnableTreasureHunt;
         public bool ShowHeroSIcon => _bridge.ShowHeroSIcon;
+        public bool EnableNftShield => _bridge.EnableNftShield;
     }
 }

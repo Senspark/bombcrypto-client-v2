@@ -42,6 +42,12 @@ public class InventoryHeroS : MonoBehaviour {
     private PlayerData _hero;
     Canvas _canvas;
     private bool _isClicked = false;
+    
+    [Header("NFT Shield")]
+    [SerializeField]
+    private GameObject lockBadge;
+    [SerializeField]
+    private GameObject btnLockToggle;
 
 
     public void Show(PlayerData hero, Canvas canvas, bool enableOpenStake = true) {
@@ -83,6 +89,11 @@ public class InventoryHeroS : MonoBehaviour {
         var colorSen = amountSen - minSenStakeToEarn >= 0 ? _colorGreen : _colorRed;
         senFullText.text = amountSen.ToString("0.##########");
         senText.text = $"<color=#{colorSen}>{amountSen}</color>/{minSenStakeToEarn}";
+
+        if (lockBadge != null) {
+            bool hasStake = amountBcoin > 0 || amountSen > 0;
+            lockBadge.SetActive(_featureManager.EnableNftShield && hasStake);
+        }
     }
 
     private void OnEnable() {
