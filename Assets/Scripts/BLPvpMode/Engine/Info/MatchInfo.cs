@@ -14,6 +14,8 @@ namespace BLPvpMode.Engine.Info {
         FFA_2_B3 = 1 << 4,
         FFA_2_B5 = 1 << 5,
         FFA_2_B7 = 1 << 6,
+        Team_3v3 = 1 << 7,
+        BATTLE_ROYALE = 1 << 8,
     }
 
     public class MatchInfo : IMatchInfo {

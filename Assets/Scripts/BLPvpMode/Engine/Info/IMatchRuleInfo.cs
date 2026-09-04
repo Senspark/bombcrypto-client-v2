@@ -5,5 +5,9 @@ namespace BLPvpMode.Engine.Info {
         int Round { get; }
         bool CanDraw { get; }
         bool IsTournament { get; }
+        int GameMode { get; }
+        int WagerMode { get; }
+        int WagerTier { get; }
+        int WagerToken { get; }
     }
 }

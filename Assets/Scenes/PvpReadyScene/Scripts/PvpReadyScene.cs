@@ -61,6 +61,9 @@ namespace Scenes.PvpReadyScene.Scripts {
 
         [SerializeField]
         private TextMeshProUGUI timerText;
+ 
+        [SerializeField]
+        private TextMeshProUGUI wagerText;
 
         [SerializeField]
         private Text waitOpponentText;
@@ -187,6 +190,7 @@ namespace Scenes.PvpReadyScene.Scripts {
             _handle.AddObserver(user, new UserObserver {
                 OnReady = OnReady,
                 OnStartRound = OnStartRound,
+                OnUseEmoji = OnUseEmoji,
             });
             
             _pvpReconnectStrategy = new MultiReconnectStrategy(users.Select(it =>
@@ -205,12 +209,18 @@ namespace Scenes.PvpReadyScene.Scripts {
             waitOpponentText.gameObject.SetActive(false);
 
             for (var slot = 0; slot < userInfo.Length; ++slot) {
-                if (slot >= heroesReadyCom.Length) {
-                    // FIXME: UI not supported.
+                var userData = userInfo[slot];
+                
+                BLHeroReadyCom heroCom = null;
+                if (slot < heroesReadyCom.Length) {
+                    heroCom = heroesReadyCom[slot];
+                }
+
+                if (heroCom == null) {
+                    // FIXME: Fallback if UI not expanded in prefab.
+                    // For now, we skip to avoid null ref, but ideally we instantiate a copy of heroesReadyCom[0].
                     continue;
                 }
-                var userData = userInfo[slot];
-                var heroCom = heroesReadyCom[slot];
 
                 // Avatar.
                 heroCom.avatar.ChangeImage(DefaultPlayerManager.TrPlayerType(userData.Hero.Skin), PlayerColor.HeroTr);
@@ -253,6 +263,21 @@ namespace Scenes.PvpReadyScene.Scripts {
             score.SetActive(true);
             scoreText.text = strScores;
             UpdateReadyStatus();
+            
+            // Wager Info
+            if (wagerText != null) {
+                if (user.MatchInfo.Rule.WagerMode == (int)PvpWagerMode.WAGER) {
+                    var tier = (PvpWagerTier)user.MatchInfo.Rule.WagerTier;
+                    var token = (PvpWagerToken)user.MatchInfo.Rule.WagerToken;
+                    var amount = PvpWagerUtils.GetAmount(tier);
+                    var tokenName = PvpWagerUtils.GetTokenName(token);
+                    wagerText.text = $"BET: {amount:N0} {tokenName}";
+                    wagerText.gameObject.SetActive(true);
+                } else {
+                    wagerText.text = "FREE MODE";
+                    wagerText.gameObject.SetActive(true);
+                }
+            }
         }
         
         private void OnReadyClick(bool value) {
@@ -291,7 +316,7 @@ namespace Scenes.PvpReadyScene.Scripts {
             _logManager.Log($"slot={slot} ready={ready}");
             _readies[slot] = ready;
             UpdateReadyStatus();
-            if (slot >= heroesReadyCom.Length) {
+            if (slot >= heroesReadyCom.Length || heroesReadyCom[slot] == null) {
                 // FIXME: UI not supported.
                 return;
             }
@@ -354,6 +379,17 @@ namespace Scenes.PvpReadyScene.Scripts {
             }
             const string sceneName = "PvpModeScene";
             SceneLoader.LoadSceneAsync(sceneName, OnLoaded).Forget();
+        }
+
+        private void OnUseEmoji(IUseEmojiData data) {
+            _logManager.Log($"slot={data.Slot} itemId={data.ItemId}");
+            if (data.Slot >= heroesReadyCom.Length || heroesReadyCom[data.Slot] == null) {
+                return;
+            }
+            UniTask.Void(async () => {
+                var sprite = await resource.GetSpriteByItemId(data.ItemId);
+                heroesReadyCom[data.Slot].ShowEmoji(sprite);
+            });
         }
     }
 }

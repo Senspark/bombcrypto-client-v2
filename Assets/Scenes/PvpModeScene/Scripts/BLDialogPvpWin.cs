@@ -163,13 +163,21 @@ namespace Scenes.PvpModeScene.Scripts {
         }
 
         public void SetRewards(
-            IPvpResultUserInfo userInfo,
+            IPvpResultInfo info,
+            int slot,
             string rewardId,
             bool isOutOfChest,
             System.Action callback
         ) {
+            var userInfo = info.Info[slot];
             winInfo.SetActive(true);
-            score.SetActive(false);
+            score.SetActive(info.Mode == PvpMode.BATTLE_ROYALE);
+            if (info.Mode == PvpMode.BATTLE_ROYALE) {
+                var rank = userInfo.Ranking;
+                scoreText.text = $"RANK: {rank}/{info.Info.Length}";
+            } else {
+                score.SetActive(false);
+            }
             _onNextCallback = callback;
 
             _pvpRewardId = rewardId;
@@ -178,7 +186,7 @@ namespace Scenes.PvpModeScene.Scripts {
             foreach (var iter in userInfo.Rewards.Keys) {
                 var type = RewardResource.ConvertIdToEnum(iter);
                 var reward = CreateRewardItem(type,
-                    (int)userInfo.Rewards[iter],
+                    userInfo.Rewards[iter],
                     isOutOfChest);
                 if (type == RewardSourceType.Gold) {
                     _goldReward = reward;
@@ -287,16 +295,25 @@ namespace Scenes.PvpModeScene.Scripts {
         }
 
         public void SetTournamentResult(int slot, IPvpResultInfo info, System.Action callback) {
-            Assert.IsTrue(info.Scores.Length == 2);
             winInfo.SetActive(false);
             score.SetActive(true);
             _onNextCallback = callback;
-            scoreText.text = $"{info.Scores[slot]}-{info.Scores[1 - slot]}";
+            
+            if (info.Mode == PvpMode.BATTLE_ROYALE) {
+                var userResult = info.Info.FirstOrDefault(u => u.UserId == _storageManager.UserId);
+                var rank = userResult?.Ranking ?? 0;
+                scoreText.text = $"RANK: {rank}/{info.Info.Length}";
+            } else {
+                scoreText.text = info.Scores.Length >= 2 
+                    ? $"{info.Scores[slot]}-{info.Scores[1 - slot]}" 
+                    : "RESULT";
+            }
+            
             nextButton.gameObject.SetActive(true);
             adsButtons.SetActive(false);
         }
 
-        private WinReward CreateRewardItem(RewardSourceType type, int value, bool outOfSlot) {
+        private WinReward CreateRewardItem(RewardSourceType type, float value, bool outOfSlot) {
             var item = Instantiate(rewardPrefab, rewardContainer, false);
             var fullSlot = RewardIsChest(type) && outOfSlot;
             item.SetInfo(type, value, fullSlot);

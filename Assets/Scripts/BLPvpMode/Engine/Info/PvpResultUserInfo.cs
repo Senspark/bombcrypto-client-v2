@@ -10,6 +10,7 @@ namespace BLPvpMode.Engine.Info {
         public int UserId { get; }
         public string Username { get; }
         public int Rank { get; }
+        public int Ranking { get; }
         public int Point { get; }
         public int MatchCount { get; }
         public int WinMatchCount { get; }
@@ -25,6 +26,7 @@ namespace BLPvpMode.Engine.Info {
             [JsonProperty("user_id")] int userId,
             [JsonProperty("username")] string username,
             [JsonProperty("rank")] int rank,
+            [JsonProperty("ranking")] int ranking,
             [JsonProperty("point")] int point,
             [JsonProperty("match_count")] int matchCount,
             [JsonProperty("win_match_count")] int winMatchCount,
@@ -38,6 +40,7 @@ namespace BLPvpMode.Engine.Info {
             UserId = userId;
             Username = username;
             Rank = rank;
+            Ranking = ranking;
             Point = point;
             MatchCount = matchCount;
             WinMatchCount = winMatchCount;

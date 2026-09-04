@@ -15,6 +15,7 @@ namespace BLPvpMode.Engine.Info {
         string Username { get; }
 
         int Rank { get; }
+        int Ranking { get; }
         int Point { get; }
         int MatchCount { get; }
         int WinMatchCount { get; }

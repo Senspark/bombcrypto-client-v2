@@ -30,7 +30,7 @@ namespace BLPvpMode.Manager {
 
     public interface IPvpJoinManager : IObserverManager<PvpJoinObserver> {
         JoinStatus JoinStatus { get; }
-        Task<IFindMatchResult[]> FindMatch(global::BLPvpMode.Engine.Info.PvpMode modem, string matchId);
+        Task<IFindMatchResult[]> FindMatch(global::BLPvpMode.Engine.Info.PvpMode modem, string matchId, int gameMode = 1, int wagerMode = 0, int wagerTier = 0, int wagerToken = 0);
         Task CancelFinding();
         void Destroy();
     }

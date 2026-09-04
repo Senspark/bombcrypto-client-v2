@@ -148,17 +148,15 @@ namespace Scenes.PvpModeScene.Scripts {
             var shortenMatchId = matchId.Length > 10 ? $"{matchId[..5]}...{matchId[^5..]}" : matchId;
             var id = serverId == null ? shortenMatchId : $"{serverId}:{shortenMatchId}";
             matchIdText.text = $"ID:{id}";
-            heroes[0].ChangeImage(DefaultPlayerManager.TrPlayerType(pvpUsers[0].Hero.Skin), PlayerColor.HeroTr);
-            heroes[1].ChangeImage(DefaultPlayerManager.TrPlayerType(pvpUsers[1].Hero.Skin), PlayerColor.HeroTr);
-            
-            var sprites0 = await resource.GetAvatar(pvpUsers[0].Avatar);
-            avatarTRs[0].StartAni(sprites0);
-            var sprites1 = await resource.GetAvatar(pvpUsers[1].Avatar);
-            avatarTRs[1].StartAni(sprites1);
 
-            SetUserName(addressText[0], pvpUsers[0]);
-            SetUserName(addressText[1], pvpUsers[1]);
-            for (var i = 0; i < addressText.Length; i++) {
+            for (var i = 0; i < pvpUsers.Length; i++) {
+                if (i >= heroes.Length) break;
+                
+                heroes[i].ChangeImage(DefaultPlayerManager.TrPlayerType(pvpUsers[i].Hero.Skin), PlayerColor.HeroTr);
+                var sprites = await resource.GetAvatar(pvpUsers[i].Avatar);
+                avatarTRs[i].StartAni(sprites);
+                SetUserName(addressText[i], pvpUsers[i]);
+
                 if (isParticipant) {
                     if (i == slot) {
                         iconChest = heroes[i].transform;
@@ -367,7 +365,7 @@ namespace Scenes.PvpModeScene.Scripts {
                 if (isTournament) {
                     dialogWin.SetTournamentResult(slot, info, callback);
                 } else {
-                    dialogWin.SetRewards(info.Info[slot], rewardId, isOutOfChest, callback);
+                    dialogWin.SetRewards(info, slot, rewardId, isOutOfChest, callback);
                 }
                 if (boosters != null) {
                     dialogWin.UpdateBooster(boosters);
@@ -392,7 +390,7 @@ namespace Scenes.PvpModeScene.Scripts {
                 if (isTournament) {
                     dialogLose.SetTournamentResult(levelResult, info, slot, callback);
                 } else {
-                    dialogLose.SetRewards(levelResult, info.Info[slot], rewardId, isOutOfChest, callback);
+                    dialogLose.SetRewards(levelResult, info, slot, rewardId, isOutOfChest, callback);
                 }
                 if (boosters != null) {
                     dialogLose.UpdateBooster(boosters);
@@ -431,8 +429,7 @@ namespace Scenes.PvpModeScene.Scripts {
         }
 
         public void UpdateHealthUi(int slot, int value) {
-            if (slot >= healthText.Length) {
-                // FIXME: UI not supported.
+            if (slot >= healthText.Length || healthText[slot] == null) {
                 return;
             }
             var hp = value > 0 ? value : 0;
