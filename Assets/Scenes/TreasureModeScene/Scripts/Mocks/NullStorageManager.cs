@@ -74,6 +74,15 @@ namespace Scenes.TreasureModeScene.Scripts.Mocks {
             throw new NotImplementedException();
         }
 
+        public StaminaData[] UpgradeStamina { get; set; } = new StaminaData[0];
+
+        public void LoadUpgradeStaminaFromServer(IHeroStamina[] staminaData) {
+        }
+
+        public StaminaData GetStaminaData(int rare) {
+            return null;
+        }
+
         public void LoadUpgradePowerFromServer(IHeroPower[] powerData) {
             throw new NotImplementedException();
         }

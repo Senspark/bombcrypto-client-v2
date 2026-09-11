@@ -879,7 +879,10 @@ namespace Scenes.FarmingScene.Scripts {
                     e.gameObject.SetActive(_chooseMode != ChooseMode.PreviewSummary);
                     e.interactable = _chooseMode switch {
                         ChooseMode.StoryModePlayToEarn => !playerData.storyIsPlayed,
-                        ChooseMode.Upgrade => playerData.level < 5,
+                        // O material precisa ser do nivel EXIGIDO, nao "abaixo de 5": nos niveis 6-10 o
+                        // material e sempre nivel 5, e a regra antiga desabilitava justamente esses.
+                        // _baseHeroLevel ja vem como RequiredMaterialLevel(nivel do hero base).
+                        ChooseMode.Upgrade => _baseHeroLevel == 0 || playerData.level == _baseHeroLevel,
                         ChooseMode.PvpMode => playerData.battery > 0,
                         _ => true
                     };
@@ -924,12 +927,16 @@ namespace Scenes.FarmingScene.Scripts {
             UnActiveFirst
         }
 
+        // A ORDEM importa: SortInventory le (SortOrder2)dropDown2.value, entao cada valor tem que
+        // casar com o indice da opcao criada em SetDataToDropDown. LowestShieldFirst fica por
+        // ultimo porque a opcao dela so aparece no modo RepairShield.
         public enum SortOrder2 {
             HighStatsFirst,
             HighRarityFirst,
             NewestFirst,
-            LowestShieldFirst,
-            HighStakeFirst
+            HighStakeFirst,
+            HighLevelFirst,
+            LowestShieldFirst
         }
 
         public enum ActiveFilter {
@@ -971,6 +978,7 @@ namespace Scenes.FarmingScene.Scripts {
             dropDown2.options.Add(new Dropdown.OptionData(languageManager.GetValue(LocalizeKey.ui_high_rarity)));
             dropDown2.options.Add(new Dropdown.OptionData(languageManager.GetValue(LocalizeKey.ui_newest)));
             dropDown2.options.Add(new Dropdown.OptionData("High Stake"));
+            dropDown2.options.Add(new Dropdown.OptionData("High Level"));
             // Option exclusive to the reset-shield screen: sorts by the lowest current shield
             if (_chooseMode == ChooseMode.RepairShield) {
                 dropDown2.options.Add(new Dropdown.OptionData("Lowest Shield"));

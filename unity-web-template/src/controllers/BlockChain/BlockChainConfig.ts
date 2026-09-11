@@ -32,6 +32,8 @@ export class BlockChainConfig{
         this.actions.set(BlockChainCommand.GET_PENDING_HERO_V2, this._contractManager.getPendingHeroV2.bind(this._contractManager));
         this.actions.set(BlockChainCommand.BUY_HERO, this._contractManager.buyHero.bind(this._contractManager));
         this.actions.set(BlockChainCommand.UPGRADE_HERO, this._contractManager.upgradeHero.bind(this._contractManager));
+        this.actions.set(BlockChainCommand.UPGRADE_HERO_V2, this._contractManager.upgradeHeroV2.bind(this._contractManager));
+        this.actions.set(BlockChainCommand.GET_UPGRADE_V2_PRICE, this._contractManager.getUpgradeV2Price.bind(this._contractManager));
         this.actions.set(BlockChainCommand.CLAIM_HERO, this._contractManager.claimHero.bind(this._contractManager));
         this.actions.set(BlockChainCommand.PROCESS_TOKEN_REQUESTS, this._contractManager.processTokenRequests.bind(this._contractManager));
         this.actions.set(BlockChainCommand.PROCESS_TOKEN_REQUESTS_V2, this._contractManager.processTokenRequestsV2.bind(this._contractManager));

@@ -173,11 +173,19 @@ namespace Game.Dialog {
                 return;
             }
             var price = WeiToCoin(priceWei);
-            SetPriceText($"{FormatCoin(price)} {CoinSymbol}");
+            SetPriceText(BuildPriceText(price));
             // Tiền mua và tiền gas rút từ cùng một ví native, nên phải chừa gas. Không đủ thì
             // khoá nút, không giải thích — giống UpgradeShieldPolygon.
             SetInteractable(_nativeBalance >= price + GasHeadroom);
             OnQuoteApplied(true);
+        }
+
+        /// <summary>
+        /// Texto do preco. Por padrao so o nativo. Upgrade sobrescreve para mostrar
+        /// BCOIN + SEN + nativo nos niveis 6-10.
+        /// </summary>
+        protected virtual string BuildPriceText(double nativePrice) {
+            return $"{FormatCoin(nativePrice)} {CoinSymbol}";
         }
 
         /// <summary>

@@ -18,6 +18,7 @@ namespace Services.UserLoader {
                 ("Sync BHouse Details", () => serverManager.General.SyncHouse()),
                 ("Sync BHero Details", () => serverManager.General.SyncHero(false)),
                 ("Sync BHero Data", () => serverManager.General.GetHeroPower()),
+                ("Sync BHero Stamina", () => serverManager.General.GetHeroStamina()),
                 ("Sync Auto Mine Data", () => serverManager.General.GetAutoMinePrice()),
                 ("Sync Map Data", () => serverManager.Pve.GetMapDetails()),
             };

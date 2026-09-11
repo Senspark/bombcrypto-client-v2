@@ -87,6 +87,14 @@ namespace App {
             return Task.FromResult(new HeroActionResult { success = false, txHash = "", details = "" });
         }
 
+        public Task<UpgradePrice> GetUpgradeV2Price(int baseId) {
+            return Task.FromResult(UpgradePrice.Zero);
+        }
+
+        public Task<HeroActionResult> UpgradeHeroV2(string walletAddress, int baseId, int materialId, UpgradePrice price) {
+            return Task.FromResult(new HeroActionResult { success = false, txHash = "", details = "" });
+        }
+
         public Task<bool> ClaimHero(string walletAddress) {
             return _bridge.ClaimHero(walletAddress);
         }

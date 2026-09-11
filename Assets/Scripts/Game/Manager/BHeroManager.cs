@@ -19,6 +19,7 @@ namespace App {
     [Serializable]
     public class PlayerData {
         public delegate PowerData GetPowerData(int rare);
+        public delegate StaminaData GetStaminaData(int rare);
 
         public string genId;
         public int itemId;
@@ -69,6 +70,25 @@ namespace App {
 
         public GetPowerData getPowerData =
             parameter => ServiceLocator.Instance.Resolve<IStorageManager>().GetPowerData(parameter);
+
+        public GetStaminaData getStaminaData =
+            parameter => ServiceLocator.Instance.Resolve<IStorageManager>().GetStaminaData(parameter);
+
+        /// Pontos de energia ganhos pelo nivel. Espelha GetUpgradePower: a tabela guarda o total
+        /// acumulado, entao isto ja e o bonus completo e nao precisa somar niveis anteriores.
+        public float GetUpgradeStamina(int lv = 0) {
+            if (lv == 0) {
+                lv = level - 1;
+            }
+
+            var staminas = getStaminaData(rare);
+            if (staminas != null) {
+                if (lv >= 0 && lv < staminas.stamina.Length) {
+                    return staminas.stamina[lv];
+                }
+            }
+            return 0;
+        }
 
         public float GetUpgradePower(int lv = 0) {
             if (lv == 0) {
@@ -309,17 +329,21 @@ namespace App {
                 var activeRarity = active.ThenByDescending(e => e.Rarity);
                 var activeNewest = active.ThenByDescending(e => e.Id);
                 var activeStake = active.ThenByDescending(e => Math.Max(e.StakeBcoin, e.StakeSen));
+                // Desempata por raridade: entre dois heroes de mesmo nivel o mais forte vem antes.
+                var activeLevel = active.ThenByDescending(e => e.Level).ThenByDescending(e => e.Rarity);
 
                 var unActiveStats = unActive.ThenByDescending(e => e.BombPower + e.Speed + e.Stamina + e.BombCount + e.BombRange);
                 var unActiveRarity = unActive.ThenByDescending(e => e.Rarity);
                 var unActiveNewest = unActive.ThenByDescending(e => e.Id);
                 var unActiveStake = unActive.ThenByDescending(e => Math.Max(e.StakeBcoin, e.StakeSen));
+                var unActiveLevel = unActive.ThenByDescending(e => e.Level).ThenByDescending(e => e.Rarity);
 
                 var activeList = new List<List<IHeroDetails>>();
                 activeList.Add(activeStats.ToList());
                 activeList.Add(activeRarity.ToList());
                 activeList.Add(activeNewest.ToList());
                 activeList.Add(activeStake.ToList());
+                activeList.Add(activeLevel.ToList());
                 _activeLockedFirst[kv.Key] = activeList;
 
                 var unActiveList = new List<List<IHeroDetails>>();
@@ -327,6 +351,7 @@ namespace App {
                 unActiveList.Add(unActiveRarity.ToList());
                 unActiveList.Add(unActiveNewest.ToList());
                 unActiveList.Add(unActiveStake.ToList());
+                unActiveList.Add(unActiveLevel.ToList());
                 _unActiveLockedFirst[kv.Key] = unActiveList;
             }
         }
@@ -365,17 +390,21 @@ namespace App {
                 var activeRarity = active.ThenByDescending(e => e.Rarity);
                 var activeNewest = active.ThenByDescending(e => e.Id);
                 var activeStake = active.ThenByDescending(e => Math.Max(e.StakeBcoin, e.StakeSen));
+                // Desempata por raridade: entre dois heroes de mesmo nivel o mais forte vem antes.
+                var activeLevel = active.ThenByDescending(e => e.Level).ThenByDescending(e => e.Rarity);
 
                 var unActiveStats = unActive.ThenByDescending(e => e.BombPower + e.Speed + e.Stamina + e.BombCount + e.BombRange);
                 var unActiveRarity = unActive.ThenByDescending(e => e.Rarity);
                 var unActiveNewest = unActive.ThenByDescending(e => e.Id);
                 var unActiveStake = unActive.ThenByDescending(e => Math.Max(e.StakeBcoin, e.StakeSen));
+                var unActiveLevel = unActive.ThenByDescending(e => e.Level).ThenByDescending(e => e.Rarity);
 
                 var activeList = new List<List<IHeroDetails>>();
                 activeList.Add(activeStats.ToList());
                 activeList.Add(activeRarity.ToList());
                 activeList.Add(activeNewest.ToList());
                 activeList.Add(activeStake.ToList());
+                activeList.Add(activeLevel.ToList());
                 _activeFirst[kv.Key] = activeList;
 
                 var unActiveList = new List<List<IHeroDetails>>();
@@ -383,6 +412,7 @@ namespace App {
                 unActiveList.Add(unActiveRarity.ToList());
                 unActiveList.Add(unActiveNewest.ToList());
                 unActiveList.Add(unActiveStake.ToList());
+                unActiveList.Add(unActiveLevel.ToList());
                 _unActiveFirst[kv.Key] = unActiveList;
             }
         }
@@ -506,6 +536,7 @@ namespace App {
                             DialogInventory.SortOrder2.HighRarityFirst => _activeLockedFirst[t][1],
                             DialogInventory.SortOrder2.NewestFirst => _activeLockedFirst[t][2],
                             DialogInventory.SortOrder2.HighStakeFirst => _activeLockedFirst[t][3],
+                            DialogInventory.SortOrder2.HighLevelFirst => _activeLockedFirst[t][4],
                             _ => throw new ArgumentOutOfRangeException(nameof(order2), order2, null)
                         },
                         DialogInventory.SortOrder1.UnActiveFirst => _unActiveLockedFirst[t].Count == 0 ? new List<IHeroDetails>() : order2 switch {
@@ -513,6 +544,7 @@ namespace App {
                             DialogInventory.SortOrder2.HighRarityFirst => _unActiveLockedFirst[t][1],
                             DialogInventory.SortOrder2.NewestFirst => _unActiveLockedFirst[t][2],
                             DialogInventory.SortOrder2.HighStakeFirst => _unActiveLockedFirst[t][3],
+                            DialogInventory.SortOrder2.HighLevelFirst => _unActiveLockedFirst[t][4],
                             _ => throw new ArgumentOutOfRangeException(nameof(order2), order2, null)
                         },
                         _ => throw new ArgumentOutOfRangeException(nameof(order1), order1, null)
@@ -524,6 +556,7 @@ namespace App {
                             DialogInventory.SortOrder2.HighRarityFirst => _activeFirst[t][1],
                             DialogInventory.SortOrder2.NewestFirst => _activeFirst[t][2],
                             DialogInventory.SortOrder2.HighStakeFirst => _activeFirst[t][3],
+                            DialogInventory.SortOrder2.HighLevelFirst => _activeFirst[t][4],
                             _ => throw new ArgumentOutOfRangeException(nameof(order2), order2, null)
                         },
                         DialogInventory.SortOrder1.UnActiveFirst => _unActiveFirst[t].Count == 0 ? new List<IHeroDetails>() : order2 switch {
@@ -531,6 +564,7 @@ namespace App {
                             DialogInventory.SortOrder2.HighRarityFirst => _unActiveFirst[t][1],
                             DialogInventory.SortOrder2.NewestFirst => _unActiveFirst[t][2],
                             DialogInventory.SortOrder2.HighStakeFirst => _unActiveFirst[t][3],
+                            DialogInventory.SortOrder2.HighLevelFirst => _unActiveFirst[t][4],
                             _ => throw new ArgumentOutOfRangeException(nameof(order2), order2, null)
                         },
                         _ => throw new ArgumentOutOfRangeException(nameof(order1), order1, null)
@@ -739,7 +773,9 @@ namespace App {
             playerData.levelShield = data.LevelShield;
             playerData.numResetShield = data.NumResetShield;
             playerData.rare = data.Rarity;
-            playerData.maxHp = data.Stamina * 50;
+            // Stamina base mais o ganho dos niveis 6-10. rare e level ja foram atribuidos acima,
+            // entao GetUpgradeStamina() ja consegue consultar a tabela.
+            playerData.maxHp = (int) (data.Stamina + playerData.GetUpgradeStamina()) * 50;
             playerData.hp = Mathf.Clamp(data.Energy, 0, playerData.maxHp);
 
             playerData.stage = data.Stage;

@@ -114,7 +114,7 @@ public class HeroDetailsDisplay : MonoBehaviour {
 
         charPower.SetPoint(player.bombDamage, player.GetUpgradePower());
         charSpeed.SetPoint(player.speed);
-        charStamina.SetPoint(player.stamina);
+        charStamina.SetPoint(player.stamina, player.GetUpgradeStamina());
         charBombNum.SetPoint(player.bombNum);
         charBombRange.SetPoint(player.bombRange);
         var hasShield = player.Shield != null;

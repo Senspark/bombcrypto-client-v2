@@ -14,6 +14,10 @@ namespace Share.Scripts.Communicate.UnityReact {
         public const string GET_PENDING_HERO_V2 = "GET_PENDING_HERO_V2";
         public const string BUY_HERO = "BUY_HERO";
         public const string UPGRADE_HERO = "UPGRADE_HERO";
+
+        // Niveis 6-10, contrato de teste que cobra BCOIN + SEN + nativo.
+        public const string UPGRADE_HERO_V2 = "UPGRADE_HERO_V2";
+        public const string GET_UPGRADE_V2_PRICE = "GET_UPGRADE_V2_PRICE";
         public const string CLAIM_HERO = "CLAIM_HERO";
         public const string PROCESS_TOKEN_REQUESTS = "PROCESS_TOKEN_REQUESTS";
         public const string PROCESS_TOKEN_REQUESTS_V2 = "PROCESS_TOKEN_REQUESTS_V2";

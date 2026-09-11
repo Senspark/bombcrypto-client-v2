@@ -108,6 +108,14 @@ namespace App {
             return _bridge.UpgradeHero(_accountManager.Account, baseId, materialId, priceWei);
         }
 
+        public Task<UpgradePrice> GetUpgradeV2Price(int baseId) {
+            return _bridge.GetUpgradeV2Price(baseId);
+        }
+
+        public Task<HeroActionResult> UpgradeHeroV2(int baseId, int materialId, UpgradePrice price) {
+            return _bridge.UpgradeHeroV2(_accountManager.Account, baseId, materialId, price);
+        }
+
         public Task<bool> ClaimHero() {
             return _bridge.ClaimHero(_accountManager.Account);
         }

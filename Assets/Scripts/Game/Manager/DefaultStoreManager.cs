@@ -35,6 +35,14 @@ namespace App {
         public int rare;
         public int[] power;
     }
+
+    /// Ganho de energia por nivel, por raridade. Mesma forma de PowerData: indexado por nivel-1 e
+    /// guardando o TOTAL acumulado, nao o incremento.
+    public class StaminaData
+    {
+        public int rare;
+        public int[] stamina;
+    }
     
     public enum SessionKey {
         BannerBirthday,
@@ -86,6 +94,7 @@ namespace App {
         public double[,] UpgradePrice { get; set; } = new double[6, 5];
         public AbilityDesign[] HeroRandomizeAbilityCost { get; set; } = new AbilityDesign[6];
         public PowerData[] UpgradePower { get; set; } = new PowerData[5];
+        public StaminaData[] UpgradeStamina { get; set; } = new StaminaData[0];
         public double[] HousePrice { get; set; } = new double[6];
         public int[] HouseMinAvailable { get; set; } = new int[6];
         public int[] HouseMintLimits { get; set; } = new int[6];
@@ -230,6 +239,26 @@ namespace App {
                     power = powerData[i].Powers,
                 };
             }
+        }
+
+        public void LoadUpgradeStaminaFromServer(IHeroStamina[] staminaData) {
+            UpgradeStamina = new StaminaData[staminaData.Length];
+            for (var i = 0; i < staminaData.Length; i++) {
+                UpgradeStamina[i] = new StaminaData {
+                    rare = staminaData[i].Rarity,
+                    stamina = staminaData[i].Staminas,
+                };
+            }
+        }
+
+        public StaminaData GetStaminaData(int rare) {
+            for (var i = 0; i < UpgradeStamina.Length; i++) {
+                var stamina = UpgradeStamina[i];
+                if (stamina != null && stamina.rare == rare) {
+                    return stamina;
+                }
+            }
+            return null;
         }
 
         public PowerData GetPowerData(int rare) {

@@ -19,6 +19,14 @@ namespace App.BomberLand {
             _storageManager.LoadUpgradePowerFromServer(result);
             return result;
         }
+
+        private IHeroStamina[] OnGetHeroStamina(ISFSObject data) {
+            var array = data.GetSFSArray(SFSDefine.SFSField.Datas);
+            var entries = JsonConvert.DeserializeObject<HeroStamina[]>(array.ToJson());
+            var result = entries.Select(item => (IHeroStamina) item).ToArray();
+            _storageManager.LoadUpgradeStaminaFromServer(result);
+            return result;
+        }
         
         private ISyncHeroResponse OnSyncHero(ISFSObject data, bool notifyNewIds, bool isBuyHero) {
             var result = new SyncHeroResponse(data);

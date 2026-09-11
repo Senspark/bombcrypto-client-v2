@@ -13,6 +13,9 @@ class BlockChainCommand {
     static readonly GET_PENDING_HERO_V2: string = "GET_PENDING_HERO_V2";
     static readonly BUY_HERO: string = "BUY_HERO";
     static readonly UPGRADE_HERO: string = "UPGRADE_HERO";
+    // Niveis 6-10, contrato de teste que cobra BCOIN + SEN + nativo.
+    static readonly UPGRADE_HERO_V2: string = "UPGRADE_HERO_V2";
+    static readonly GET_UPGRADE_V2_PRICE: string = "GET_UPGRADE_V2_PRICE";
     static readonly CLAIM_HERO: string = "CLAIM_HERO";
     static readonly PROCESS_TOKEN_REQUESTS: string = "PROCESS_TOKEN_REQUESTS";
     static readonly PROCESS_TOKEN_REQUESTS_V2: string = "PROCESS_TOKEN_REQUESTS_V2";

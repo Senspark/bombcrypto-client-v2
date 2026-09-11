@@ -21,6 +21,7 @@ namespace App {
         double[,] UpgradePrice { get; set; }
         AbilityDesign[] HeroRandomizeAbilityCost { get; set; }
         PowerData[] UpgradePower { get; set; }
+        StaminaData[] UpgradeStamina { get; set; }
         double[] HousePrice { get; set; }
         int[] HouseMinAvailable { get; set; }
         int[] HouseMintLimits { get; set; }
@@ -59,7 +60,9 @@ namespace App {
 
         int GetPvPEquipment(int equipmentType);
         void LoadUpgradePowerFromServer(IHeroPower[] powerData);
+        void LoadUpgradeStaminaFromServer(IHeroStamina[] staminaData);
         PowerData GetPowerData(int rare);
+        StaminaData GetStaminaData(int rare);
         void UpdatePvPEquipment(IDictionary<int, int> equipments);
         void UpdatePvPEquipment(int equipmentId, int equipmentType);
         void UpdateOpenChestRequiredShard(int quantity);

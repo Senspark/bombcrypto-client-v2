@@ -94,6 +94,14 @@ namespace App.BomberLand {
             public int[] Powers { get; set; }
         }
 
+        private class HeroStamina : IHeroStamina {
+            [JsonProperty("rare")]
+            public int Rarity { get; set; }
+
+            [JsonProperty("stamina")]
+            public int[] Staminas { get; set; }
+        }
+
         private class HouseDetails : IHouseDetails {
             private readonly ObscuredString _details;
             public string Details => _details;

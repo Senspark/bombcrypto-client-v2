@@ -6,6 +6,7 @@ export interface IBlockchainData {
     usdt_token_address: string;
     hero_token_address: string;
     hero_s_token_address: string;
+    hero_upgrade_v2_address: string;
     hero_extended_address: string;
     house_token_address: string;
     deposit_address: string;
@@ -17,6 +18,7 @@ export interface IBlockchainData {
     coin_token_abi: JSON;
     hero_token_abi: JSON;
     hero_s_token_abi: JSON;
+    hero_upgrade_v2_abi: JSON;
     hero_extended_abi: JSON;
     hero_design_abi: JSON;
     house_token_abi: JSON;

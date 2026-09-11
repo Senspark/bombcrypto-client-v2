@@ -15,6 +15,11 @@ namespace App {
         Task<ProcessToken> GetPendingHero(string walletAddress);
         Task<bool> BuyHero(string walletAddress, int count, BuyHeroCategory category, bool isHeroS);
         Task<HeroActionResult> UpgradeHero(string walletAddress, int baseId, int materialId, string priceWei);
+
+        // Niveis 6-10: preco em tres moedas e upgrade no contrato de teste.
+        Task<UpgradePrice> GetUpgradeV2Price(int baseId);
+
+        Task<HeroActionResult> UpgradeHeroV2(string walletAddress, int baseId, int materialId, UpgradePrice price);
         Task<bool> ClaimHero(string walletAddress);
         Task<bool> ClaimGiveAwayHero();
         Task<HeroProcessTokenResult> ProcessTokenRequests(string walletAddress);
