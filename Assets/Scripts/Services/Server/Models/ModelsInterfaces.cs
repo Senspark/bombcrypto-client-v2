@@ -66,6 +66,12 @@ namespace App {
         int Capacity { get; }
         bool IsActive { get; }
         long EndTimeRent { get; }
+
+        /// P2P rental: 0 = not rented, 1 = rented by me, 2 = my house rented out
+        int RentalState { get; }
+
+        /// End of the paid P2P rental cycle (epoch ms); 0 when there is no rental
+        long RentalEndTime { get; }
     }
 
     public interface IOfflineReward {

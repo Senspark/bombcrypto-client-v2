@@ -70,6 +70,24 @@ namespace App.BomberLand {
             return result;
         }
 
+        /// <summary>
+        /// P2P house rental push, fired by the market backend.
+        /// The balance comes along in the payload; the house list has to be
+        /// resynced because a rented house enters (RENTED) and leaves
+        /// (ENDED_*) the player's list.
+        /// </summary>
+        private void OnHouseRentalUpdate(ISFSObject data) {
+            // Balance: same shape as the deposit push, so the UI already reacts.
+            // ParseChestReward ignores the payload on its own when "rewards" is absent.
+            ParseChestReward(data);
+
+            var rentalEvent = data.ContainsKey("event") ? data.GetUtfString("event") : "";
+            var houseId = data.ContainsKey("house_id") ? data.GetInt("house_id") : 0;
+
+            _serverDispatcher.DispatchEvent(observer =>
+                observer.OnHouseRentalUpdate?.Invoke(rentalEvent, houseId));
+        }
+
         private BridgeWithdrawResult OnCrosschainBridgeWithdraw(ISFSObject data) {
             ParseChestReward(data);
             return new BridgeWithdrawResult(data);

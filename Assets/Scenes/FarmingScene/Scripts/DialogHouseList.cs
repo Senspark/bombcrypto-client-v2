@@ -1,3 +1,4 @@
+﻿using System;
 using App;
 
 using Cysharp.Threading.Tasks;
@@ -7,6 +8,7 @@ using Game.Manager;
 
 using Senspark;
 
+using Share.Scripts.Dialog;
 using Share.Scripts.PrefabsManager;
 
 using UnityEngine;
@@ -130,10 +132,19 @@ namespace Scenes.FarmingScene.Scripts
                 if (_serverManager != null) {
                     var house = houseStore.GetHouseData(indexChoose);
                     var waiting = new WaitingUiManager(DialogCanvas);
+                    var canvas = DialogCanvas;
                     waiting.Begin();
                     UniTask.Void(async () => {
-                            await _serverManager.Pve.ActiveBomberHouse(house.genID, house.id);
-                            waiting.End();
+                            try {
+                                await _serverManager.Pve.ActiveBomberHouse(house.genID, house.id);
+                            } catch (Exception e) {
+                                // Without this the loading spinner stayed forever
+                                // when the server refused (e.g. a house rented
+                                // out to another player).
+                                DialogOK.ShowError(canvas, e);
+                            } finally {
+                                waiting.End();
+                            }
                         });
                 }
                 Hide();

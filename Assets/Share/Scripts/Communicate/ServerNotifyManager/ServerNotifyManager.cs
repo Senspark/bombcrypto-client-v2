@@ -117,6 +117,18 @@ namespace Share.Scripts.Communicate {
                 return;
             }
 
+            // P2P house rental (closed on the market site)
+            if (cmd == SFSDefine.SFSCommand.HOUSE_RENTAL_UPDATE_RESPONSE) {
+                try {
+                    _logManager.Log($"RECEIVED: cmd({cmd})");
+                    var serverManager = ServiceLocator.Instance.Resolve<IServerManager>();
+                    serverManager.General.OnHouseRentalUpdatePush(value);
+                } catch (Exception e) {
+                    _logManager.Log($"RECEIVED FAILED: cmd({cmd}) error={e.GetType().Name}: {e.Message}\n{e.StackTrace}");
+                }
+                return;
+            }
+
             // APPROVE_CLAIM_V4
             if (cmd == SFSDefine.SFSCommand.APPROVE_CLAIM_RESPONSE) {
                 try {
