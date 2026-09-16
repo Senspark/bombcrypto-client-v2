@@ -12,7 +12,7 @@ using Scenes.TreasureModeScene.Scripts.Solana.Server_Response;
 
 namespace Server.Models {
     public class HeroDetails : IHeroDetails {
-        public const int SupportedSkinMax = 66;
+        public const int SupportedSkinMax = 76;
 
         public string Details => _details;
         public int Id { get; protected set; }
