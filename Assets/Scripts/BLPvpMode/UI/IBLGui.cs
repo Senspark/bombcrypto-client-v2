@@ -120,7 +120,8 @@ namespace BLPvpMode.UI {
 
         void ShowDialogPveWin(Canvas canvasDialog, int stage, int level,
             string rewardId, IWinReward[] rewards,
-            System.Action callback
+            System.Action callback,
+            bool hasHeroCage = false
         );
 
         void ShowDialogPveLose(Canvas canvasDialog, int stage, int level,

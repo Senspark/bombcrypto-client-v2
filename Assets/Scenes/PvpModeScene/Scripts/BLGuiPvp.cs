@@ -541,7 +541,7 @@ namespace Scenes.PvpModeScene.Scripts {
         }
 
         public void ShowDialogPveWin(Canvas canvasDialog, int stage, int level, string rewardId, IWinReward[] rewards,
-            Action callback) {
+            Action callback, bool hasHeroCage = false) {
             throw new NotImplementedException();
         }
 

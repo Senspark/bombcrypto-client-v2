@@ -42,6 +42,7 @@ namespace Game.UI {
             UniTask.Void(async () => {
                 try {
                     await _serverManager.General.ClaimHeroCage(network);
+                    DialogOK.ShowInfo(_dialogCanvas, $"1 BHero has been added to your {network} account.");
                 } catch (Exception e) {
                     DialogOK.ShowError(_dialogCanvas, e);
                 } finally {

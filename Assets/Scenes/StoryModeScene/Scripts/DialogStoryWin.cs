@@ -17,6 +17,7 @@ using Data;
 using DG.Tweening;
 
 using Game.Dialog;
+using Game.UI;
 using Game.UI.Animation;
 
 using Scenes.MainMenuScene.Scripts;
@@ -62,6 +63,9 @@ namespace Scenes.StoryModeScene.Scripts {
 
         [SerializeField]
         private GameObject body;
+
+        [SerializeField]
+        private HeroCageRewardPanel heroCagePanel;
         
         private IChestRewardManager _chestRewardManager;
         private ILanguageManager _languageManager;
@@ -87,6 +91,7 @@ namespace Scenes.StoryModeScene.Scripts {
         private int _level;
         private bool _isChestOpening = false;
         private bool _isSpin = false;
+        private bool _hasHeroCage;
 
         public static UniTask<DialogStoryWin> Create() {
             return ServiceLocator.Instance.Resolve<IPrefabLoaderManager>().Instantiate<DialogStoryWin>();
@@ -134,7 +139,8 @@ namespace Scenes.StoryModeScene.Scripts {
             }
         }
 
-        public void SetReward(int stage, int level, string rewardId, IWinReward[] rewards, Action callback) {
+        public void SetReward(int stage, int level, string rewardId, IWinReward[] rewards, bool hasHeroCage,
+            Action callback) {
             _stage = stage;
             _level = level;
             _rewardId = rewardId;
@@ -161,6 +167,18 @@ namespace Scenes.StoryModeScene.Scripts {
                 if (hadChest) {
                     SetOpenChest();
                 }
+            }
+            _hasHeroCage = hasHeroCage;
+            if (hasHeroCage) {
+                var cage = Instantiate(rewardPrefab, rewardContainer, false);
+                cage.SetInfo(RewardSourceType.HeroCage, 1, false);
+                IgnoreOutsideClick = true;
+                UniTask.Void(async () => {
+                    await UniTask.Delay(2000);
+                    if (this) {
+                        heroCagePanel.Show(DialogCanvas);
+                    }
+                });
             }
             if (Application.isMobilePlatform) {
                 if (GameConstant.EnableLuckyWheelPve) {
@@ -237,6 +255,10 @@ namespace Scenes.StoryModeScene.Scripts {
         }
 
         public void OnNextClicked() {
+            if (_hasHeroCage && !heroCagePanel.IsAnswered) {
+                heroCagePanel.Show(DialogCanvas);
+                return;
+            }
             nextButton.Interactable = false;
             _soundManager.PlaySound(Audio.Tap);
 

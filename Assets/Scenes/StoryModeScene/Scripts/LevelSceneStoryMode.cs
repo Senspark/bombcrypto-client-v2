@@ -154,6 +154,13 @@ namespace Scenes.StoryModeScene.Scripts {
             if (Pause) {
                 return;
             }
+#if UNITY_EDITOR
+            // Test shortcut: the server does not verify the win, so entering the door right away is enough.
+            if (Input.GetKeyDown(KeyCode.F9)) {
+                OnEnterDoor();
+                return;
+            }
+#endif
 
             _guiPve.CheckInputKeyDown();
 
@@ -436,7 +443,7 @@ namespace Scenes.StoryModeScene.Scripts {
                         GoToLevelMenu();
                     }
 #endif
-                });
+                }, _enterDoorResponse.HasHeroCage);
         }
 
         private void ShowDialogLose() {

@@ -251,10 +251,11 @@ namespace Scenes.StoryModeScene.Scripts {
 
         public void ShowDialogPveWin(Canvas canvasDialog, int stage, int level,
             string rewardId, IWinReward[] rewards,
-            Action callback
+            Action callback,
+            bool hasHeroCage = false
         ) {
             DialogStoryWin.Create().ContinueWith(dialog => {
-                dialog.SetReward(stage, level, rewardId, rewards, callback);
+                dialog.SetReward(stage, level, rewardId, rewards, hasHeroCage, callback);
                 dialog.Show(canvasDialog);
             });
         }

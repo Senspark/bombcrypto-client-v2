@@ -162,6 +162,7 @@ namespace App.BomberLand {
 
         // view-call + sign only, no tx mined.
         private const int BridgeWithdrawTimeoutMs = 15_000;
+        private const int ClaimHeroCageTimeoutMs = 15_000;
 
         public async Task<BridgeWithdrawResult> RequestCrosschainBridgeWithdraw(int blockRewardType, string chain) {
             var data = new SFSObject();
@@ -215,7 +216,9 @@ namespace App.BomberLand {
         public async Task ClaimHeroCage(NetworkTypeInServer network) {
             var data = new SFSObject();
             data.PutUtfString("network", network.ToString());
-            await _serverDispatcher.SendCmd(new CmdClaimHeroCage(data));
+            // A dropped connection never resolves the request; time out so the claim panel can't hang.
+            await _serverDispatcher.SendCmd(new CmdClaimHeroCage(data))
+                .TimeoutAfter(ClaimHeroCageTimeoutMs);
         }
 
         public async Task<float> ConfirmApproveClaimSuccess(int code) {
