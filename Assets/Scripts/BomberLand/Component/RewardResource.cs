@@ -8,7 +8,8 @@ namespace BomberLand.Component {
         SilverChest,
         GoldChest,
         PlatinumChest,
-        Rank
+        Rank,
+        HeroCage
     }
 
     public class RewardResource : MonoBehaviour {

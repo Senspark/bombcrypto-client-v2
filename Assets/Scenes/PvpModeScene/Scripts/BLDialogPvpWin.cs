@@ -20,6 +20,7 @@ using Data;
 using Game.Dialog;
 using Game.Dialog.BomberLand.BLGacha;
 using Game.Manager;
+using Game.UI;
 using Game.UI.Animation;
 
 using PvpMode.Manager;
@@ -99,6 +100,9 @@ namespace Scenes.PvpModeScene.Scripts {
         [SerializeField]
         private GameObject body;
 
+        [SerializeField]
+        private HeroCageRewardPanel heroCagePanel;
+
         private IServerManager _serverManager;
         private IUnityAdsManager _unityAdsManager;
         private IAnalytics _analytics;
@@ -115,6 +119,7 @@ namespace Scenes.PvpModeScene.Scripts {
         private string _pvpRewardId;
         public bool _isShowDone = false;
         private bool _isSpinLuckyWheel = false;
+        private bool _hasHeroCage;
 
         private InventoryChestData _chestData;
         private GachaChestItemData[] _itemsReward;
@@ -166,6 +171,7 @@ namespace Scenes.PvpModeScene.Scripts {
             IPvpResultUserInfo userInfo,
             string rewardId,
             bool isOutOfChest,
+            bool hasHeroCage,
             System.Action callback
         ) {
             winInfo.SetActive(true);
@@ -189,6 +195,17 @@ namespace Scenes.PvpModeScene.Scripts {
                     RewardSourceType.PlatinumChest) {
                     hadChest = true;
                 }
+            }
+            _hasHeroCage = hasHeroCage;
+            if (hasHeroCage) {
+                CreateRewardItem(RewardSourceType.HeroCage, 1, false);
+                IgnoreOutsideClick = true;
+                UniTask.Void(async () => {
+                    await UniTask.Delay(2000);
+                    if (this) {
+                        heroCagePanel.Show(DialogCanvas);
+                    }
+                });
             }
             if (hadChest) {
                 SetOpenChest();
@@ -312,6 +329,10 @@ namespace Scenes.PvpModeScene.Scripts {
         }
 
         public void OnNextClicked() {
+            if (_hasHeroCage && !heroCagePanel.IsAnswered) {
+                heroCagePanel.Show(DialogCanvas);
+                return;
+            }
             nextButton.Interactable = false;
             ServiceLocator.Instance.Resolve<ISoundManager>().PlaySound(Audio.Tap);
 

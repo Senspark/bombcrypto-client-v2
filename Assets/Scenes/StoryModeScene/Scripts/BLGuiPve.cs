@@ -320,7 +320,8 @@ namespace Scenes.StoryModeScene.Scripts {
             bool isOutOfChest,
             Action callback,
             bool isTournament,
-            int[] boosters
+            int[] boosters,
+            bool hasHeroCage
         ) {
             throw new NotImplementedException();
         }

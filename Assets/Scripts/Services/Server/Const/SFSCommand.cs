@@ -53,6 +53,7 @@ public static partial class SFSDefine {
         public const string GET_COIN_LEADERBOARD_CONFIG_V2 = "GET_COIN_LEADERBOARD_CONFIG_V2";
         public const string CLAIM_MONTHLY_REWARD_V2 = "CLAIM_MONTHLY_REWARD_V2";
         public const string CLAIM_PVP_MATCH_REWARD_V2 = "CLAIM_PVP_MATCH_REWARD_V2";
+        public const string CLAIM_HERO_CAGE = "CLAIM_HERO_CAGE";
         public const string GET_PVP_HISTORY_V2 = "GET_PVP_HISTORY_V2";
         public const string OPEN_SKIN_CHEST_V2 = "OPEN_SKIN_CHEST_V2";
         public const string GET_SKIN_INVENTORY_V2 = "GET_SKIN_INVENTORY_V2";

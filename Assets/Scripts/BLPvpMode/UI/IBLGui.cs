@@ -79,7 +79,8 @@ namespace BLPvpMode.UI {
             bool isOutOfChest,
             System.Action callback,
             bool isTournament,
-            int[] boosters = null
+            int[] boosters = null,
+            bool hasHeroCage = false
         );
 
         void ShowDialogPvpDefeat(

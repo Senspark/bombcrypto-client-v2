@@ -589,6 +589,7 @@ namespace Scenes.PvpModeScene.Scripts {
                 }
                 var rewardId = reward?.RewardId ?? "";
                 var isOutOfChest = reward?.IsOutOfChest ?? false;
+                var hasHeroCage = reward?.HasHeroCage ?? false;
                 var result = ParseLevelResult(info, Slot);
                 TrackBoosters(userInfo);
                 TrackPassiveBoosters(result);
@@ -600,7 +601,7 @@ namespace Scenes.PvpModeScene.Scripts {
                 }
                 
                 await _rankInfoManager.ReloadData();
-                ShowResultPopup(info, rewardId, isOutOfChest);
+                ShowResultPopup(info, rewardId, isOutOfChest, hasHeroCage);
                 
                 // Disable reconnection when match is finished.
                 _pvpReconnectStrategy.Dispose();
@@ -787,7 +788,7 @@ namespace Scenes.PvpModeScene.Scripts {
             _guiPvp.HideAllDialog(canvasDialog);
         }
 
-        private void ShowResultPopup(IPvpResultInfo info, string rewardId, bool isOutOfChest) {
+        private void ShowResultPopup(IPvpResultInfo info, string rewardId, bool isOutOfChest, bool hasHeroCage) {
             ServiceLocator.Instance.Resolve<IBLTutorialManager>().IncreaseTimePlayPvp();
             HideAllDialog();
             var slot = Slot;
@@ -796,7 +797,7 @@ namespace Scenes.PvpModeScene.Scripts {
             var boosters = _matchInfo.Info[Slot].Boosters;
             if (result == LevelResult.Win) {
                 _guiPvp.ShowDialogPvpVictory(canvasDialog, info, slot, rewardId, isOutOfChest, OnClaim, isTournament,
-                    boosters);
+                    boosters, hasHeroCage);
                 return;
             }
             if (result == LevelResult.Lose) {

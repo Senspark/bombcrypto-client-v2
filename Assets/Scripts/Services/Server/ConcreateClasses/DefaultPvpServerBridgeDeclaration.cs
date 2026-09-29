@@ -313,10 +313,12 @@ namespace PvpMode.Services {
         private class PvpClaimMatchRewardResult : IPvpClaimMatchRewardResult {
             public string RewardId { get; }
             public bool IsOutOfChest { get; }
+            public bool HasHeroCage { get; }
 
             public PvpClaimMatchRewardResult(ISFSObject data) {
                 RewardId = data.GetUtfString("reward_id");
                 IsOutOfChest = data.GetBool("is_out_of_chest_slot");
+                HasHeroCage = data.ContainsKey("has_hero_cage") && data.GetBool("has_hero_cage");
             }
         }
 

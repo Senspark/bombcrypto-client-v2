@@ -212,6 +212,12 @@ namespace App.BomberLand {
                 .TimeoutAfter(BridgeWithdrawTimeoutMs);
         }
 
+        public async Task ClaimHeroCage(NetworkTypeInServer network) {
+            var data = new SFSObject();
+            data.PutUtfString("network", network.ToString());
+            await _serverDispatcher.SendCmd(new CmdClaimHeroCage(data));
+        }
+
         public async Task<float> ConfirmApproveClaimSuccess(int code) {
             var data = new SFSObject().Apply(it => {
                 it.PutInt("block_reward_type", code);

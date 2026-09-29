@@ -228,7 +228,7 @@ namespace Scenes.StoryModeScene.Scripts {
 
         private void CreateEmptyRewards() {
             foreach (RewardSourceType iter in Enum.GetValues(typeof(RewardSourceType))) {
-                if (iter == RewardSourceType.Rank) {
+                if (iter is RewardSourceType.Rank or RewardSourceType.HeroCage) {
                     continue;
                 }
                 var reward = Instantiate(rewardPrefab, rewardContainer, false);
