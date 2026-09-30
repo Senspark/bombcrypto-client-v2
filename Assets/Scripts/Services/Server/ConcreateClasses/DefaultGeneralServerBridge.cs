@@ -213,12 +213,11 @@ namespace App.BomberLand {
                 .TimeoutAfter(BridgeWithdrawTimeoutMs);
         }
 
-        public async Task ClaimHeroCage(NetworkTypeInServer network) {
-            var data = new SFSObject();
-            data.PutUtfString("network", network.ToString());
-            // A dropped connection never resolves the request; time out so the claim panel can't hang.
-            await _serverDispatcher.SendCmd(new CmdClaimHeroCage(data))
+        public async Task<string> ClaimHeroCage() {
+            // A dropped connection never resolves the request; time out so the win dialog can't hang.
+            var response = await _serverDispatcher.SendCmd(new CmdClaimHeroCage(new SFSObject()))
                 .TimeoutAfter(ClaimHeroCageTimeoutMs);
+            return response.GetUtfString("network");
         }
 
         public async Task<float> ConfirmApproveClaimSuccess(int code) {

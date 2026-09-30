@@ -39,6 +39,8 @@ namespace App {
         public static string TestWalletTonHex { get; private set; }
         public static string TestWalletEth { get; private set; }
         public static string EditorAccount { get; private set; }
+        // Test builds: F9 wins the current adventure level / makes the pvp bot quit. Never active in production.
+        public static bool EnableQuickWin { get; private set; }
         
         [CanBeNull] public static EncryptionInfo EncryptionData { get; private set; }
         [CanBeNull] public static ServerAddressInfo ServerAddresses { get; private set; }
@@ -67,6 +69,7 @@ namespace App {
             TestWalletTonHex = data.testWalletTonHex;
             TestWalletEth = data.testWalletEth;
             EditorAccount = data.editorAccount;
+            EnableQuickWin = data.enableQuickWin && !data.isProduction;
             AppsFlyerData = data.appsFlyer;
             EncryptionData = data.encryption;
 
@@ -186,6 +189,7 @@ namespace App {
             public string testWalletTonHex;
             public string testWalletEth;
             public string editorAccount;
+            public bool enableQuickWin;
             [CanBeNull] public AppsFlyerInfo appsFlyer;
             [CanBeNull] public AppleInfo apple;
             [CanBeNull] public AdsInfo ads;

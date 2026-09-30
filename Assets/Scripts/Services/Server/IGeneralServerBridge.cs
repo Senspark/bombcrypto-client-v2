@@ -27,7 +27,8 @@ namespace App.BomberLand {
         Task NotifyCrosschainBridge(string kind, int blockRewardType, string chain, string txHash = null);
         Task<NativeWithdrawResult> RequestNativeWithdraw(int blockRewardType);
         Task SyncNativeDeposit(int blockRewardType);
-        Task ClaimHeroCage(NetworkTypeInServer network);
+        /// <returns>The network the BHero was credited on.</returns>
+        Task<string> ClaimHeroCage();
         Task<IAutoMinePackages> GetAutoMinePrice();
         Task<IChestReward> BuyAutoMine(string packageName, BlockRewardType blockRewardType);
         Task<IRockPackage> BuyRockPack(string packageName, BlockRewardType rewardType);

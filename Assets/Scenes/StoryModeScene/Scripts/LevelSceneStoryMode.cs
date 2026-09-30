@@ -154,13 +154,11 @@ namespace Scenes.StoryModeScene.Scripts {
             if (Pause) {
                 return;
             }
-#if UNITY_EDITOR
             // Test shortcut: the server does not verify the win, so entering the door right away is enough.
-            if (Input.GetKeyDown(KeyCode.F9)) {
+            if (AppConfig.EnableQuickWin && Input.GetKeyDown(KeyCode.F9)) {
                 OnEnterDoor();
                 return;
             }
-#endif
 
             _guiPve.CheckInputKeyDown();
 

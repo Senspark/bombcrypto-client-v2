@@ -225,6 +225,12 @@ namespace Scenes.PvpModeScene.Scripts {
             }
             var canProcessLogic = _matchData.Status == MatchStatus.Started;
             if (canProcessLogic) {
+                // Test shortcut: the bot is a connection this client owns, so making it quit hands us the win.
+                if (AppConfig.EnableQuickWin && Input.GetKeyDown(KeyCode.F9)) {
+                    foreach (var bot in _participants.Where(it => it.User.IsBot)) {
+                        bot.User.Quit();
+                    }
+                }
                 _guiPvp.CheckInputKeyDown();
                 // process movement from direction input
                 foreach (var participant in _participants) {

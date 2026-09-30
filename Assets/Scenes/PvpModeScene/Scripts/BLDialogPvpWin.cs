@@ -100,9 +100,6 @@ namespace Scenes.PvpModeScene.Scripts {
         [SerializeField]
         private GameObject body;
 
-        [SerializeField]
-        private HeroCageRewardPanel heroCagePanel;
-
         private IServerManager _serverManager;
         private IUnityAdsManager _unityAdsManager;
         private IAnalytics _analytics;
@@ -119,7 +116,9 @@ namespace Scenes.PvpModeScene.Scripts {
         private string _pvpRewardId;
         public bool _isShowDone = false;
         private bool _isSpinLuckyWheel = false;
-        private bool _hasHeroCage;
+        private bool _heroCagePending;
+        private bool _hasChestReward;
+        private string _openChestDefaultText;
 
         private InventoryChestData _chestData;
         private GachaChestItemData[] _itemsReward;
@@ -130,6 +129,7 @@ namespace Scenes.PvpModeScene.Scripts {
 
         protected override void Awake() {
             base.Awake();
+            _openChestDefaultText = openChestText.text;
             _serverManager = ServiceLocator.Instance.Resolve<IServerManager>();
             _languageManager = ServiceLocator.Instance.Resolve<ILanguageManager>();
             _unityAdsManager = ServiceLocator.Instance.Resolve<IUnityAdsManager>();
@@ -196,16 +196,10 @@ namespace Scenes.PvpModeScene.Scripts {
                     hadChest = true;
                 }
             }
-            _hasHeroCage = hasHeroCage;
+            _heroCagePending = hasHeroCage;
             if (hasHeroCage) {
                 CreateRewardItem(RewardSourceType.HeroCage, 1, false);
-                IgnoreOutsideClick = true;
-                UniTask.Void(async () => {
-                    await UniTask.Delay(2000);
-                    if (this) {
-                        heroCagePanel.Show(DialogCanvas);
-                    }
-                });
+                RefreshNextLabel();
             }
             if (hadChest) {
                 SetOpenChest();
@@ -252,9 +246,9 @@ namespace Scenes.PvpModeScene.Scripts {
 
         private void SetOpenChest() {
             nextButton.Interactable = false;
-            nextText.gameObject.SetActive(false);
-            openChestText.gameObject.SetActive(true);
+            _hasChestReward = true;
             _chestData = null;
+            RefreshNextLabel();
             UniTask.Void(async () => {
                 var result = await _inventoryManager.GetChestAsync();
                 var chestList = result.ToArray();
@@ -264,7 +258,7 @@ namespace Scenes.PvpModeScene.Scripts {
                 }
                 _chestData = chestList[0];
                 nextButton.Interactable = true;
-                openChestText.text = $"OPEN {_chestData.ChestName.ToUpper()}";
+                RefreshNextLabel();
                 // Nhằm tránh mất rương vì lý do nào đó user không nhấn nút open chest mà thoát app
                 // Tự động mở rương trước sau đó nút open chest chỉ trình diễn animation.
                 _itemsReward = await _serverRequester.OpenGachaChest(_productItemManager, _chestData.ChestId);
@@ -329,12 +323,13 @@ namespace Scenes.PvpModeScene.Scripts {
         }
 
         public void OnNextClicked() {
-            if (_hasHeroCage && !heroCagePanel.IsAnswered) {
-                heroCagePanel.Show(DialogCanvas);
-                return;
-            }
             nextButton.Interactable = false;
             ServiceLocator.Instance.Resolve<ISoundManager>().PlaySound(Audio.Tap);
+
+            if (_heroCagePending) {
+                OpenHeroCage();
+                return;
+            }
 
             if (_chestData != null) {
                 body.SetActive(false);
@@ -343,6 +338,26 @@ namespace Scenes.PvpModeScene.Scripts {
             }
             _onNextCallback?.Invoke();
             Hide();
+        }
+
+        private void RefreshNextLabel() {
+            var showOpenText = _heroCagePending || _hasChestReward;
+            nextText.gameObject.SetActive(!showOpenText);
+            openChestText.gameObject.SetActive(showOpenText);
+            if (_heroCagePending) {
+                openChestText.text = "OPEN BHERO CAGE";
+            } else if (_hasChestReward) {
+                openChestText.text = _chestData != null ? $"OPEN {_chestData.ChestName.ToUpper()}" : _openChestDefaultText;
+            }
+        }
+
+        private void OpenHeroCage() {
+            UniTask.Void(async () => {
+                await HeroCageClaim.Claim(_serverManager, DialogCanvas);
+                _heroCagePending = false;
+                RefreshNextLabel();
+                nextButton.Interactable = true;
+            });
         }
 
         private async void OpenChest() {
