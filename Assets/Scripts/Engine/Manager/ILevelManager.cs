@@ -45,7 +45,6 @@ namespace Engine.Manager {
         void RequestTakeItem(Item item);
         void OnUpdateItem(int slot, ItemType item, int value);
         void OnUpdateHealthUi(int slot, int value);
-        void OnBombExploded(HeroId heroId, int bombId, Vector2Int tileLocation, List<Vector2Int> brokenList);
         void CheckEnemiesClear();
         void OnAddEnemy(EnemyType enemyType);
         void OnRemoveEnemy(EnemyType enemyType);

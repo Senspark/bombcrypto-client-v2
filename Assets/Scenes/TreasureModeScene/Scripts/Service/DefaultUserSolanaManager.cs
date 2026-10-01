@@ -107,10 +107,6 @@ namespace Scenes.TreasureModeScene.Scripts.Service {
             return await _userSolanaManager.MultiFusionServer(target, heroList);
         }
         
-        public void StartExplodeSol(GameModeType type, HeroId heroId, int bombId, Vector2Int tileLocation, List<Vector2Int> brokenList) {
-            _userSolanaManager.StartExplodeSol(type, heroId, bombId, tileLocation, brokenList);
-        }
-        
         public async Task<bool> StartAutoMineSol() {
             return await _userSolanaManager.StartAutoMineSol();
         }

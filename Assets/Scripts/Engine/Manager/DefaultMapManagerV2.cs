@@ -230,6 +230,10 @@ namespace Engine.Manager {
             return _markBreakBrick.ContainsKey(MapHelperV2.GetMatrixHashCode(i, j));
         }
 
+        public void MarkBreakBrick(int i, int j) {
+            _markBreakBrick[MapHelperV2.GetMatrixHashCode(i, j)] = true;
+        }
+
         public List<Vector2Int> GetEmptyAround(Vector2Int tileLocation, bool throughBrick, bool throughBomb) {
             var i = tileLocation.x;
             var j = tileLocation.y;

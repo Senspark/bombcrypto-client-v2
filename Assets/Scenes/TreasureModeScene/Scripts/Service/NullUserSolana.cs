@@ -75,11 +75,6 @@ namespace Scenes.TreasureModeScene.Scripts.Service {
             throw new NotImplementedException();
         }
         
-        public void StartExplodeSol(GameModeType type, HeroId heroId, int bombId, Vector2Int tileLocation,
-            List<Vector2Int> brokenList) {
-            throw new NotImplementedException();
-        }
-        
         public Task<bool> StartAutoMineSol() {
             throw new NotImplementedException();
         }

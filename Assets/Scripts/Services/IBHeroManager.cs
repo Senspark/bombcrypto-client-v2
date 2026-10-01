@@ -154,5 +154,12 @@ namespace App {
             var o = (HeroId) obj;
             return Id.CompareTo(o.Id);
         }
+
+        // Without this every log line that interpolates a hero prints the bare type name
+        // ("App.HeroId"), which makes any multi-hero log (all the [EXPLODE_V2] tracing, say)
+        // impossible to attribute to a hero.
+        public override string ToString() {
+            return $"{Id}:{Type}";
+        }
     }
 }

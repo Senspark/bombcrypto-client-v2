@@ -15,8 +15,16 @@ namespace App {
         Task ChangeBomberManStage(HeroId[] id, HeroStage stage);
         Task<IInvestedDetail> StopPvE();
         Task<IStartPveResponse> StartPvE(GameModeType type);
-        void StartExplode(GameModeType type, HeroId heroId, int bombId, Vector2Int tileLocation,
-            List<Vector2Int> brokenList);
+
+        // Server-driven treasure mode: one call starts (or fully resyncs) the server's game;
+        // everything after arrives as TREASURE_EVENTS (ServerObserver.OnTreasureEvents).
+        // paused: the client is paused, so a resync keeps the server's heroes still.
+        Task<TreasureSnapshot> StartTreasureMode(bool paused = false);
+        Task StopTreasureMode();
+
+        // Heroes halt until resumed; bombs already planted still explode.
+        Task PauseTreasureMode(bool paused);
+
         /// <summary>
         /// Fire-and-forget: yêu cầu server kiểm tra on-chain stake và đẩy push BHERO_STAKE_PUSH.
         /// Client không chờ response — UI cập nhật khi push tới qua observer.

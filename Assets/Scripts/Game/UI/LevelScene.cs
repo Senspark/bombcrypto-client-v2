@@ -15,6 +15,7 @@ using Game.ConnectControl;
 using Game.Dialog;
 using Game.Dialog.BomberLand.BLGacha;
 using Game.Manager;
+using Game.Treasure;
 using JetBrains.Annotations;
 using Scenes.FarmingScene.Scripts;
 using Scenes.MainMenuScene.Scripts;
@@ -29,7 +30,7 @@ using Random = UnityEngine.Random;
 using RewardType = Constant.RewardType;
 
 namespace Game.UI {
-    public class LevelScene : MonoBehaviour {
+    public class LevelScene : MonoBehaviour, ITreasurePlaybackHost {
         public bool AutoSimulation = true;
         public static LevelScene Instance { get; private set; }
         public static bool IsFirstLoad { get; set; }
@@ -107,6 +108,20 @@ namespace Game.UI {
         private WaitingUiManager _waiting;
         private bool _waitingAddHeroInMap = true;
         private UniTaskCompletionSource _userInitTcs;
+        private TreasurePlayback _treasurePlayback;
+        private Dictionary<int, Vector2Int> _spawnTiles = new();
+        private int _mapTileset;
+        private TreasureSnapshot _loadedSnapshot;
+        private bool _reloading;
+        // Pause state the server last acknowledged; null until START_TREASURE_MODE answered.
+        private bool? _serverPaused;
+        private bool _syncingPause;
+        // False while the level loads: the server keeps heroes on their spawn tiles until the scene can show them.
+        private bool _levelReady;
+
+        private bool WantServerPaused => PauseStatus.IsPausing || !_levelReady;
+
+        public IEntityManager EntityManager => _levelView ? _levelView.EntityManager : null;
         
         #region UNITY EVENTS
 
@@ -124,12 +139,18 @@ namespace Game.UI {
             _userAccountManager = ServiceLocator.Instance.Resolve<IUserAccountManager>();
             _thModeV2Manager = ServiceLocator.Instance.Resolve<IServerManager>().ThModeV2Manager;
 
+            // Subscribed before START_TREASURE_MODE is sent, so no event is missed while the scene loads.
+            _treasurePlayback = new TreasurePlayback(this, StartTreasureModeOnce);
+            PauseStatus.OnChanged += paused => {
+                _treasurePlayback.SetPaused(paused);
+                SyncServerPause();
+            };
+
             _handle = new ObserverHandle();
             _handle.AddObserver(_serverManager, new ServerObserver {
                 OnHeroChangeState = OnHeroStateChanged,
-                OnPveExploded = OnPveExploded,
+                OnTreasureEvents = _treasurePlayback.OnEvents,
                 OnServerStateChanged = OnServerStateChanged,
-                OnNewMapResponse = OnNewMapResponse,
                 OnActiveHero = OnActiveHero,
                 OnRemoveHeroes = OnRemoveHeroes
             });
@@ -170,26 +191,38 @@ namespace Game.UI {
 
         private async void Start() {
             Mode = GameModeType.TreasureHuntV2;
-            _levelView = CreateLevelView();
             _analytics.TrackScene(SceneType.VisitTreasureHunt);
+
+            // Server-driven: the start response carries the map + where every hero stands now.
+            TreasureSnapshot snapshot;
+            try {
+                snapshot = await StartTreasureMode();
+            } catch (Exception e) {
+                DialogOK.ShowErrorAndKickToConnectScene(canvasDialog, e);
+                return;
+            }
+            if (!this) {
+                return;
+            }
+            _spawnTiles = new Dictionary<int, Vector2Int>();
+            foreach (var hero in snapshot.Heroes) {
+                _spawnTiles[hero.Id] = hero.Cell;
+            }
+
+            _levelView = CreateLevelView();
+            _levelView.SpawnTileHint = GetSpawnTileHint;
             await LoadLevel();
+            _mapTileset = snapshot.Map.Tileset;
+            _loadedSnapshot = snapshot;
             _waitingAddHeroInMap = false;
 
-            PauseStatus.SetValue(this, true);
-            //var waiting = await DialogWaiting.Create();
-            //waiting.Show(DialogCanvas);
-            try {
-                var result = await StartPve();
-                if (result) {
-                    PauseStatus.SetValue(this, false);
-                    _onLoaded?.Invoke(this);
-                    // waiting.HideImmediately();
-
-                }
-            } catch (Exception e) {
-                //waiting.HideImmediately();
-                DialogOK.ShowErrorAndKickToConnectScene(canvasDialog, e);
-            }
+            IsTrial = snapshot.IsTrial;
+            OnDangerousHero(snapshot);
+            _levelReady = true;
+            _treasurePlayback.ApplySnapshot(snapshot);
+            SyncServerPause();
+            _spawnTiles.Clear();
+            _onLoaded?.Invoke(this);
 
             Time.timeScale = 1;
             ShowBanners();
@@ -217,6 +250,7 @@ namespace Game.UI {
             if (Instance == this) {
                 Instance = null;
             }
+            _treasurePlayback?.Stop();
             DOTween.KillAll(true);
             _handle.Dispose();
             EventManager.Remove(LoginEvent.UserInitialized, OnUserInitialized);
@@ -229,20 +263,99 @@ namespace Game.UI {
             }
         }
 
-        public async Task<bool> StartPve() {
-            IStartPveResponse response;
-            try {
-                if (AppConfig.IsSolana()) {
-                    response = await _serverManager.UserSolanaManager.StartPvESol(Mode);
-                } else {
-                    response = await _serverManager.Pve.StartPvE(Mode);
+        // MAP_SERVICE_ERROR (map-service briefly unreachable) is worth a couple of retries.
+        private async Task<TreasureSnapshot> StartTreasureMode() {
+            const int maxAttempts = 3;
+            for (var attempt = 1;; attempt++) {
+                try {
+                    return await StartTreasureModeOnce();
+                } catch (Exception) when (attempt < maxAttempts) {
+                    await UniTask.Delay(1000 * attempt);
                 }
-                IsTrial = response.IsTrial;
-                OnDangerousHero(response);
-                return true;
-            } catch (Exception) {
-                return false;
             }
+        }
+
+        // Sends the current pause state so a resync never makes the server's heroes walk behind a paused screen.
+        private async Task<TreasureSnapshot> StartTreasureModeOnce() {
+            var paused = WantServerPaused;
+            var snapshot = await _serverManager.Pve.StartTreasureMode(paused);
+            _serverPaused = paused;
+            SyncServerPause();
+            return snapshot;
+        }
+
+        // PAUSE/RESUME_TREASURE_MODE, one at a time so they reach the server in order; the latest state wins.
+        private async void SyncServerPause() {
+            if (_syncingPause) {
+                return;
+            }
+            _syncingPause = true;
+            try {
+                // A stopped scene may still pause the server (new map, reload), never resume it.
+                while (this && _serverPaused != null && _serverPaused != WantServerPaused &&
+                       (WantServerPaused || !_treasurePlayback.IsStopped) &&
+                       _serverManager.CurrentState == ServerConnectionState.LoggedIn) {
+                    var paused = WantServerPaused;
+                    await _serverManager.Pve.PauseTreasureMode(paused);
+                    _serverPaused = paused;
+                }
+            } catch (Exception e) {
+                // A missed resume is recovered by the playback's silence resync (START carries the pause state).
+                Debug.LogWarning($"[TREASURE] pause sync failed: {e.Message}");
+            } finally {
+                _syncingPause = false;
+            }
+        }
+
+        // Reconnected: the server may have restarted and lost the game, START_TREASURE_MODE starts it again.
+        public async Task ResyncTreasureMode() {
+            // The server drops every request sent before USER_INITIALIZED, and never answers it.
+            await _serverManager.WaitForUserInitialized();
+            if (!this || !_levelReady) {
+                // Still loading / reloading: that path sends its own START_TREASURE_MODE.
+                return;
+            }
+            await RefreshHeroesFromServer();
+            if (!this || !_levelReady) {
+                return;
+            }
+            await _treasurePlayback.Resync("reconnect", true);
+        }
+
+        // A restarted server is back on its last save: take its hero stages and energy, then fix the heroes on the map.
+        // Otherwise a hero it plays but the client holds asleep plants bombs and never moves.
+        private async Task RefreshHeroesFromServer() {
+            try {
+                await _serverManager.Pve.GetActiveBomber();
+                if (!this || !_levelView) {
+                    return;
+                }
+                var ids = new List<HeroId>();
+                foreach (var data in _playerStore.GetInMapPlayerData()) {
+                    ids.Add(data.heroId);
+                }
+                foreach (var player in _levelView.EntityManager.PlayerManager.Players) {
+                    if (player && !ids.Contains(player.HeroId)) {
+                        ids.Add(player.HeroId);
+                    }
+                }
+                _waitingAddHeroInMap = true;
+                try {
+                    await _levelView.AddNewPlayersOrRefresh(ids.ToArray());
+                } finally {
+                    _waitingAddHeroInMap = false;
+                }
+            } catch (Exception e) {
+                Debug.LogWarning($"[TREASURE] hero refresh failed: {e.Message}");
+            }
+        }
+
+        private Vector2Int? GetSpawnTileHint(HeroId heroId) {
+            var tile = _treasurePlayback.GetHeroTile(heroId.Id);
+            if (tile != null) {
+                return tile;
+            }
+            return _spawnTiles.TryGetValue(heroId.Id, out var spawn) ? spawn : null;
         }
 
         public void ProcessUpdate() {
@@ -261,6 +374,8 @@ namespace Game.UI {
 
             if (_levelView) {
                 _levelView.Step(delta);
+                // After the physics step, so the tweened hero positions are what gets rendered.
+                _treasurePlayback.Update(delta);
             }
         }
 
@@ -407,9 +522,10 @@ namespace Game.UI {
             var waiting = new WaitingUiManager(canvasDialog);
             waiting.Begin();
             _levelView.SaveMap();
+            _treasurePlayback.Stop();
             UniTask.Void(async () => {
                 try {
-                    await _serverManager.Pve.StopPvE();
+                    await _serverManager.Pve.StopTreasureMode();
                     _soundManager.StopImmediateMusic();
                     const string sceneName = "MainMenuScene";
                     await SceneLoader.LoadSceneAsync(sceneName);
@@ -480,14 +596,7 @@ namespace Game.UI {
                         if (timeOuted) {
                             return;
                         }
-                        if (AppConfig.IsSolana()) {
-                            await _serverManager.UserSolanaManager.GetMapDetailsSol();
-                        } else {
-                            await _serverManager.Pve.GetMapDetails();
-                        }
-                        if (timeOuted) {
-                            return;
-                        }
+                        // The reloaded scene calls START_TREASURE_MODE, which returns the map.
                         await ReLoadLevelScene();
                     }
                     try {
@@ -508,48 +617,139 @@ namespace Game.UI {
             }
         }
 
-        private void OnPveExploded(IPveExplodeResponse data) {
-            CheckTrialEnd(data);
-            //update enegy
-            var player = _levelView.EntityManager.PlayerManager.GetPlayerById(data.HeroId);
+        #region TREASURE PLAYBACK
 
-            if (player) {
-                var damageFrom = data.Dangerous.DangerousType == PveDangerousType.Danger
-                    ? DamageFrom.Thunder
-                    : DamageFrom.BombExplode;
-                player.Health.SetCurrentHealth(data.Energy, damageFrom);
+        // An EXPLODE event reached its turn in the playback: blocks, rewards, energy, dangerous.
+        public void ApplyExplode(ITreasureExplode data, HeroId heroId, bool showEffects, bool markBreak) {
+            if (!_levelView) {
+                return;
+            }
+            CheckTrialEnd(data);
+            var player = _levelView.EntityManager.PlayerManager.GetPlayerById(heroId);
+
+            // No energy = the hero is no longer credited: the map still changes, nothing else does.
+            if (data.HasEnergy) {
+                if (player) {
+                    var damageFrom = data.Dangerous.DangerousType == PveDangerousType.Danger
+                        ? DamageFrom.Thunder
+                        : DamageFrom.BombExplode;
+                    player.Health.SetCurrentHealth(data.Energy, damageFrom);
+                    ShowDangerousEffect(data.Dangerous);
+                }
             }
 
-            // Dangerous Pve V2 Amazon Only
-            ShowDangerousEffect(data.Dangerous);
-
-            //update blocks
+            var mapManager = _levelView.EntityManager.MapManager;
             var blocks = data.DestroyedBlocks;
             for (var k = 0; k < blocks.Count; k++) {
                 var block = blocks[k];
-
                 var i = block.Coord.x;
                 var j = block.Coord.y;
-
-                if (_levelView.EntityManager.MapManager.TryGetBlock(i, j, out var blockObj)) {
-                    blockObj.health.SetCurrentHealth(block.Hp);
-
-                    if (block.Hp <= 0) {
-                        if (_levelView.EntityManager.MapManager.RemoveBrick(i, j)) {
-                            blockObj.ShowBrickBreaking();
-                            _levelView.EntityManager.MapManager.ClearBlock(i, j);
-                        }
-
-                        if (block.Rewards.Count > 0) {
-                            var isBigReward =
-                                _levelView.EntityManager.MapManager.IsBigRewardBlock(i, j);
-                            GetReward(block.Rewards, data.HeroId, blockObj.transform.position, isBigReward,
-                                data.AttendPools);
-                        }
+                if (!mapManager.TryGetBlock(i, j, out var blockObj)) {
+                    continue;
+                }
+                blockObj.health.SetCurrentHealth(block.Hp);
+                if (block.Hp > 0) {
+                    continue;
+                }
+                if (markBreak) {
+                    mapManager.MarkBreakBrick(i, j);
+                }
+                var isBigReward = mapManager.IsBigRewardBlock(i, j);
+                var position = blockObj.transform.position;
+                if (mapManager.RemoveBrick(i, j)) {
+                    if (showEffects) {
+                        blockObj.ShowBrickBreaking();
+                    }
+                    mapManager.ClearBlock(i, j);
+                }
+                if (block.Rewards.Count == 0) {
+                    continue;
+                }
+                if (showEffects) {
+                    GetReward(block.Rewards, heroId, position, isBigReward, data.AttendPools);
+                } else {
+                    foreach (var reward in block.Rewards) {
+                        _chestRewardManager.AdjustChestReward(reward.Type, reward.Value);
                     }
                 }
             }
         }
+
+        public void OnHeroLeave(HeroId heroId, Player player, string reason) {
+            switch (reason) {
+                case "no_energy":
+                    if (player) {
+                        var botManager = player.GetComponent<BotManager>();
+                        if (botManager && !botManager.IsSleeping) {
+                            botManager.GoToSleep_SendRequest();
+                        }
+                    }
+                    break;
+                case "inactive":
+                case "removed":
+                    RemoveHeroesFromMap(new[] { heroId });
+                    break;
+                // not_working: the stage UI already moved it; limit / stopped: it just stands still.
+            }
+        }
+
+        // Heroes wait on the new map's spawn tiles through the win dialog; the reloaded scene resumes them.
+        public void OnNewMapReceived() {
+            _levelReady = false;
+            SyncServerPause();
+        }
+
+        public void OnNewMap(TreasureEvent newMap) {
+            OnLevelCompleted(true);
+        }
+
+        // Resync snapshot: update the current map in place when it is the same map, else reload the scene.
+        public bool TryApplySnapshotMap(TreasureSnapshot snapshot) {
+            if (!_levelView || _reloading) {
+                return false;
+            }
+            if (snapshot == _loadedSnapshot) {
+                // The scene's map was built from this very snapshot.
+                return true;
+            }
+            var mapManager = _levelView.EntityManager.MapManager;
+            var target = new Dictionary<Vector2Int, IMapBlock>();
+            foreach (var b in snapshot.Map.Blocks) {
+                if (b.Health > 0) {
+                    target[b.Position] = b;
+                }
+            }
+            var sameMap = snapshot.Map.Tileset == _mapTileset;
+            foreach (var (cell, b) in target) {
+                if (!sameMap) {
+                    break;
+                }
+                sameMap = mapManager.TryGetBlock(cell.x, cell.y, out var block) && block &&
+                          block.blockType == (EntityType) (b.Type + 5);
+            }
+            if (!sameMap) {
+                _ = ReLoadLevelScene();
+                return false;
+            }
+            for (var i = 0; i < mapManager.Col; i++) {
+                for (var j = 0; j < mapManager.Row; j++) {
+                    if (!mapManager.TryGetBlock(i, j, out var block)) {
+                        continue;
+                    }
+                    if (target.TryGetValue(new Vector2Int(i, j), out var b)) {
+                        block.health.SetCurrentHealth(b.Health);
+                    } else if (mapManager.RemoveBrick(i, j)) {
+                        mapManager.ClearBlock(i, j);
+                    }
+                }
+            }
+            _playerStore.SetMapDetails(snapshot.Map);
+            _playerStore.LoadMap(Mode);
+            IsTrial = snapshot.IsTrial;
+            return true;
+        }
+
+        #endregion
 
         private void CheckTrialEnd(IPveExplodeResponse response) {
             if (IsTrial == TrialState.TrialBegin && response.IsTrial == TrialState.TrialEnd) {
@@ -557,7 +757,8 @@ namespace Game.UI {
                 var waiting = new WaitingUiManager(canvasDialog);
                 waiting.Begin();
                 UniTask.Void(async () => {
-                    await _serverManager.Pve.StopPvE();
+                    _treasurePlayback.Stop();
+                    await _serverManager.Pve.StopTreasureMode();
                     await _serverManager.General.SyncHero(false);
                     waiting.End();
                 });
@@ -634,20 +835,8 @@ namespace Game.UI {
             dialog.Show(canvasDialog);
         }
 
-        private void OnNewMapResponse(bool result) {
-            if (Mode != GameModeType.TreasureHuntV2)
-                return;
-            if (result) {
-                OnLevelCompleted(true);
-                return;
-            }
-            if (!_storeManager.EnableAutoMine) {
-                DialogOK.ShowErrorMsgOnlyAndKickToConnectScene(canvasDialog, "Fail to load new map");
-            }
-        }
-
         private void OnActiveHero(IPveHeroDangerous data, HeroId heroId, bool isActive) {
-            if (Mode != GameModeType.TreasureHuntV2)
+            if (Mode != GameModeType.TreasureHuntV2 || !_levelView)
                 return;
             var playerManager = _levelView.EntityManager.PlayerManager;
             playerManager.AddPendingActiveHeroes(heroId, isActive);
@@ -655,31 +844,15 @@ namespace Game.UI {
         }
 
         private void OnRemoveHeroes(HeroId[] heroIds) {
-            if (Mode != GameModeType.TreasureHuntV2)
+            if (Mode != GameModeType.TreasureHuntV2 || !_levelView)
                 return;
             var playerManager = _levelView.EntityManager.PlayerManager;
             playerManager.RemoveHeroes(heroIds);
         }
 
+        // The server already switched maps; the reloaded scene gets it from START_TREASURE_MODE.
         private void OnNewMap() {
-            var waiting = new WaitingUiManager(canvasDialog);
-            waiting.Begin();
-            UniTask.Void(async () => {
-                try {
-                    if (AppConfig.IsSolana()) {
-                        await _serverManager.UserSolanaManager.GetMapDetailsSol();
-                    } else {
-                        await _serverManager.Pve.GetMapDetails();
-                    }
-                    await ReLoadLevelScene();
-                } catch (Exception e) {
-                    if (!_storeManager.EnableAutoMine) {
-                        DialogOK.ShowErrorAndKickToConnectScene(canvasDialog, e);
-                    }
-                } finally {
-                    waiting.End();
-                }
-            });
+            _ = ReLoadLevelScene();
         }
 
         private void GetReward(List<ITokenReward> rewards, HeroId id, Vector3 position, bool isBigReward,
@@ -706,8 +879,12 @@ namespace Game.UI {
                 if (!AppConfig.IsWebGL() && !AppConfig.IsMobile())
                     continue;
 
+                var heroData = _playerStoreManager.GetPlayerDataFromId(id);
+                if (heroData == null) {
+                    continue;
+                }
                 foreach (var pool in attendPoolsThv2) {
-                    var heroRarity = _playerStoreManager.GetPlayerDataFromId(id).rare;
+                    var heroRarity = heroData.rare;
                     var poolTo = _thModeV2Manager.GetPositionPool(heroRarity).position;
                     if (pool == RewardType.Senspark) {
                         emitActions.Add(() => EarnReward(BlockRewardType.SenTicket, 1, from, poolTo, null));
@@ -728,13 +905,13 @@ namespace Game.UI {
         }
 
         private async Task ReLoadLevelScene() {
+            if (_reloading) {
+                return;
+            }
+            _reloading = true;
             try {
+                _treasurePlayback.Stop();
                 PauseStatus.SetValue(this, true);
-                if (AppConfig.IsSolana()) {
-                    await _serverManager.UserSolanaManager.StopPvESol();
-                } else {
-                    await _serverManager.Pve.StopPvE();
-                }
                 var waiting = await DialogWaiting.Create();
                 waiting.Show(canvasDialog);
                 await ReloadScene(Mode, _showBanners, level => { waiting.HideImmediately(); });
@@ -784,6 +961,7 @@ namespace Game.UI {
     public class PauseProperty {
         // Mục tiêu là object nào set Pause = true thì object đó phải có trách nhiệm set Pause = false
         public bool IsPausing { get; private set; } = false;
+        public event Action<bool> OnChanged;
         private object _latestRequester;
         private ProCamera2DPanAndZoom _panAndZoom;
 
@@ -804,10 +982,12 @@ namespace Game.UI {
                     // Bắt đầu Pause
                     _latestRequester = requester;
                     IsPausing = true;
+                    OnChanged?.Invoke(true);
                 } else {
                     // Kết thúc Pause
                     _latestRequester = null;
                     IsPausing = false;
+                    OnChanged?.Invoke(false);
                 }
             } else if (_latestRequester == requester) {
                 if (_panAndZoom) {
@@ -823,6 +1003,7 @@ namespace Game.UI {
                 // Kết thúc Pause
                 _latestRequester = null;
                 IsPausing = false;
+                OnChanged?.Invoke(false);
             }
         }
     }

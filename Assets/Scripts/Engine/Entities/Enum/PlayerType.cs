@@ -68,12 +68,24 @@ namespace Engine.Entities
         ChessHorse,     // 60
         ChessBishop,    // 61
 
-        // BHero skins mới (đơn màu White).
+        // BHero skins mới (đơn màu White), 62..66.
         Irondeux,       // 62
         Omega,          // 63
         Saber,          // 64
         DemonSlayer,    // 65
         KoiMan,         // 66
+
+        // BHero skins mới (đơn màu White), 67..76.
+        Lamho,          // 67
+        Vieceli,        // 68
+        Vinny,          // 69
+        WineFabio,      // 70
+        FelipeAlencar,  // 71
+        Linchonk,       // 72
+        Evoker,         // 73
+        Zero,           // 74
+        Kurokaze,       // 75
+        MrDev,          // 76
 
         Poo = 111,
         GKu,

@@ -295,17 +295,6 @@ namespace Engine.Manager {
             LevelCallback.OnUpdateHealthUi?.Invoke(slot, value);
         }
 
-        public void OnBombExploded(HeroId heroId, int bombId, Vector2Int tileLocation,
-            List<Vector2Int> brokenList) {
-            var serverManager = ServiceLocator.Instance.Resolve<IServerManager>();
-            if (AppConfig.IsSolana()) {
-                serverManager.UserSolanaManager.StartExplodeSol(GameMode, heroId, bombId, tileLocation, brokenList);
-            } 
-            else {
-                serverManager.Pve.StartExplode(GameMode, heroId, bombId, tileLocation, brokenList);
-            }
-        }
-
         public void CheckEnemiesClear() {
             if (EntityManager.EnemyManager.Count <= 0) {
                 LevelCallback.OnEnemiesCleared?.Invoke();

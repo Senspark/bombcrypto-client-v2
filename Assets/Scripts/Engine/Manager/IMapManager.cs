@@ -41,6 +41,9 @@ namespace Engine.Manager {
 
         bool IsMarkBreakBrick(int i, int j);
 
+        // Stops blast flames at (i, j) like a brick would, for a brick the server already destroyed.
+        void MarkBreakBrick(int i, int j);
+
         List<Vector2Int> GetEmptyAround(Vector2Int tileLocation, bool throughBrick, bool throughBomb);
         List<Vector2Int> GetRandomEmptyAround(Vector2Int location, int num, int radius1, int radius2, int fromTop = 0);
 
