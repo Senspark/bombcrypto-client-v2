@@ -64,6 +64,8 @@ namespace App {
         // MOVE
         public List<Vector2Int> Path { get; set; }
         public long StepMs { get; set; }
+        // Empty path only: the client roams the hero itself. -1 = no, 0 = open-ended, else back on Hero.Cell by then.
+        public long RoamUntil { get; set; } = -1;
 
         // PLANT / EXPLODE
         public int Num { get; set; }

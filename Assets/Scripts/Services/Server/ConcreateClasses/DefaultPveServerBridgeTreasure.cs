@@ -113,6 +113,7 @@ namespace App {
                 case TreasureEventType.Move:
                     ev.Hero = ParseHeroPosition(e);
                     ev.StepMs = ReadLong(e, "step_ms");
+                    ev.RoamUntil = ReadLong(e, "roam_until", -1);
                     ev.Path = new List<Vector2Int>();
                     var path = e.GetSFSArray("path");
                     if (path != null) {
