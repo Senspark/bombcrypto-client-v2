@@ -27,7 +27,6 @@ public interface IUserSolanaManager: IService, IServerListener {
     Task<ISyncHouseResponse> SyncHouseSol();
     Task<IFusionTonHeroResponse> FusionServer(int target, int[] heroList);
     Task<IFusionTonHeroResponse> MultiFusionServer(int target, int[] heroList);
-    void StartExplodeSol(GameModeType type, HeroId heroId, int bombId, Vector2Int tileLocation, List<Vector2Int> brokenList);
     Task<bool> StartAutoMineSol();
     Task<IChestReward> BuyAutoMineSol(string packageName, BlockRewardType blockRewardType);
     void GoHomeSol(HeroId id);

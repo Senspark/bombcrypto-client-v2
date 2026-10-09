@@ -322,11 +322,12 @@ namespace Scenes.PvpModeScene.Scripts {
             bool isOutOfChest,
             Action callback,
             bool isTournament,
-            int[] boosters = null
+            int[] boosters = null,
+            bool hasHeroCage = false
         ) {
             DialogPvpVictory.Create().ContinueWith(dialogVictory => {
                 dialogVictory.OnDidHide(() => { //
-                    ShowDialogWin(canvasDialog, info, slot, rewardId, isOutOfChest, callback, isTournament, boosters);
+                    ShowDialogWin(canvasDialog, info, slot, rewardId, isOutOfChest, callback, isTournament, boosters, hasHeroCage);
                 });
                 dialogVictory.Show(canvasDialog);
             });
@@ -360,14 +361,15 @@ namespace Scenes.PvpModeScene.Scripts {
             bool isOutOfChest,
             Action callback,
             bool isTournament,
-            int[] boosters = null
+            int[] boosters = null,
+            bool hasHeroCage = false
         ) {
             _soundManager.PlaySound(Audio.PopupWin);
             BLDialogPvpWin.Create().ContinueWith(dialogWin => {
                 if (isTournament) {
                     dialogWin.SetTournamentResult(slot, info, callback);
                 } else {
-                    dialogWin.SetRewards(info.Info[slot], rewardId, isOutOfChest, callback);
+                    dialogWin.SetRewards(info.Info[slot], rewardId, isOutOfChest, hasHeroCage, callback);
                 }
                 if (boosters != null) {
                     dialogWin.UpdateBooster(boosters);
@@ -539,7 +541,7 @@ namespace Scenes.PvpModeScene.Scripts {
         }
 
         public void ShowDialogPveWin(Canvas canvasDialog, int stage, int level, string rewardId, IWinReward[] rewards,
-            Action callback) {
+            Action callback, bool hasHeroCage = false) {
             throw new NotImplementedException();
         }
 

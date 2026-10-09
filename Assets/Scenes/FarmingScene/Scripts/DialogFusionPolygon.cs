@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 
 using App;
@@ -160,19 +161,22 @@ namespace Scenes.FarmingScene.Scripts {
         }
 
         private void ShowUIPercentFusion() {
-            resultFusion.text = $"{PercentFusionResult()}%";
+            var percent = PercentFusionResult() / 100f;
+            resultFusion.text = $"{percent.ToString("0.##", CultureInfo.InvariantCulture)}%";
         }
 
-        private float CalcHeroPercent(PlayerData playerData) {
+        // Basis points (10000 = 100%). Phải khớp BHeroS._getPercentBuffMaterials: chia nguyên như
+        // contract — tính float rồi làm tròn từng hiện 100% trong khi contract chỉ cho 99.24%.
+        private int CalcHeroPercent(PlayerData playerData) {
             var heroType = _playerStoreManager.GetHeroRarity(playerData);
             // _targetUpgradeRarity là rarity của hero main (xem FusionItemDisplayPolygon),
-            // target rarity thực = _targetUpgradeRarity + 1 — phải khớp công thức
+            // target rarity thực = _targetUpgradeRarity + 1
             var x = (_targetUpgradeRarity + 1) - (int) heroType;
-            return 25f / Mathf.Pow(4, x - 1);
+            return x <= 1 ? 2500 : 2500 / (1 << (2 * (x - 1)));
         }
 
         private int PercentFusionResult() {
-            var percent = 0f;
+            var percent = 0;
 
             // Loại second list khi tính percent nếu second list không xuất hiện.
             var lstHeroId = _mainLstHeroId;
@@ -185,11 +189,11 @@ namespace Scenes.FarmingScene.Scripts {
                     percent += CalcHeroPercent(playerData);
                 }
             }
-            return Mathf.RoundToInt(percent);
+            return Mathf.Min(percent, 10000);
         }
 
         private void RemoveListSecondHeroTarget100Percent() {
-            var percent = 0f;
+            var percent = 0;
             foreach (var playerData in _mainLstHeroId) {
                 if (playerData != null) {
                     percent += CalcHeroPercent(playerData);
@@ -201,7 +205,7 @@ namespace Scenes.FarmingScene.Scripts {
                 if (playerData != null) {
                     percent += CalcHeroPercent(playerData);
                     subSecondHero.Add(playerData);
-                    if (percent >= 100f) {
+                    if (percent >= 10000) {
                         break;
                     }
                 }

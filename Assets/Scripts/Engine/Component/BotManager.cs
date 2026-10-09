@@ -100,6 +100,11 @@ namespace Engine.Components {
                 return;
             }
 
+            // Treasure mode is server-driven: TreasurePlayback moves the hero and plants its bombs.
+            if (levelManager.IsHunterMode) {
+                return;
+            }
+
             var localPosition = transform.localPosition;
             currentLocation = mapManager.GetTileLocation(localPosition);
 
@@ -141,7 +146,8 @@ namespace Engine.Components {
                 playerData.hp = hp;
             }
 
-            if (hp < 1 && damageFrom == DamageFrom.BombExplode) {
+            // Thunder included: the server only empties the energy, the hero stays in work stage until we send sleep.
+            if (hp < 1) {
                 GoToSleep_SendRequest();
             }
         }
@@ -215,6 +221,7 @@ namespace Engine.Components {
             }
         }
 
+
         #endregion
 
         #region PRIVATE METHODS
@@ -226,10 +233,6 @@ namespace Engine.Components {
         private bool CheckToSpawnBomb() {
             GetReachableLocationList();
             GetSafeLocationList();
-
-            // if (isNoneTarget) {
-            //     return false;
-            // }
 
             if (mapManager.HadBomb(currentLocation)) {
                 return false;

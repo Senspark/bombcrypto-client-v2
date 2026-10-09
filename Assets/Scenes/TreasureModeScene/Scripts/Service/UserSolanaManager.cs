@@ -110,10 +110,6 @@ public class UserSolanaManager : IUserSolanaManager
         return await _general.MultiFusionHeroServer(target, heroList);
     }
     
-    public void StartExplodeSol(GameModeType type, HeroId heroId, int bombId, Vector2Int tileLocation, List<Vector2Int> brokenList) {
-        _pve.StartExplode(type, heroId, bombId, tileLocation, brokenList);
-    }
-    
     public async Task<bool> StartAutoMineSol() {
         return await _general.StartAutoMine();
     }

@@ -87,7 +87,7 @@ const Information: React.FC<InformationT> = () => {
     const links: LinkItem[] = [
         {key: 'homepage', label: 'Homepage', icon: homepageIcon, onClick: () => window.open('https://bombcrypto.io')},
         {key: 'market', label: 'Market', icon: marketIcon, onClick: () => window.open('https://market.bombcrypto.io/')},
-        {key: 'dapps', label: 'Dapps', icon: dappsIcon, onClick: () => window.open('https://dapps.bombcrypto.io/bridge')},
+        {key: 'dapps', label: 'Dapps', icon: dappsIcon, onClick: () => window.open('https://dapps.bombcrypto.io')},
         {key: 'leaderboard', label: 'Leaderboard', onClick: () => window.open('https://treasure-mode.bombcrypto.io/')},
         {
             key: 'switchMode',

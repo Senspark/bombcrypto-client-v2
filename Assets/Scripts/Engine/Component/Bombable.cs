@@ -22,7 +22,15 @@ namespace Engine.Components {
         public int MaxBombNumber { set; get; } = 1;
         public float Damage { set; get; } = 1;
         public int ExplosionLength { set; get; } = 10;
-        private float TimeToExplode => 3.0f;
+
+        /// <summary>
+        /// Local safety fuse: if this bomb's own detonation hasn't cleared it by then, the bomb
+        /// explodes locally anyway with no damage and no block removal (see Bomb.UpdateCountDown).
+        /// Hunter-mode heroes get a longer deadline than story/PvP heroes since their real
+        /// detonation is server-timed and pushed over the network -- see
+        /// DefaultPlayerManager.SetProperties.
+        /// </summary>
+        public float TimeToExplode { set; get; } = 3.0f;
 
         public bool ThroughBrick { set; get; } = false;
         public bool TreasureHunter { set; get; } = false;
@@ -98,6 +106,25 @@ namespace Engine.Components {
             _bombs.Add(bomb);
         }
 
+        // Server-driven treasure: bomb `num` on `cell` with no local fuse; TreasurePlayback explodes it.
+        [CanBeNull]
+        public Bomb SpawnServerBomb(int num, Vector2Int cell) {
+            if (_weapon == null || _bombs == null) {
+                return null;
+            }
+            var previous = _spawnLocationCallback;
+            _spawnLocationCallback = () => cell;
+            try {
+                var bomb = (Bomb) _weapon.Spawn();
+                bomb.Init(num, _heroId, _bombSkin, _explosionSkin, 0, 0, ExplosionLength, -1, ThroughBrick,
+                    OnExplodedCallback);
+                _bombs.Add(bomb);
+                return bomb;
+            } finally {
+                _spawnLocationCallback = previous;
+            }
+        }
+
         public int GetNextBombId() {
             var occupiedIds = _bombs.Select(item => item.BombId).ToHashSet();
             for (var i = 0; i < MaxBombNumber; ++i) {
@@ -135,6 +162,21 @@ namespace Engine.Components {
                 OnExplodedCallback);
             _bombs.Add(bomb);
             return bomb;
+        }
+
+        /// <summary>
+        /// Finds this hero's live bomb by its slot id (the "num" the server records at plant time).
+        /// Used to match an incoming EXPLODE event to a still-live bomb -- see
+        /// LevelScene.OnPveExploded.
+        /// </summary>
+        [CanBeNull]
+        public Bomb FindBombById(int bombId) {
+            foreach (var bomb in _bombs) {
+                if (bomb.IsAlive && bomb.BombId == bombId) {
+                    return bomb;
+                }
+            }
+            return null;
         }
 
         [CanBeNull]

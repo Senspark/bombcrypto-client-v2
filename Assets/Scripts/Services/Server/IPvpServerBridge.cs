@@ -123,6 +123,7 @@ namespace PvpMode.Services {
     public interface IPvpClaimMatchRewardResult {
         string RewardId { get; }
         bool IsOutOfChest { get; }
+        bool HasHeroCage { get; }
     }
 
     public interface IPvpHistoryItemResult {

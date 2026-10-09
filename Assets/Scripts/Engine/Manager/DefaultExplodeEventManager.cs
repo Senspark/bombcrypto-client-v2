@@ -163,7 +163,12 @@ namespace Engine.Manager {
         }
 
         public void UpdateProcess(float delta) {
-            if (ProcessEvents(PopEvent())) {
+            // All queued bombs in one frame: one per frame held every cross back until the queue was empty.
+            var processed = false;
+            while (ProcessEvents(PopEvent())) {
+                processed = true;
+            }
+            if (processed) {
                 return;
             }
             if (_resultExplodeList.Count > 0) {

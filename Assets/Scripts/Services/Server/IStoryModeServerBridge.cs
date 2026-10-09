@@ -88,6 +88,7 @@ namespace App {
         float Rewards { get; }
         bool IsStageCompleted { get; }
         float TimeCompleted { get; }
+        bool HasHeroCage { get; }
     }
 
     public interface ITakeItemResult {

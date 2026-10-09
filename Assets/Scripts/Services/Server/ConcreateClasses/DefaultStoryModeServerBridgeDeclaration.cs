@@ -327,6 +327,7 @@ namespace App {
             public float Rewards { get; }
             public bool IsStageCompleted { get; }
             public float TimeCompleted { get; }
+            public bool HasHeroCage { get; }
 
             public StoryModeEnterDoorResponse(ISFSObject data) {
                 RewardId = data.GetUtfString("reward_id");
@@ -338,6 +339,7 @@ namespace App {
                 }
                 IsStageCompleted = data.GetInt("is_complete") > 0;
                 TimeCompleted = data.GetInt("time_complete");
+                HasHeroCage = data.ContainsKey("has_hero_cage") && data.GetBool("has_hero_cage");
             }
         }
 

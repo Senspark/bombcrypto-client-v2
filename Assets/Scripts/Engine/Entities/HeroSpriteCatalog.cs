@@ -172,6 +172,18 @@ namespace Engine.Entities {
             [PlayerType.Saber]           = new Entry("Saber", WhiteOnly, hasDie: true),
             [PlayerType.DemonSlayer]     = new Entry("DemonSlayer", WhiteOnly, hasDie: true),
             [PlayerType.KoiMan]          = new Entry("KoiMan", WhiteOnly, hasDie: true),
+
+            // BHero skins mới (đơn màu White), 67..76.
+            [PlayerType.Lamho]           = new Entry("Lamho", WhiteOnly, hasDie: true),
+            [PlayerType.Vieceli]         = new Entry("Vieceli", WhiteOnly, hasDie: true),
+            [PlayerType.Vinny]           = new Entry("Vinny", WhiteOnly, hasDie: true),
+            [PlayerType.WineFabio]       = new Entry("WineFabio", WhiteOnly, hasDie: true),
+            [PlayerType.FelipeAlencar]   = new Entry("FelipeAlencar", WhiteOnly, hasDie: true),
+            [PlayerType.Linchonk]        = new Entry("Linchonk", WhiteOnly, hasDie: true),
+            [PlayerType.Evoker]          = new Entry("Evoker", WhiteOnly, hasDie: true),
+            [PlayerType.Zero]            = new Entry("Zero", WhiteOnly, hasDie: true),
+            [PlayerType.Kurokaze]        = new Entry("Kurokaze", WhiteOnly, hasDie: true),
+            [PlayerType.MrDev]           = new Entry("MrDev", WhiteOnly, hasDie: true),
         };
 
         public static bool TryGet(PlayerType type, out Entry entry) => Table.TryGetValue(type, out entry);

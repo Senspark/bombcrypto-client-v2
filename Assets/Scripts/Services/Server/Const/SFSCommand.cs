@@ -10,6 +10,14 @@ public static partial class SFSDefine {
         // New commands
         public const string GET_BLOCK_MAP_V2 = "GET_BLOCK_MAP_V2";
         public const string START_EXPLODE_V5 = "START_EXPLODE_V5";
+        // Server-driven treasure mode: the server plays, the client re-enacts TREASURE_EVENTS.
+        // See docs/treasure-server-driven-client-guide.md.
+        public const string START_TREASURE_MODE = "START_TREASURE_MODE";
+        public const string STOP_TREASURE_MODE = "STOP_TREASURE_MODE";
+        public const string PAUSE_TREASURE_MODE = "PAUSE_TREASURE_MODE";
+        public const string RESUME_TREASURE_MODE = "RESUME_TREASURE_MODE";
+        public const string SET_TREASURE_AUTO_MINE = "SET_TREASURE_AUTO_MINE";
+        public const string TREASURE_EVENTS = "TREASURE_EVENTS";
         public const string GO_HOME_V2 = "GO_HOME_V2";
         public const string GO_WORK_V2 = "GO_WORK_V2";
         public const string GO_SLEEP_V2 = "GO_SLEEP_V2";
@@ -53,6 +61,7 @@ public static partial class SFSDefine {
         public const string GET_COIN_LEADERBOARD_CONFIG_V2 = "GET_COIN_LEADERBOARD_CONFIG_V2";
         public const string CLAIM_MONTHLY_REWARD_V2 = "CLAIM_MONTHLY_REWARD_V2";
         public const string CLAIM_PVP_MATCH_REWARD_V2 = "CLAIM_PVP_MATCH_REWARD_V2";
+        public const string CLAIM_HERO_CAGE = "CLAIM_HERO_CAGE";
         public const string GET_PVP_HISTORY_V2 = "GET_PVP_HISTORY_V2";
         public const string OPEN_SKIN_CHEST_V2 = "OPEN_SKIN_CHEST_V2";
         public const string GET_SKIN_INVENTORY_V2 = "GET_SKIN_INVENTORY_V2";

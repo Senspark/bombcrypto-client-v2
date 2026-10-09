@@ -66,8 +66,11 @@ namespace App {
             }
         }
         
-        private class PveExplodeResponse : IPveExplodeResponse {
+        // Body of a TREASURE_EVENTS "EXPLODE" event.
+        public class PveExplodeResponse : IPveExplodeResponse {
             public HeroId HeroId { get; }
+            public int BombNo { get; }
+            public Vector2Int Cell { get; }
             public int Energy { get; }
             public List<IPveBlockData> DestroyedBlocks { get; }
             public IPveHeroDangerous Dangerous { get; }
@@ -80,14 +83,24 @@ namespace App {
                     ? data.GetInt(SFSDefine.SFSField.AccountType)
                     : data.GetInt(SFSDefine.SFSField.HeroType);
                 HeroId = new HeroId(id, (HeroAccountType) type);
+                BombNo = data.ContainsKey("num") ? data.GetInt("num") : -1;
+                Cell = new Vector2Int(
+                    data.ContainsKey("i") ? data.GetInt("i") : 0,
+                    data.ContainsKey("j") ? data.GetInt("j") : 0);
                 Energy = data.GetInt(SFSDefine.SFSField.Enegy);
                 DestroyedBlocks = new List<IPveBlockData>();
-                var array = data.GetSFSArray(SFSDefine.SFSField.BLocks);
-                foreach (ISFSObject d in array) {
-                    DestroyedBlocks.Add(new PveBlockData(d));
+                var array = data.ContainsKey(SFSDefine.SFSField.BLocks) ? data.GetSFSArray(SFSDefine.SFSField.BLocks) : null;
+                if (array != null) {
+                    foreach (ISFSObject d in array) {
+                        DestroyedBlocks.Add(new PveBlockData(d));
+                    }
                 }
-                var attendPoolsArray = data.GetIntArray(SFSDefine.SFSField.AttendPools);
-                AttendPools = attendPoolsArray.Select(item => (RewardType)item).ToList();
+                var attendPoolsArray = data.ContainsKey(SFSDefine.SFSField.AttendPools)
+                    ? data.GetIntArray(SFSDefine.SFSField.AttendPools)
+                    : null;
+                AttendPools = attendPoolsArray != null
+                    ? attendPoolsArray.Select(item => (RewardType) item).ToList()
+                    : new List<RewardType>();
 
                 Dangerous = new PveHeroDangerous(data);
                 if (data.ContainsKey("is_trial")) {
@@ -133,7 +146,10 @@ namespace App {
                     ? data.GetInt(SFSDefine.SFSField.AccountType)
                     : data.GetInt(SFSDefine.SFSField.HeroType);
                 HeroId = new HeroId(heroId, (HeroAccountType) heroType);
-                HasNewState = false;
+                HasNewState = data.ContainsKey("stage");
+                if (HasNewState) {
+                    State = (HeroStage) data.GetInt("stage");
+                }
             }
 
             public PveHeroDangerous(HeroId heroId, HeroStage state, PveDangerousType type) {

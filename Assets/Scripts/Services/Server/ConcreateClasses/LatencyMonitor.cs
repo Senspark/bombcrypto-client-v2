@@ -26,11 +26,12 @@ namespace App {
         }
 
         public void StartMonitoring() {
+            // A new login is a new baseline: the old one would drop the fresh connection right away.
+            _lastPingTime = Time.time;
             if (_isMonitoring) {
                 return;
             }
             _isMonitoring = true;
-            _lastPingTime = Time.time;
             var go = new GameObject(nameof(LatencyMonitor));
             Object.DontDestroyOnLoad(go);
             _runner = go.AddComponent<Runner>();
