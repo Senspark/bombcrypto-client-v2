@@ -146,7 +146,8 @@ namespace Engine.Components {
                 playerData.hp = hp;
             }
 
-            if (hp < 1 && damageFrom == DamageFrom.BombExplode) {
+            // Thunder included: the server only empties the energy, the hero stays in work stage until we send sleep.
+            if (hp < 1) {
                 GoToSleep_SendRequest();
             }
         }

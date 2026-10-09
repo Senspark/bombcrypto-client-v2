@@ -16,6 +16,7 @@ public static partial class SFSDefine {
         public const string STOP_TREASURE_MODE = "STOP_TREASURE_MODE";
         public const string PAUSE_TREASURE_MODE = "PAUSE_TREASURE_MODE";
         public const string RESUME_TREASURE_MODE = "RESUME_TREASURE_MODE";
+        public const string SET_TREASURE_AUTO_MINE = "SET_TREASURE_AUTO_MINE";
         public const string TREASURE_EVENTS = "TREASURE_EVENTS";
         public const string GO_HOME_V2 = "GO_HOME_V2";
         public const string GO_WORK_V2 = "GO_WORK_V2";

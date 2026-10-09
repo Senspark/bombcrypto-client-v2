@@ -19,11 +19,15 @@ namespace App {
         // Server-driven treasure mode: one call starts (or fully resyncs) the server's game;
         // everything after arrives as TREASURE_EVENTS (ServerObserver.OnTreasureEvents).
         // paused: the client is paused, so a resync keeps the server's heroes still.
-        Task<TreasureSnapshot> StartTreasureMode(bool paused = false);
+        // autoMine: the server sends a hero with no energy left home (when a house has room) instead of to sleep.
+        Task<TreasureSnapshot> StartTreasureMode(bool paused = false, bool autoMine = false);
         Task StopTreasureMode();
 
         // Heroes halt until resumed; bombs already planted still explode.
         Task PauseTreasureMode(bool paused);
+
+        // The auto mine switch changed while playing.
+        Task SetTreasureAutoMine(bool enabled);
 
         /// <summary>
         /// Fire-and-forget: yêu cầu server kiểm tra on-chain stake và đẩy push BHERO_STAKE_PUSH.

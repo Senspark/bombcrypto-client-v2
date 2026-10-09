@@ -19,18 +19,45 @@ namespace App {
         private const string TreasureDatasKey = "datas_pve_v2";
         private const string TreasureTilesetKey = "tileset_pve_v2";
 
-        public async Task<TreasureSnapshot> StartTreasureMode(bool paused = false) {
+        public async Task<TreasureSnapshot> StartTreasureMode(bool paused = false, bool autoMine = false) {
             var data = new SFSObject();
             if (paused) {
                 data.PutBool("paused", true);
             }
+            data.PutBool("auto_mine", autoMine);
             var response = await _serverDispatcher.SendCmd(new CmdStartTreasureMode(data));
             var snapshot = ParseTreasureSnapshot(response);
+            ApplyRestedHeroes(response.GetSFSArray("dangerous"));
             _bHeroManager.SetMapDetails(snapshot.Map);
             _bHeroManager.LoadMap(GameModeType.TreasureHuntV2);
             _logManager.Log(
                 $"[TREASURE] start seq={snapshot.Seq} heroes={snapshot.Heroes.Count} bombs={snapshot.Bombs.Count} awaitingNewMap={snapshot.AwaitingNewMap}");
             return snapshot;
+        }
+
+        // The server rested heroes that had no energy left (thunder included): take their stage and energy.
+        private void ApplyRestedHeroes(ISFSArray dangerous) {
+            if (dangerous == null) {
+                return;
+            }
+            foreach (ISFSObject d in dangerous) {
+                if (!d.ContainsKey("stage")) {
+                    continue;
+                }
+                var info = new PveHeroDangerous(d);
+                var current = _bHeroManager.GetPlayerDataFromId(info.HeroId);
+                if (current == null || current.stage == info.State) {
+                    continue;
+                }
+                _bHeroManager.UpdateHeroEnergy(info.HeroId, ReadInt(d, SFSDefine.SFSField.Enegy));
+                _bHeroManager.UpdateHeroState(info.HeroId, info.State);
+            }
+        }
+
+        public async Task SetTreasureAutoMine(bool enabled) {
+            var data = new SFSObject();
+            data.PutBool("auto_mine", enabled);
+            await _serverDispatcher.SendCmd(new CmdSetTreasureAutoMine(data));
         }
 
         public async Task StopTreasureMode() {
@@ -218,7 +245,9 @@ namespace App {
                     : null;
                 AttendPools = pools != null ? pools.Select(item => (RewardType) item).ToList() : new List<RewardType>();
                 var dangerousType = (PveDangerousType) ReadInt(data, "is_dangerous");
-                Dangerous = new PveHeroDangerous(HeroId, HeroStage.Working, dangerousType);
+                // stage: where the server put the hero when this bomb took its last energy.
+                var stage = data.ContainsKey("stage") ? (HeroStage) ReadInt(data, "stage") : HeroStage.Working;
+                Dangerous = new PveHeroDangerous(HeroId, stage, dangerousType);
                 if (data.ContainsKey("is_trial")) {
                     IsTrial = data.GetBool("is_trial") ? TrialState.TrialBegin : TrialState.TrialEnd;
                 }

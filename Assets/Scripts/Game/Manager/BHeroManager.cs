@@ -396,6 +396,15 @@ namespace App {
             player.TimeSync = DateTime.Now.ToBinary();    
         }
 
+        public void UpdateHeroEnergy(HeroId heroId, int energy) {
+            var player = GetHeroDetailsFromId(heroId);
+            if (player == null) {
+                return;
+            }
+            player.Energy = energy;
+            player.TimeSync = DateTime.Now.ToBinary();
+        }
+
         public void UpdateHeroSShield(HeroId heroId, List<IHeroSAbility> abilities) {
             var player = GetHeroDetailsFromId(heroId);
             if (player == null) {

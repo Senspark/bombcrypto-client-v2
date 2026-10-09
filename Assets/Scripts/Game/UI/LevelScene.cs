@@ -110,6 +110,7 @@ namespace Game.UI {
         private UniTaskCompletionSource _userInitTcs;
         private TreasurePlayback _treasurePlayback;
         private Dictionary<int, Vector2Int> _spawnTiles = new();
+        private float _sleepCheckTimer;
         private int _mapTileset;
         private TreasureSnapshot _loadedSnapshot;
         private bool _reloading;
@@ -153,6 +154,9 @@ namespace Game.UI {
                 OnServerStateChanged = OnServerStateChanged,
                 OnActiveHero = OnActiveHero,
                 OnRemoveHeroes = OnRemoveHeroes
+            });
+            _handle.AddObserver(_storeManager, new StoreManagerObserver {
+                OnAutoMineChanged = OnAutoMineChanged,
             });
 
             if (walletDisplays is { Length: 2 }) {
@@ -278,10 +282,19 @@ namespace Game.UI {
         // Sends the current pause state so a resync never makes the server's heroes walk behind a paused screen.
         private async Task<TreasureSnapshot> StartTreasureModeOnce() {
             var paused = WantServerPaused;
-            var snapshot = await _serverManager.Pve.StartTreasureMode(paused);
+            var snapshot = await _serverManager.Pve.StartTreasureMode(paused, _storeManager.EnableAutoMine);
             _serverPaused = paused;
             SyncServerPause();
             return snapshot;
+        }
+
+        // The server picks home or sleep for a hero with no energy left from this switch.
+        private async void OnAutoMineChanged(bool enabled) {
+            try {
+                await _serverManager.Pve.SetTreasureAutoMine(enabled);
+            } catch (Exception e) {
+                Debug.LogWarning($"[TREASURE] auto mine sync failed: {e.Message}");
+            }
         }
 
         // PAUSE/RESUME_TREASURE_MODE, one at a time so they reach the server in order; the latest state wins.
@@ -376,6 +389,32 @@ namespace Game.UI {
                 _levelView.Step(delta);
                 // After the physics step, so the tweened hero positions are what gets rendered.
                 _treasurePlayback.Update(delta);
+                SleepExhaustedHeroes(delta);
+            }
+        }
+
+        // A hero the store holds resting or out of energy sleeps on the map, whatever effect or event was missed.
+        private void SleepExhaustedHeroes(float delta) {
+            _sleepCheckTimer += delta;
+            if (_sleepCheckTimer < 0.5f) {
+                return;
+            }
+            _sleepCheckTimer = 0;
+            foreach (var player in _levelView.EntityManager.PlayerManager.Players) {
+                if (!player || !player.IsAlive) {
+                    continue;
+                }
+                var bot = player.GetComponent<BotManager>();
+                if (!bot || bot.IsSleeping) {
+                    continue;
+                }
+                var data = _playerStore.GetPlayerDataFromId(player.HeroId);
+                if (data == null || data.stage == HeroStage.Home) {
+                    continue;
+                }
+                if (data.stage == HeroStage.Sleep || data.hp <= 0) {
+                    bot.GoToSleep_SendRequest();
+                }
             }
         }
 
@@ -629,12 +668,24 @@ namespace Game.UI {
 
             // No energy = the hero is no longer credited: the map still changes, nothing else does.
             if (data.HasEnergy) {
+                _playerStore.UpdateHeroEnergy(heroId, data.Energy);
+                // Out of energy: the server already sent the hero to sleep or home, the store takes it first
+                // so no sleep request goes out; the queued refresh then sleeps it or takes it off the map.
+                var rested = data.Dangerous.State != HeroStage.Working;
+                if (rested) {
+                    _playerStore.UpdateHeroState(heroId, data.Dangerous.State);
+                }
                 if (player) {
                     var damageFrom = data.Dangerous.DangerousType == PveDangerousType.Danger
                         ? DamageFrom.Thunder
                         : DamageFrom.BombExplode;
                     player.Health.SetCurrentHealth(data.Energy, damageFrom);
-                    ShowDangerousEffect(data.Dangerous);
+                    if (!rested) {
+                        ShowDangerousEffect(data.Dangerous);
+                    }
+                }
+                if (rested) {
+                    OnHeroStateChanged(data.Dangerous);
                 }
             }
 
@@ -746,6 +797,8 @@ namespace Game.UI {
             _playerStore.SetMapDetails(snapshot.Map);
             _playerStore.LoadMap(Mode);
             IsTrial = snapshot.IsTrial;
+            // Every START_TREASURE_MODE rolls the thunder again, a struck hero is not in the snapshot.
+            OnDangerousHero(snapshot);
             return true;
         }
 
@@ -767,10 +820,19 @@ namespace Game.UI {
 
         private void OnDangerousHero(IStartPveResponse result) {
             foreach (var d in result.DangerousData) {
+                var player = _levelView.EntityManager.PlayerManager.GetPlayerById(d.HeroId);
+                if (d.HasNewState && d.State != HeroStage.Working) {
+                    // Rested by the server: refresh it when struck, or when the map still shows it awake / at all.
+                    var bot = player ? player.GetComponent<BotManager>() : null;
+                    var outdated = player && (d.State == HeroStage.Home || !bot || !bot.IsSleeping);
+                    if (outdated || d.DangerousType != PveDangerousType.NoDanger) {
+                        OnHeroStateChanged(d);
+                    }
+                    continue;
+                }
                 if (d.DangerousType == PveDangerousType.NoDanger) {
                     continue;
                 }
-                var player = _levelView.EntityManager.PlayerManager.GetPlayerById(d.HeroId);
                 var playerData = _playerStore.GetPlayerDataFromId(d.HeroId);
                 if (player) {
                     var (hp, damageFrom) = d.DangerousType == PveDangerousType.Danger

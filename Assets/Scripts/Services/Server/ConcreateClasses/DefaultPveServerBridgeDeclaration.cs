@@ -146,7 +146,10 @@ namespace App {
                     ? data.GetInt(SFSDefine.SFSField.AccountType)
                     : data.GetInt(SFSDefine.SFSField.HeroType);
                 HeroId = new HeroId(heroId, (HeroAccountType) heroType);
-                HasNewState = false;
+                HasNewState = data.ContainsKey("stage");
+                if (HasNewState) {
+                    State = (HeroStage) data.GetInt("stage");
+                }
             }
 
             public PveHeroDangerous(HeroId heroId, HeroStage state, PveDangerousType type) {

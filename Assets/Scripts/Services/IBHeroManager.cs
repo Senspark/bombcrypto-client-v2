@@ -41,6 +41,7 @@ namespace App {
         void RemoveBurnHeroes(HeroId[] lstHeroesIdBurn);
         
         void UpdatePlayerHpFromServer(IHeroDetails detail);
+        void UpdateHeroEnergy(HeroId id, int energy);
 
         /// <summary>
         /// Replace a single hero's stored detail. Inserts if missing, otherwise

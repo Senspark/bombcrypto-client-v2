@@ -59,6 +59,9 @@ namespace Scenes.TreasureModeScene.Scripts.Mocks {
         public void UpdatePlayerHpFromServer(IHeroDetails detail) {
         }
 
+        public void UpdateHeroEnergy(HeroId id, int energy) {
+        }
+
         public void ReplaceOneHero(IHeroDetails detail) {
         }
 

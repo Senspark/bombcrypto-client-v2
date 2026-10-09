@@ -54,7 +54,6 @@ public class SessionAveragesManager : MonoBehaviour
     private float _saveTimer;
     private bool _dirty;
     private bool _loggedReward;
-    private int _pveLogs;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void Bootstrap()
@@ -130,16 +129,6 @@ public class SessionAveragesManager : MonoBehaviour
         _data.bombs += 1;
         var blocks = r.DestroyedBlocks;
         var map = TryResolve<IBHeroManager>()?.MapDatas;
-        if (_pveLogs < 6)
-        {
-            _pveLogs++;
-            string detail = "";
-            if (blocks != null)
-                foreach (var bl in blocks)
-                    if (bl != null)
-                        detail += $" (i={bl.Coord.x} j={bl.Coord.y} hp={bl.Hp} rw={(bl.Rewards != null ? bl.Rewards.Count : 0)} et={ResolveEntityType(bl, map)})";
-            Debug.Log($"[Medias] PVE explode #{_pveLogs}: {(blocks != null ? blocks.Count : 0)} blocks{detail}");
-        }
         if (blocks != null)
         {
             for (int i = 0; i < blocks.Count; i++)

@@ -49,7 +49,7 @@ namespace Services.Server.ConcreateClasses {
             throw new System.NotImplementedException();
         }
         
-        public Task<TreasureSnapshot> StartTreasureMode(bool paused = false) {
+        public Task<TreasureSnapshot> StartTreasureMode(bool paused = false, bool autoMine = false) {
             throw new System.NotImplementedException();
         }
 
@@ -58,6 +58,10 @@ namespace Services.Server.ConcreateClasses {
         }
 
         public Task PauseTreasureMode(bool paused) {
+            throw new System.NotImplementedException();
+        }
+
+        public Task SetTreasureAutoMine(bool enabled) {
             throw new System.NotImplementedException();
         }
 

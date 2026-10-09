@@ -295,7 +295,10 @@ namespace App {
             var stage = data.GetInt("stage");
             for (var i = 0; i < array.Size(); i++) {
                 var d = array.GetSFSObject(i);
-                d.PutInt("stage",  stage);
+                // A hero the server rested (thunder) carries its own stage.
+                if (!d.ContainsKey("stage")) {
+                    d.PutInt("stage", stage);
+                }
                 d.PutInt(SFSDefine.SFSField.HeroType, heroType);
                 var result = HeroDetails.Parse(d);
                 var heroId = new HeroId(result.Id, result.AccountType);
