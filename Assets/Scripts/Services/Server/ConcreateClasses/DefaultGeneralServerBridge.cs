@@ -67,6 +67,13 @@ namespace App.BomberLand {
             var response = await _serverDispatcher.SendCmd(new CmdGetHeroUpgradePower(data));
             return OnGetHeroPower(response);
         }
+
+        public async Task<IHeroStamina[]> GetHeroStamina() {
+            var data = new SFSObject();
+
+            var response = await _serverDispatcher.SendCmd(new CmdGetHeroUpgradeStamina(data));
+            return OnGetHeroStamina(response);
+        }
         
         public async Task<ISyncHeroResponse> SyncHero(bool notifyNewIds, bool isBuyHero = false, bool forceFresh = false) {
             var data = new SFSObject();

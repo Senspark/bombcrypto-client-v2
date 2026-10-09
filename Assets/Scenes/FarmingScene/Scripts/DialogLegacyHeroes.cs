@@ -586,6 +586,9 @@ namespace Scenes.FarmingScene.Scripts {
                 case DialogInventory.SortOrder2.HighStakeFirst:
                     result2 = result2.ThenByDescending(e => Math.Max(e.stakeBcoin, e.stakeSen));
                     break;
+                case DialogInventory.SortOrder2.HighLevelFirst:
+                    result2 = result2.ThenByDescending(e => e.level).ThenByDescending(e => e.rare);
+                    break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(order2), order2, null);
             }

@@ -104,6 +104,19 @@ namespace App {
             return r.ToObject<HeroActionResult>();
         }
 
+        public override async Task<UpgradePrice> GetUpgradeV2Price(int baseId) {
+            var r = await Call("GET_UPGRADE_V2_PRICE", new { baseId }, false);
+            return r.ToObject<UpgradePrice>() ?? UpgradePrice.Zero;
+        }
+
+        public override async Task<HeroActionResult> UpgradeHeroV2(int baseId, int materialId, UpgradePrice price) {
+            var r = await Call("UPGRADE_HERO_V2", new {
+                walletAddress = Wallet, baseId, materialId,
+                bcoin = price.Bcoin, sen = price.Sen, native = price.Native
+            }, true);
+            return r.ToObject<HeroActionResult>();
+        }
+
         public override async Task<HeroActionResult> ResetSkill(int heroId, string priceWei) {
             var r = await Call("RESET_SKILL", new { walletAddress = Wallet, heroId, priceWei }, true);
             return r.ToObject<HeroActionResult>();

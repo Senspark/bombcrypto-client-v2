@@ -10,6 +10,12 @@ namespace App {
         int[] Powers { get; }
     }
 
+    /// Gemeo de IHeroPower para o ganho de energia dos niveis 6-10.
+    public interface IHeroStamina {
+        int Rarity { get; }
+        int[] Staminas { get; }
+    }
+
     public interface IHeroDetails {
         string Details { get; }
         int Id { get; }

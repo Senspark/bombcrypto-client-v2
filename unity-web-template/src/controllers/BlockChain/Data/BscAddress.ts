@@ -35,6 +35,12 @@ export default class BscAddress implements IBlockchainAddress {
             : "0x2c5a4C5978b814105EDb7148F37Fe07157E03bAD";
     }
 
+    /// Niveis 6-10 (BCOIN + SEN + nativo). Vazio onde o contrato nao foi publicado; a UI trata
+    /// string vazia como "feature indisponivel nesta rede".
+    get HeroUpgradeV2Address(): string {
+        return "";
+    }
+
     get HeroStakeAddress(): string {
         return this._production
             ? "0x053282c295419E67655a5032A4DA4e3f92D11F17"

@@ -284,6 +284,34 @@ namespace App {
             return await CallHeroAction(BlockChainCommand.RESET_SKIN, data);
         }
 
+        public async Task<UpgradePrice> GetUpgradeV2Price(int baseId) {
+            try {
+                _logManager.Log();
+                var data = new JObject { ["baseId"] = baseId };
+                var response = await _unityCommunication.UnityToReact.CallBlockChain(
+                    BlockChainCommand.GET_UPGRADE_V2_PRICE, data);
+                return JsonConvert.DeserializeObject<UpgradePrice>(response) ?? UpgradePrice.Zero;
+            } catch (Exception ex) {
+                Debug.LogException(ex);
+                throw;
+            }
+        }
+
+        public async Task<HeroActionResult> UpgradeHeroV2(string walletAddress, int baseId, int materialId,
+            UpgradePrice price) {
+            // Os tres valores viajam como string de wei: converter para numero perderia precisao de
+            // 18 casas e o contrato exige msg.value exato.
+            var data = new JObject {
+                ["walletAddress"] = walletAddress,
+                ["baseId"] = baseId,
+                ["materialId"] = materialId,
+                ["bcoin"] = price.Bcoin,
+                ["sen"] = price.Sen,
+                ["native"] = price.Native
+            };
+            return await CallHeroAction(BlockChainCommand.UPGRADE_HERO_V2, data);
+        }
+
         private async Task<HeroActionResult> CallHeroAction(string command, JObject data) {
             try {
                 _logManager.Log();

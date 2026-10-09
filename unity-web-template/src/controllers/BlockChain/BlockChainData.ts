@@ -8,6 +8,7 @@ import {IBlockchainData} from "./IBlockchainData.ts";
 import CoinTokenAbi from "./Data/Abi/CoinTokenAbi.json";
 import HeroTokenAbi from './Data/Abi/HeroTokenAbi.json';
 import HeroSTokenAbi from './Data/Abi/HeroSTokenAbi.json';
+import HeroUpgradeV2Abi from "./Data/Abi/HeroUpgradeV2Abi.json";
 import HeroExtendedAbi from './Data/Abi/HeroExtendedAbi.json';
 import HeroDesignAbi from './Data/Abi/HeroDesignAbi.json';
 import HouseTokenAbi from './Data/Abi/HouseTokenAbi.json';
@@ -52,6 +53,7 @@ export default class BlockChainData implements IBlockchainData {
     usdt_token_address: string;
     hero_token_address: string;
     hero_s_token_address: string;
+    hero_upgrade_v2_address: string;
     hero_extended_address: string;
     house_token_address: string;
     deposit_address: string;
@@ -63,6 +65,7 @@ export default class BlockChainData implements IBlockchainData {
     coin_token_abi: JSON = {} as JSON;
     hero_token_abi: JSON = {} as JSON;
     hero_s_token_abi: JSON = {} as JSON;
+    hero_upgrade_v2_abi: JSON = {} as JSON;
     hero_extended_abi: JSON = {} as JSON;
     hero_design_abi: JSON = {} as JSON;
     house_token_abi: JSON = {} as JSON;
@@ -100,6 +103,7 @@ export default class BlockChainData implements IBlockchainData {
         this.usdt_token_address = address.UsdtTokenAddress;
         this.hero_token_address = address.HeroTokenAddress;
         this.hero_s_token_address = address.HeroSTokenAddress;
+        this.hero_upgrade_v2_address = address.HeroUpgradeV2Address ?? "";
         this.hero_extended_address = address.HeroExtendedAddress;
         this.house_token_address = address.HouseTokenAddress;
         this.deposit_address = address.DepositAddress;
@@ -154,6 +158,7 @@ export default class BlockChainData implements IBlockchainData {
         this.coin_token_abi = JSON.parse(JSON.stringify(CoinTokenAbi));
         this.hero_token_abi = JSON.parse(JSON.stringify(HeroTokenAbi));
         this.hero_s_token_abi = JSON.parse(JSON.stringify(HeroSTokenAbi));
+        this.hero_upgrade_v2_abi = JSON.parse(JSON.stringify(HeroUpgradeV2Abi));
         this.hero_extended_abi = JSON.parse(JSON.stringify(HeroExtendedAbi));
         this.hero_design_abi = JSON.parse(JSON.stringify(HeroDesignAbi));
         this.house_token_abi = JSON.parse(JSON.stringify(HouseTokenAbi));

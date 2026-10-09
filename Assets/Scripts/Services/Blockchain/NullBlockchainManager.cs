@@ -63,6 +63,14 @@ namespace App {
             return Task.FromResult(new HeroActionResult { success = true, txHash = "", details = "" });
         }
 
+        public virtual Task<UpgradePrice> GetUpgradeV2Price(int baseId) {
+            return Task.FromResult(UpgradePrice.Zero);
+        }
+
+        public virtual Task<HeroActionResult> UpgradeHeroV2(int baseId, int materialId, UpgradePrice price) {
+            return Task.FromResult(new HeroActionResult { success = true, txHash = "", details = "" });
+        }
+
         public virtual Task<bool> ClaimHero() {
             return Task.FromResult(true);
         }

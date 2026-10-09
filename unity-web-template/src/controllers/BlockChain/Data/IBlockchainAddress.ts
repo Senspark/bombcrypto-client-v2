@@ -4,6 +4,8 @@ export interface IBlockchainAddress {
     UsdtTokenAddress: string;
     HeroTokenAddress: string;
     HeroSTokenAddress: string;
+    // Contrato de TESTE dos niveis 6-10 (BCOIN + SEN + nativo). Vazio onde nao foi publicado.
+    HeroUpgradeV2Address?: string;
     HeroStakeAddress: string;
     HeroExtendedAddress: string;
     HouseTokenAddress: string;

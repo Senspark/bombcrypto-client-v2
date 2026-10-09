@@ -9,6 +9,7 @@ namespace App.BomberLand {
 
     public interface IGeneralServerBridge : IServerManagerDelegate {
         Task<IHeroPower[]> GetHeroPower();
+        Task<IHeroStamina[]> GetHeroStamina();
         Task<ISyncHeroResponse> SyncHero(bool notifyNewIds, bool isBuyHero = false, bool forceFresh = false);
         ISyncHeroResponse SyncHero(ISFSObject data);
         Task<ISyncHouseResponse> SyncHouse();

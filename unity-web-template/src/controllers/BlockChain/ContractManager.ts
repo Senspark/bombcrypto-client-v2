@@ -4,6 +4,7 @@ import Logger from "../Logger.ts";
 import CoinToken from "./Module/CoinToken.ts";
 import BHeroToken from "./Module/BHero.ts";
 import BHeroSToken from "./Module/BHeroS.ts";
+import BHeroUpgradeV2 from "./Module/BHeroUpgradeV2.ts";
 import BHeroExtended from "./Module/BHeroExtended.ts";
 import BHouseToken from "./Module/BHouse.ts";
 import Deposit from "./Module/Deposit.ts";
@@ -42,6 +43,13 @@ export class ContractManager {
             this._bheroToken,
             config.hero_s_token_address,
             config.hero_s_token_abi
+        );
+        this._bHeroUpgradeV2 = new BHeroUpgradeV2(
+            this._bcoinToken,
+            this._sensparkToken,
+            this._bheroToken,
+            config.hero_upgrade_v2_address,
+            config.hero_upgrade_v2_abi
         );
         this._heroExtended = new BHeroExtended(
             config.hero_extended_address,
@@ -104,6 +112,7 @@ export class ContractManager {
     private readonly _usdtToken: CoinToken;
     private readonly _bheroToken: BHeroToken;
     private readonly _bHeroSToken: BHeroSToken;
+    private readonly _bHeroUpgradeV2: BHeroUpgradeV2;
     private readonly _heroExtended: BHeroExtended;
     private readonly _houseToken: BHouseToken;
     private readonly _deposit: Deposit;
@@ -177,6 +186,18 @@ export class ContractManager {
     async buyHero(args: string): Promise<string> {
         const data = JSON.parse(args) as { walletAddress: string, amount: number, category: number };
         return JSON.stringify(await this._bheroToken.mint(data.walletAddress, data.amount, data.category));
+    }
+
+    async getUpgradeV2Price(args: string): Promise<string> {
+        const data = JSON.parse(args) as { baseId: number };
+        return JSON.stringify(await this._bHeroUpgradeV2.getUpgradePrice(data.baseId));
+    }
+
+    async upgradeHeroV2(args: string): Promise<string> {
+        const data = JSON.parse(args) as { walletAddress: string, baseId: number, materialId: number, bcoin: string, sen: string, native: string };
+        return JSON.stringify(await this._bHeroUpgradeV2.upgradeHero(
+            data.walletAddress, data.baseId, data.materialId,
+            {bcoin: data.bcoin, sen: data.sen, native: data.native}));
     }
 
     async upgradeHero(args: string): Promise<string> {

@@ -95,6 +95,14 @@ namespace App {
             return _manager.UpgradeHero(baseId, materialId, priceWei);
         }
 
+        public Task<UpgradePrice> GetUpgradeV2Price(int baseId) {
+            return _manager.GetUpgradeV2Price(baseId);
+        }
+
+        public Task<HeroActionResult> UpgradeHeroV2(int baseId, int materialId, UpgradePrice price) {
+            return _manager.UpgradeHeroV2(baseId, materialId, price);
+        }
+
         public Task<bool> ClaimHero() {
             return _manager.ClaimHero();
         }
