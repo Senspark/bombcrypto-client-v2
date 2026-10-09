@@ -56,6 +56,8 @@ namespace App {
         public Action<IChestReward> OnChestReward;
         public Action<int> OnUpdateLatency;
         public Action<IPveExplodeResponse> OnPveExploded;
+        // Server-driven treasure mode: one TREASURE_EVENTS push, events in seq order.
+        public Action<List<TreasureEvent>> OnTreasureEvents;
         public Action<bool> OnNewMapResponse;
         public Action<IPveHeroDangerous, HeroId, bool> OnActiveHero;
         //Event này dùng để remove heroes ra khỏi map đang đào sau khi bị burn do fusion

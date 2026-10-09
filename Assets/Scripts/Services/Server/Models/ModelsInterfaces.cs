@@ -253,6 +253,10 @@ namespace App {
 
     public interface IPveExplodeResponse {
         HeroId HeroId { get; }
+        /// <summary>Which of the hero's bombs detonated (wire field "num").</summary>
+        int BombNo { get; }
+        /// <summary>The cell the bomb was planted on (wire fields "i"/"j").</summary>
+        Vector2Int Cell { get; }
         int Energy { get; }
         List<IPveBlockData> DestroyedBlocks { get; }
         IPveHeroDangerous Dangerous { get; }

@@ -136,6 +136,7 @@ namespace App {
                 new AnyExtensionResponseListener(this),
                 new CheckConnectionListener(_logManager, Disconnect, OnServerStateChanged),
                 new NewMapHandler(this, _logManager),
+                new TreasureEventsHandler(this, _logManager),
                 ThModeV2Manager,
                 UserTonManager,
                 UserSolanaManager,

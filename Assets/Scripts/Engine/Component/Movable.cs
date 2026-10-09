@@ -272,6 +272,17 @@ namespace Engine.Components {
             Velocity = Vector2.zero;
         }
 
+        // Server-driven treasure: position is tweened by TreasurePlayback, the body stays still;
+        // only the moving flag + facing are set so the walk animation plays.
+        public void SetPuppetMove(Vector2 direction) {
+            velocity = Vector2.zero;
+            moving = direction != Vector2.zero;
+            UpdateFace(direction);
+            if (_body) {
+                _body.linearVelocity = Vector2.zero;
+            }
+        }
+
 
         protected virtual void Init() {
             velocity = Vector2.zero;

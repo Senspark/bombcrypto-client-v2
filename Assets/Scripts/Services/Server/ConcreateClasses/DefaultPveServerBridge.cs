@@ -14,6 +14,7 @@ namespace App {
         private readonly IStorageManager _storageManager;
         private readonly IServerDispatcher _serverDispatcher;
         private readonly IUserAccountManager _userAccountManager;
+        private readonly ILogManager _logManager;
 
         public DefaultPveServerBridge(
             IBHeroManager bHeroManager,
@@ -26,6 +27,7 @@ namespace App {
             _storageManager = storageManager;
             _serverDispatcher = serverDispatcher;
             _userAccountManager = ServiceLocator.Instance.Resolve<IUserAccountManager>();
+            _logManager = ServiceLocator.Instance.Resolve<ILogManager>();
         }
         
         public async Task<IMapDetails> GetMapDetails() {
@@ -293,7 +295,10 @@ namespace App {
             var stage = data.GetInt("stage");
             for (var i = 0; i < array.Size(); i++) {
                 var d = array.GetSFSObject(i);
-                d.PutInt("stage",  stage);
+                // A hero the server rested (thunder) carries its own stage.
+                if (!d.ContainsKey("stage")) {
+                    d.PutInt("stage", stage);
+                }
                 d.PutInt(SFSDefine.SFSField.HeroType, heroType);
                 var result = HeroDetails.Parse(d);
                 var heroId = new HeroId(result.Id, result.AccountType);
@@ -358,43 +363,6 @@ namespace App {
             if (token.IsValid) {
                 _storageManager.MiningTokenType = token.TokenType;
             }
-        }
-        
-        public async void StartExplode(GameModeType type, HeroId heroId, int bombId, Vector2Int tileLocation,
-            List<Vector2Int> brokenList) {
-            var hero = _bHeroManager.GetPlayerDataFromId(heroId);
-            if (hero == null) {
-                return;
-            }
-            
-            ISFSArray blocks = new SFSArray();
-            foreach (var t in brokenList) {
-                ISFSObject block = new SFSObject();
-                block.PutInt("i", t.x);
-                block.PutInt("j", t.y);
-                blocks.AddSFSObject(block);
-            }
-
-            var data = new SFSObject().Apply(it => {
-                var accountType = hero.AccountType;
-                it.PutLong("id", heroId.Id);
-                it.PutInt("num", bombId);
-                it.PutInt("i", tileLocation.x);
-                it.PutInt("j", tileLocation.y);
-                it.PutInt("heroId", heroId.Id);
-                it.PutSFSArray("blocks", blocks);
-                it.PutInt(SFSDefine.SFSField.AccountType, (int)accountType);
-                it.PutInt(SFSDefine.SFSField.HeroType, (int)accountType);
-            });
-
-            var response = await _serverDispatcher.SendCmd(new CmdStartExplode(data));
-            OnStartExplode(response);
-        }
-        
-        private bool OnStartExplode(ISFSObject data) {
-            var result = new PveExplodeResponse(data);
-            _serverDispatcher.DispatchEvent(e => e.OnPveExploded?.Invoke(result));
-            return true;
         }
         
         public void RequestFakeStakePush(HeroId id) {

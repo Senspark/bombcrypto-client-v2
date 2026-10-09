@@ -51,16 +51,20 @@ namespace App {
         public void OnConnectionError(string message) {
             _logManager.Log(message);
             _onServerStateChanged(ServerConnectionState.LostConnection);
+            StopLatencyMonitor();
         }
 
+        // The connection is already down: a monitor left running would disconnect the next one mid-login.
         public void OnConnectionRetry() {
             _logManager.Log();
             _onServerStateChanged(ServerConnectionState.LostConnection);
+            StopLatencyMonitor();
         }
 
         public void OnConnectionResume() {
             _logManager.Log();
             _onServerStateChanged(ServerConnectionState.LoggedIn);
+            _latencyMonitor.StartMonitoring();
         }
 
         public void OnConnectionLost(string reason) {

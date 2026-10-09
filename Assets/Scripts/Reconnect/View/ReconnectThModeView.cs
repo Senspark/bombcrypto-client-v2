@@ -52,8 +52,14 @@ public class ReconnectThModeView : IReconnectView {
         if (!successful) {
             DialogOK.ShowErrorMsgOnlyAndKickToConnectScene(_canvas, "Failed to reconnect");
         } else {
-            await LevelScene.Instance.StartPve();
-            LevelScene.Instance.PauseStatus.SetValue(this, false);
+            var scene = LevelScene.Instance;
+            if (!scene) {
+                return;
+            }
+            await scene.ResyncTreasureMode();
+            if (scene) {
+                scene.PauseStatus.SetValue(this, false);
+            }
         }
     }
 

@@ -49,10 +49,22 @@ namespace Services.Server.ConcreateClasses {
             throw new System.NotImplementedException();
         }
         
-        public void StartExplode(GameModeType type, HeroId heroId, int bombId, Vector2Int tileLocation, List<Vector2Int> brokenList) {
+        public Task<TreasureSnapshot> StartTreasureMode(bool paused = false, bool autoMine = false) {
             throw new System.NotImplementedException();
         }
-        
+
+        public Task StopTreasureMode() {
+            throw new System.NotImplementedException();
+        }
+
+        public Task PauseTreasureMode(bool paused) {
+            throw new System.NotImplementedException();
+        }
+
+        public Task SetTreasureAutoMine(bool enabled) {
+            throw new System.NotImplementedException();
+        }
+
         public void RequestFakeStakePush(HeroId id) {
             throw new System.NotImplementedException();
         }

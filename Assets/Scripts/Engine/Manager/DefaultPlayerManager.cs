@@ -527,9 +527,7 @@ namespace Engine.Manager {
                 RemoveFromDicPlayers(player);
                 player.Kill(false);
             } else {
-                if (isDangerous) {
-                    botManager.ForceWork();
-                } else if (playerData.stage == HeroStage.Working) {
+                if (playerData.stage == HeroStage.Working) {
                     botManager.GoToSleep_SendRequest();
                 } else {
                     botManager.ForceSleep();

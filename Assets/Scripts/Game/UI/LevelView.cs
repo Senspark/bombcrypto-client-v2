@@ -57,6 +57,9 @@ namespace Game.UI {
 
         public IEntityManager EntityManager { get; private set; }
 
+        // Server-driven treasure: tile the server has this hero on, so it spawns there instead of a random tile.
+        public Func<HeroId, Vector2Int?> SpawnTileHint { get; set; }
+
         private IBHeroManager _playerStoreManager;
         private IFeatureManager _featureManager;
         private ISoundManager _soundManager;
@@ -116,6 +119,10 @@ namespace Game.UI {
 
             //Player Manager
             var locations = manager.MapManager.TakeEmptyLocations(_playerStoreManager.GetInMapPlayerCount());
+            var inMapPlayers = _playerStoreManager.GetInMapPlayerData();
+            for (var i = 0; i < locations.Count && i < inMapPlayers.Count; i++) {
+                locations[i] = GetSpawnTile(inMapPlayers[i].heroId, locations[i]);
+            }
 
             manager.PlayerManager = new DefaultPlayerManager(manager, startLocation.transform);
             await manager.PlayerManager.FirstInitPlayerPVE(locations);
@@ -193,7 +200,7 @@ namespace Game.UI {
                         break;
                     }
                     var slot = playerManager.GetDicPlayersSlot(id);
-                    await playerManager.AddPlayer(locations[i], playerData, slot, false);
+                    await playerManager.AddPlayer(GetSpawnTile(id, locations[i]), playerData, slot, false);
                 }
             }
         }
@@ -209,9 +216,14 @@ namespace Game.UI {
             } else {
                 if (playerManager.GetActivePlayerQuantity() < 15) {
                     var slot = playerManager.GetDicPlayersSlot(data.HeroId);
-                    await playerManager.AddPlayer(locations[0], playerData, slot, isDangerous);
+                    await playerManager.AddPlayer(GetSpawnTile(data.HeroId, locations[0]), playerData, slot,
+                        isDangerous);
                 }
             }
+        }
+
+        private Vector2Int GetSpawnTile(HeroId heroId, Vector2Int fallback) {
+            return SpawnTileHint?.Invoke(heroId) ?? fallback;
         }
 
         public void ShowThunder(HeroId heroId) {
@@ -219,6 +231,9 @@ namespace Game.UI {
 
             var player = playerManager.GetPlayerById(heroId);
             var playerData = _playerStoreManager.GetPlayerDataFromId(heroId);
+            if (player == null || playerData == null) {
+                return;
+            }
             var botManager = player.GetComponent<BotManager>();
 
             // Polygon có tính năng ko hiện nhiều effect
