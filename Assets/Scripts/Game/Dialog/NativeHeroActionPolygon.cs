@@ -31,6 +31,11 @@ namespace Game.Dialog {
     ///   khi ký; nếu lệch so với giá đang hiển thị thì dừng lại hỏi người chơi chứ không tự ký.
     /// - Tiền mua và tiền gas rút từ CÙNG một ví native, nên phải chừa gas chứ không cho tiêu sạch.
     /// - Giá 0 nghĩa là tính năng đóng cho rarity đó (gọi vào sẽ revert).
+    ///
+    /// Giá native được neo theo BCOIN giống Quartz: contract tính <c>giá BCOIN × 5 × nativeRate</c>,
+    /// và server cập nhật nativeRate on-chain theo giá thị trường. Vì vậy giá có thể đổi trong lúc
+    /// dialog đang mở: báo giá được làm mới định kỳ, và một tx thất bại do rate vừa đổi được báo
+    /// riêng cho người chơi thay vì lỗi chung chung.
     /// </summary>
     public abstract class NativeHeroActionPolygon : MonoBehaviour {
         [SerializeField]
@@ -53,12 +58,22 @@ namespace Game.Dialog {
         private Action<PlayerData> _chooseHeroCallBack;
         private UserAccount _userAccount;
         private string _quotedPriceWei;
+        private string _quotedRateWei;
         private double _nativeBalance;
         private bool _inFlight;
+
+        // Mỗi lần báo giá tăng số này; kết quả của lần báo giá cũ hơn (hero đã đổi, hoặc lần làm
+        // mới định kỳ chạy chồng lên) bị bỏ qua thay vì ghi đè báo giá mới hơn.
+        private int _quoteSeq;
+        private float _nextAutoQuoteAt;
 
         // Chừa lại cho gas. Ba hàm này đều là một tx đơn giản; con số này chỉ để chặn trước
         // thay vì để người chơi ký rồi fail vì hết tiền gas.
         private const double GasHeadroom = 0.002;
+
+        // Server cập nhật nativeRate on-chain vài phút một lần, nên làm mới báo giá theo nhịp này
+        // là đủ để nút và số dư tối thiểu không bị lệch lâu.
+        private const float AutoQuoteInterval = 60f;
 
         protected abstract string ActionName { get; }
 
@@ -130,8 +145,26 @@ namespace Game.Dialog {
             inventory.Show(Canvas);
         }
 
+        // Làm mới báo giá định kỳ khi đang có hero, để giá hiển thị theo kịp nativeRate on-chain.
+        protected virtual void Update() {
+            if (Hero == null || _inFlight || Time.unscaledTime < _nextAutoQuoteAt) {
+                return;
+            }
+            RefreshQuote(true);
+        }
+
+        // Quay lại tab (thường là sau khi mở ví) thì làm mới ngay, không chờ hết nhịp.
+        private void OnApplicationFocus(bool hasFocus) {
+            if (hasFocus && Hero != null && !_inFlight) {
+                RefreshQuote(true);
+            }
+        }
+
         // Đọc giá + số dư. Đây mới chỉ là báo giá, KHÔNG phải giá sẽ ký.
-        protected void RefreshQuote() {
+        // silent = true: giữ nguyên giá đang hiện trong lúc đọc (làm mới định kỳ), không nháy "...".
+        protected void RefreshQuote(bool silent = false) {
+            var seq = ++_quoteSeq;
+            _nextAutoQuoteAt = Time.unscaledTime + AutoQuoteInterval;
             if (Hero == null) {
                 _quotedPriceWei = null;
                 SetPriceText("--");
@@ -140,21 +173,28 @@ namespace Game.Dialog {
             }
 
             UniTask.Void(async () => {
-                SetInteractable(false);
-                SetPriceText("...");
+                if (!silent || string.IsNullOrEmpty(_quotedPriceWei)) {
+                    SetInteractable(false);
+                    SetPriceText("...");
+                }
                 try {
                     var priceWei = await ReadPriceWei();
-                    if (!this) {
+                    if (!this || seq != _quoteSeq) {
+                        return;
+                    }
+                    var rateWei = await ReadRateWei();
+                    if (!this || seq != _quoteSeq) {
                         return;
                     }
                     _nativeBalance = await BlockchainManager.GetNativeWalletBalance(ChainName);
-                    if (!this) {
+                    if (!this || seq != _quoteSeq) {
                         return;
                     }
                     _quotedPriceWei = priceWei;
+                    _quotedRateWei = rateWei;
                     ApplyQuote(priceWei);
                 } catch (Exception e) {
-                    if (!this) {
+                    if (!this || seq != _quoteSeq) {
                         return;
                     }
                     _quotedPriceWei = null;
@@ -165,6 +205,17 @@ namespace Game.Dialog {
             });
         }
 
+        // nativeRate chỉ dùng để hiện giá quy đổi ra BCOIN; đọc lỗi thì vẫn bán được, chỉ mất dòng
+        // quy đổi.
+        private async Task<string> ReadRateWei() {
+            try {
+                return await BlockchainManager.GetNativeRate();
+            } catch (Exception e) {
+                Debug.LogException(e);
+                return null;
+            }
+        }
+
         private void ApplyQuote(string priceWei) {
             if (IsZero(priceWei)) {
                 SetPriceText("--");
@@ -173,7 +224,10 @@ namespace Game.Dialog {
                 return;
             }
             var price = WeiToCoin(priceWei);
-            SetPriceText($"{FormatCoin(price)} {CoinSymbol}");
+            var bcoin = BcoinEquivalent(priceWei, _quotedRateWei);
+            SetPriceText(bcoin > 0
+                ? $"{FormatCoin(price)} {CoinSymbol}\n<size=16>≈ {FormatBcoin(bcoin)} BCOIN</size>"
+                : $"{FormatCoin(price)} {CoinSymbol}");
             // Tiền mua và tiền gas rút từ cùng một ví native, nên phải chừa gas. Không đủ thì
             // khoá nút, không giải thích — giống UpgradeShieldPolygon.
             SetInteractable(_nativeBalance >= price + GasHeadroom);
@@ -194,9 +248,12 @@ namespace Game.Dialog {
                 return;
             }
             SoundManager.PlaySound(Audio.Tap);
+            // Chốt giá người chơi đang thấy lúc bấm: báo giá định kỳ có thể đổi _quotedPriceWei trong
+            // lúc dialog xác nhận còn mở, và giá đem đi ký phải là giá đã thấy, không phải giá mới.
+            var shownPriceWei = _quotedPriceWei;
             // Bước xác nhận chạy TRƯỚC khi khoá nút: nếu người chơi đóng dialog mà không chọn gì
             // thì nút vẫn dùng được, không bị kẹt ở trạng thái disabled.
-            RequestConfirmation(StartAction);
+            RequestConfirmation(() => StartAction(shownPriceWei));
         }
 
         /// <summary>
@@ -207,11 +264,13 @@ namespace Game.Dialog {
             onConfirmed();
         }
 
-        private void StartAction() {
-            if (_inFlight || !this || Hero == null || string.IsNullOrEmpty(_quotedPriceWei)) {
+        private void StartAction(string shownPriceWei) {
+            if (_inFlight || !this || Hero == null || string.IsNullOrEmpty(shownPriceWei)) {
                 return;
             }
             _inFlight = true;
+            // Huỷ báo giá định kỳ đang chạy dở, nếu không nó có thể bật lại nút giữa lúc ký.
+            ++_quoteSeq;
             SetInteractable(false);
 
             UniTask.Void(async () => {
@@ -231,10 +290,10 @@ namespace Game.Dialog {
                     if (IsZero(freshPriceWei)) {
                         throw new Exception($"{ActionName} is not available for this hero.");
                     }
-                    if (freshPriceWei != _quotedPriceWei) {
+                    if (freshPriceWei != shownPriceWei) {
                         _quotedPriceWei = freshPriceWei;
                         ApplyQuote(freshPriceWei);
-                        throw new Exception("The price just changed. Please check the new price and try again.");
+                        throw new Exception(PriceChangedMessage);
                     }
 
                     var result = await SendAction(freshPriceWei);
@@ -242,7 +301,7 @@ namespace Game.Dialog {
                         return;
                     }
                     if (!result.success) {
-                        throw new Exception($"{ActionName} failed.");
+                        throw new Exception(await DescribeFailure(freshPriceWei));
                     }
 
                     // details là state thật ngay sau receipt -> vẽ lại được luôn, không phải chờ
@@ -268,6 +327,25 @@ namespace Game.Dialog {
                     waiting.Hide();
                 }
             });
+        }
+
+        private const string PriceChangedMessage =
+            "The price was just updated (it follows the BCOIN market rate). " +
+            "Please check the new price and try again.";
+
+        // Bridge chỉ trả success=false, không kèm lý do. Nguyên nhân hay gặp nhất sau khi neo
+        // theo BCOIN là nativeRate đổi giữa lúc ký và lúc tx vào block (require(msg.value == price)
+        // revert), nên đọc lại giá: lệch so với giá đã gửi thì báo đúng lý do đó.
+        private async Task<string> DescribeFailure(string sentPriceWei) {
+            try {
+                var currentPriceWei = await ReadPriceWei();
+                if (!IsZero(currentPriceWei) && currentPriceWei != sentPriceWei) {
+                    return PriceChangedMessage;
+                }
+            } catch (Exception e) {
+                Debug.LogException(e);
+            }
+            return $"{ActionName} failed.";
         }
 
         // details word là state thật ngay sau receipt. Không đọc lại từ store ở đây: SyncHero V4
@@ -334,6 +412,21 @@ namespace Game.Dialog {
 
         protected static string FormatCoin(double value) {
             return value.ToString("0.######", CultureInfo.InvariantCulture);
+        }
+
+        // Giá quy đổi ra BCOIN = giá native / nativeRate (cả hai đều 18 số lẻ, nên tỉ số không cần
+        // đổi đơn vị). Chỉ để HIỂN THỊ; 0 nghĩa là không có rate để quy đổi.
+        protected static double BcoinEquivalent(string priceWei, string rateWei) {
+            if (!BigInteger.TryParse(priceWei, out var price) || !BigInteger.TryParse(rateWei, out var rate) ||
+                rate.Sign <= 0) {
+                return 0;
+            }
+            // Nhân 100 trước khi chia để giữ 2 số lẻ mà không qua double.
+            return (double) BigInteger.Divide(price * 100, rate) / 100;
+        }
+
+        protected static string FormatBcoin(double value) {
+            return value.ToString("#,0.##", CultureInfo.InvariantCulture);
         }
     }
 }
