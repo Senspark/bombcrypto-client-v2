@@ -22,11 +22,17 @@ namespace Game.UI {
 
         public void OnBtnClicked() {
             _soundManager.PlaySound(Audio.Tap);
-            DialogSelectStaking.Create().ContinueWith(dialog => {
-                dialog.Show(canvasDialog);    
+            // Bỏ qua DialogSelectStaking (chỉ còn 1 lựa chọn khả dụng),
+            // mở thẳng danh sách hero để stake.
+            var levelScene = LevelScene.Instance;
+            levelScene?.PauseStatus.SetValue(this, true);
+            DialogLegacyHeroes.Create().ContinueWith(dialog => {
+                // WillHide để cũng chạy khi dialog bị HideImmediately.
+                dialog.OnWillHide(() => levelScene?.PauseStatus.SetValue(this, false));
                 dialog.OnDidHide(() => {
                     _onBoardingManager.DispatchEvent(e => e.refreshOnBoarding?.Invoke());
                 });
+                dialog.Show(canvasDialog);
             });
         }
     }
