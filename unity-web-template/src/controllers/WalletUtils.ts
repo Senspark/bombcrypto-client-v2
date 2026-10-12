@@ -89,14 +89,13 @@ export async function getBalance(logger: Logger, provider: BrowserProvider): Pro
     }
 }
 
+// Uses eth_chainId: provider.getNetwork() throws NETWORK_ERROR once the wallet switched network
 export async function getChainId(logger: Logger, provider: BrowserProvider): Promise<ChainId | null> {
     try {
-        const network = await provider.getNetwork();
-        const hex = network.chainId.toString(16);
-        const dec = Number(network.chainId);
+        const dec = Number(await provider.send('eth_chainId', []));
         return {
             dec: dec,
-            hex: `0x${hex}`
+            hex: `0x${dec.toString(16)}`
         };
     } catch (error) {
         logger.errors('Error getting chain ID:', error);

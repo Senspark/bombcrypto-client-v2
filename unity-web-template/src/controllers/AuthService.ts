@@ -198,6 +198,7 @@ export default class AuthService implements IAuthService {
                 if (autoLogin) {
                     break;
                 }
+                await this._walletService.syncChainFromWallet();
                 let network = getRpc(this._walletService.currentNetworkType!, this._isProd);
                 if (!network) {
                     //khi ko có network thử lấy network từ app-kit xem đc ko, nếu ko luôn thì mới trả về undefine

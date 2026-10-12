@@ -1,6 +1,6 @@
 import {useAppKitAccount, useAppKitNetwork, useAppKitProvider, useAppKit} from "@reown/appkit/react";
 import {Provider} from "@reown/appkit-adapter-ethers";
-import {useEffect} from "react";
+import {useEffect, useRef} from "react";
 import {walletService} from "./GlobalServices.ts";
 
 export const useAppService = () => {
@@ -21,13 +21,24 @@ export const useAppService = () => {
         walletService.updateWalletConnection(isConnected);
     }, [isConnected]);
 
+    // switchNetwork/close are new functions on every render, keep them out of the deps
+    const latest = useRef({caipNetwork, switchNetwork, close});
+    latest.current = {caipNetwork, switchNetwork, close};
+
+    // Only when AppKit's network really changes: on other renders its chainId can lag
+    // behind the wallet, and ensureCorrectChain would pull the wallet back
     useEffect(() => {
-        walletService.updateChainId(chainId, () => caipNetwork && switchNetwork(caipNetwork));
+        walletService.updateChainId(chainId, () => {
+            const {caipNetwork, switchNetwork} = latest.current;
+            if (caipNetwork) {
+                switchNetwork(caipNetwork);
+            }
+        });
         // AppKit's auto-switch after connect doesn't reliably add missing networks
         // (no popup for wallet_addEthereumChain). Reconcile with our own logic.
         walletService.ensureCorrectChain();
-        close().then()
-    }, [chainId, caipNetwork, switchNetwork, close]);
+        latest.current.close().then()
+    }, [chainId]);
 
     return {
         isConnected,

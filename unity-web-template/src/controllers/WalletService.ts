@@ -165,6 +165,17 @@ export default class WalletService {
 
     }
 
+    // Before the login popup: take the network the wallet is really on right now
+    async syncChainFromWallet(): Promise<void> {
+        if (this._stopUpdateWalletInfo || !this._etherProvider) {
+            return;
+        }
+        const live = await getChainId(this._logger, this._etherProvider);
+        if (live) {
+            this.updateChainId(live.dec, undefined);
+        }
+    }
+
     updateChainId(chainId: string | number | undefined, switchNetworkFunc: (() => void) | undefined) {
         if (switchNetworkFunc) {
             this._switchNetworkFunc = switchNetworkFunc;
@@ -310,7 +321,10 @@ export default class WalletService {
             window.setUseAccount(!isConnected);
 
             customSessionStorage.set(sessionSetting.getSessionKey().isUseWallet, isConnected ? 'true' : 'false')
-            unityCommunicator.continueConnection(isConnected).then();
+            // A disconnect (e.g. while switching network in AppKit) must not pick the account path for the user
+            if (isConnected) {
+                unityCommunicator.continueConnection(true).then();
+            }
 
         } else {
             this._logger.log(`${TAG} Not allow update footer yet, skip`);

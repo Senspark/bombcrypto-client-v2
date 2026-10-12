@@ -67,7 +67,7 @@ const AppKitButton: React.FC<AppKitButtonProps> = () => {
     if (state.showFakeConnect) {
         return (
             <>
-                <AppKitNetworkButton />
+                {/* No network button before "Connect Wallet": it would switch the wallet other tabs share */}
                 <button
                     style={styles.connectButtonFake}
                     onMouseOver={(e) => { e.currentTarget.style.backgroundColor = '#3a5dca'; }}
@@ -104,7 +104,8 @@ const AppKitButton: React.FC<AppKitButtonProps> = () => {
 
     return (
         <>
-            <AppKitNetworkButton />
+            {/* Not connected: a network picked here is not what the login popup uses */}
+            {connected && <AppKitNetworkButton />}
             <button
                 style={styles.connectButton}
                 onMouseOver={(e) => { e.currentTarget.style.backgroundColor = '#3a5dca'; }}

@@ -3,7 +3,7 @@ import {Modal, Button} from 'antd';
 import {getRpc} from "../controllers/RpcNetworkUtils.ts";
 import {walletService} from "../hooks/GlobalServices.ts";
 import {WalletIdUtils} from "../controllers/WalletIdUtils.ts";
-import {useAppService} from "../hooks/AppStarterHook.tsx";
+import {useAppKit} from "@reown/appkit/react";
 
 // Singleton state for modal control
 const modalState: {
@@ -35,7 +35,7 @@ const LoginModal: React.FC = () => {
     const [, setVersion] = useState(0);
     const [modalContainer, setModalContainer] = useState<HTMLDivElement | null>(null);
     const [showResetSuccess, setShowResetSuccess] = useState(false); // NEW STATE
-    const { close } = useAppService();
+    const { close } = useAppKit();
 
     useEffect(() => {
         rerender = () => setVersion(v => v + 1);
