@@ -33,10 +33,6 @@ namespace Scenes.FarmingScene.Scripts
             return ServiceLocator.Instance.Resolve<IHouseStorageManager>().GetHouseCount() > 0;
         }
 
-        public static bool CanShowForRent(int slotLandRent) {
-            return ServiceLocator.Instance.Resolve<IHouseStorageManager>().GetHouseSlot() + slotLandRent > 15;
-        }
-
         public void SetAcceptCallback(Action<bool> acceptCallback) {
             _acceptCallback = acceptCallback;
             OnDidHide(() => _acceptCallback?.Invoke(_accepted));

@@ -224,6 +224,7 @@ namespace App {
         public int Rarity { get; set; }
         public float Price { get; set; }
         public int NumDays { get; set; }
+        public List<ITokenPrice> Prices { get; set; }
     }
 
     public interface IVipInfo {

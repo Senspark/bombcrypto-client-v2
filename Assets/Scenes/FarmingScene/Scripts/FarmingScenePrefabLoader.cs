@@ -21,6 +21,9 @@ namespace Scenes.FarmingScene.Scripts {
         public AssetReference dialogHouseHelp;
         public AssetReference dialogHouseList;
         public AssetReference dialogHouseListPad;
+        public AssetReference dialogHouseListAirdrop;
+        public AssetReference dialogRentLandAirdrop;
+        public AssetReference dialogInfoHouse;
         public AssetReference dialogShop;
         public AssetReference dialogShopCoin;
         public AssetReference dialogShopHero;
@@ -32,6 +35,7 @@ namespace Scenes.FarmingScene.Scripts {
         public AssetReference dialogNewHero;
         public AssetReference dialogNewHouse;
         public AssetReference dialogWarningBeforeBuyHouse;
+        public AssetReference dialogWarningBeforeRentHouse;
         public AssetReference dialogDeposit;
         public AssetReference dialogBridgeAmount;
         public AssetReference dialogBridgeWithdrawAmount;
@@ -70,6 +74,9 @@ namespace Scenes.FarmingScene.Scripts {
                 {typeof(DialogHouseHelp), dialogHouseHelp},
                 {typeof(DialogHouseList), dialogHouseList},
                 {typeof(DialogHouseListPad), dialogHouseListPad},
+                {typeof(DialogHouseListAirdrop), dialogHouseListAirdrop},
+                {typeof(DialogRentLandAirdrop), dialogRentLandAirdrop},
+                {typeof(DialogInfoHouse), dialogInfoHouse},
                 {typeof(DialogShop), dialogShop},
                 {typeof(DialogShopCoin), dialogShopCoin},
                 {typeof(DialogShopHero), dialogShopHero},
@@ -81,6 +88,7 @@ namespace Scenes.FarmingScene.Scripts {
                 {typeof(DialogNewHero), dialogNewHero},
                 {typeof(DialogNewHouse), dialogNewHouse},
                 {typeof(DialogWarningBeforeBuyHouse), dialogWarningBeforeBuyHouse},
+                {typeof(DialogWarningBeforeRentHouse), dialogWarningBeforeRentHouse},
                 {typeof(DialogDeposit), dialogDeposit},
                 {typeof(DialogBridgeAmount), dialogBridgeAmount},
                 {typeof(DialogBridgeWithdrawAmount), dialogBridgeWithdrawAmount},

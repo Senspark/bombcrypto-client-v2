@@ -120,13 +120,8 @@ namespace Scenes.FarmingScene.Scripts
         public async void OnHouseListClicked()
         {
             ServiceLocator.Instance.Resolve<ISoundManager>().PlaySound(Audio.Tap);
-            if (AppConfig.IsAirDrop()) {
-                var dialogAirdrop = await DialogHouseListAirdrop.Create();
-                dialogAirdrop.Show(DialogCanvas);
-            } else {
-                var dialog = await DialogHouseListCreator.Create();
-                dialog.Show(DialogCanvas);
-            }
+            var dialog = await DialogHouseListAirdrop.Create();
+            dialog.Show(DialogCanvas);
             
             Hide();
         }
