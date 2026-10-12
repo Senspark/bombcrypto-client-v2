@@ -81,7 +81,7 @@ namespace Game.UI {
         }
         
         private void ShowHouseListWithIndexOn(int _) {
-            DialogHouseListCreator.Create().ContinueWith(dialog => { dialog.Show(canvasDialog); });
+            DialogHouseListAirdrop.Create().ContinueWith(dialog => { dialog.Show(canvasDialog); });
         }
     }
 }

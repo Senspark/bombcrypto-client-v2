@@ -63,7 +63,7 @@ public class TonDialogPrefab : DialogPrefab
                 { typeof(DialogShopHeroTon), dialogShopHeroTon },
                 { typeof(DialogNewHero), dialogNewHeroTon },
                 { typeof(DialogNewHouseAirdrop), dialogNewHouseAirdrop },
-                { typeof(DialogWarningBeforeBuyHouse), dialogWarningBeforeBuyHouseTon },
+                { typeof(DialogWarningBeforeRentHouse), dialogWarningBeforeBuyHouseTon },
                 { typeof(DialogDepositAirdrop), dialogDepositTon },
                 { typeof(BLDialogReward), bLDialogRewardTon },
                 { typeof(DialogLeaderboardAirdrop), dialogLeaderboardAirdrop },

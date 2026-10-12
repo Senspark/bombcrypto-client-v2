@@ -58,7 +58,7 @@ public class WebAirdropDialogPrefab : DialogPrefab
                 { typeof(DialogShopHeroWebAirdrop), dialogShopHeroWebAirdrop },
                 { typeof(DialogNewHero), dialogNewHeroAirdrop },
                 { typeof(DialogNewHouseAirdrop), dialogNewHouseAirdrop },
-                { typeof(DialogWarningBeforeBuyHouse), dialogWarningBeforeBuyHouseAirdrop },
+                { typeof(DialogWarningBeforeRentHouse), dialogWarningBeforeBuyHouseAirdrop },
                 { typeof(DialogDepositAirdrop), dialogDepositAirdrop },
                 { typeof(DialogLeaderboardAirdrop), dialogLeaderboardAirdrop },
                 { typeof(DialogWin), dialogWinAirdrop },

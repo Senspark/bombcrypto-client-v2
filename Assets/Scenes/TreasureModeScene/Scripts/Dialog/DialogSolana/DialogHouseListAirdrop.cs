@@ -109,10 +109,10 @@ public class DialogHouseListAirdrop : Dialog
         _indexChoose = index;
         var curRentLandSlot = _houseStore.GetHouseData(index).Slot;
         var curRentLandType = _houseStore.GetHouseData(index).HouseType;
-        var isRentMultipleLands = DialogWarningBeforeBuyHouse.CanShowForRent(curRentLandSlot);
+        var isRentMultipleLands = DialogWarningBeforeRentHouse.CanShowForRent(curRentLandSlot);
         if (isRentMultipleLands) {
             UniTask.Void(async () => {
-                var dialogWarning = await DialogWarningBeforeBuyHouse.Create();
+                var dialogWarning = await DialogWarningBeforeRentHouse.Create();
                 dialogWarning.SetAcceptCallback(accept => {
                     if (accept) {
                         ShowDialogRentLand(curRentLandType);
@@ -148,17 +148,17 @@ public class DialogHouseListAirdrop : Dialog
         var house = _houseStore.GetHouseData(_indexChoose);
         var waiting = new WaitingUiManager(DialogCanvas);
         waiting.Begin();
-        try {
-            UniTask.Void(async () => {
-                var timeRent = await _serverManager.General.RentHouse(house.id, numDays);
+        UniTask.Void(async () => {
+            try {
+                await _serverManager.General.RentHouse(house.id, numDays);
                 Init();
-            });
-        } catch (Exception ex) {
-            DialogError.ShowError(DialogCanvas, ex);
-            Debug.LogError(ex);
-        } finally {
-            waiting.End();
-        }
+            } catch (Exception ex) {
+                DialogError.ShowError(DialogCanvas, ex);
+                Debug.LogError(ex);
+            } finally {
+                waiting.End();
+            }
+        });
     }
 
     public void OnCloseBtnClicked() {

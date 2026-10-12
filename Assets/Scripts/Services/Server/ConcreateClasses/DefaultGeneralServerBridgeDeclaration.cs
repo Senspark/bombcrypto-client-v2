@@ -705,12 +705,13 @@ namespace App.BomberLand {
             public int Rarity { get; set; }
             public float Price { get; set; }
             public int NumDays { get; set; }
-            
+            public List<ITokenPrice> Prices { get; set; }
+
             public RentHousePackageConfig(ISFSObject data) {
                 Rarity = data.GetInt("rarity");
                 Price = data.GetFloat("price");
                 NumDays = data.GetInt("num_days");
-                
+                Prices = TokenPrices.Parse(data);
             }
         }
 

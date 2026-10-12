@@ -58,7 +58,7 @@ public class SolanaDialogPrefab : DialogPrefab
                 { typeof(DialogShopHeroSolana), dialogShopHeroSolana },
                 { typeof(DialogNewHero), dialogNewHeroSolana },
                 { typeof(DialogNewHouseAirdrop), dialogNewHouseSolana },
-                { typeof(DialogWarningBeforeBuyHouse), dialogWarningBeforeBuyHouseSolana },
+                { typeof(DialogWarningBeforeRentHouse), dialogWarningBeforeBuyHouseSolana },
                 { typeof(DialogDepositAirdrop), dialogDepositAirdrop },
                 { typeof(BLDialogReward), bLDialogRewardSolana },
                 { typeof(DialogLeaderboardAirdrop), dialogLeaderboardSolana },
