@@ -124,6 +124,10 @@ namespace Share.Scripts.Dialog {
             descriptionTxt.text = desc;
         }
 
+        public void BlockOutsideClick() {
+            IgnoreOutsideClick = true;
+        }
+
         public DialogOK SetInfo(LocalizeKey title, LocalizeKey desc) {
             var languageManager = ServiceLocator.Instance.Resolve<ILanguageManager>();
             SetInfo(languageManager.GetValue(title), languageManager.GetValue(desc));

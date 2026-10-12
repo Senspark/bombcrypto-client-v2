@@ -35,6 +35,8 @@ namespace Game.UI {
         private const int MaxRetryCount = 10;
 
         private bool _isBeingKicked;
+        private static bool _freeReconnectUsed;
+        private bool _isWaitingManual;
 
         private void Awake() {
             _serverManager = ServiceLocator.Instance.Resolve<IServerManager>();
@@ -101,19 +103,27 @@ namespace Game.UI {
                     reconnect = true;
                 }
                 #if UNITY_EDITOR
-                reconnect = true;
+                reconnect = !UnityEditor.EditorPrefs.GetBool("SimulateNoAutoMine");
                 #endif
-                
+
+                if (!reconnect && !_freeReconnectUsed) {
+                    // Lần đầu mất kết nối trong session: cho reconnect miễn phí
+                    _freeReconnectUsed = true;
+                    reconnect = true;
+                }
+
                 if (reconnect) {
                     await Reconnect();
                 } else {
-                    _isReconnecting = false;
-                    Kick();
+                    _isWaitingManual = true;
+                    ShowManualReconnect();
                 }
             } catch (Exception e) {
                 _logManager.Log($"Reconnect fail {e}");
             } finally {
-                _isReconnecting = false;
+                if (!_isWaitingManual) {
+                    _isReconnecting = false;
+                }
             }
         }
 
@@ -176,6 +186,32 @@ namespace Game.UI {
                 "Your account is currently logged in on another device.\n You will be disconnected.");
             dialog.OnWillHide(App.Utils.Logout);
             dialog.Show(canvasDialog);
+        }
+
+        private async void ShowManualReconnect() {
+            try {
+                var dialog = await DialogOK.Create();
+                dialog.SetInfo("Connection lost",
+                    "Please check your internet and tap OK to reconnect.");
+                dialog.BlockOutsideClick();
+                dialog.OnDidHide(OnManualReconnectClicked);
+                dialog.Show(canvasDialog);
+            } catch (Exception e) {
+                _logManager.Log($"Show manual reconnect fail {e}");
+                _isWaitingManual = false;
+                _isReconnecting = false;
+            }
+        }
+
+        private async void OnManualReconnectClicked() {
+            try {
+                await Reconnect();
+            } catch (Exception e) {
+                _logManager.Log($"Manual reconnect fail {e}");
+            } finally {
+                _isWaitingManual = false;
+                _isReconnecting = false;
+            }
         }
 
         private void Kick() {
