@@ -5,11 +5,17 @@ import {sleep} from "../utils/Time.ts";
 import NotificationService from "./NotificationService.ts";
 import AesEncryption from "./encrypt/AesEncryption.ts";
 import {base64ToByteArray, byteArrayToBase64, byteArrayToUint32} from "../utils/String.ts";
-import {getBrowserProvider, setBrowserProvider, setProvider} from "./BlockChain/Module/Utils/Storage.ts";
-import {forceSwapChain, getChainId, getWalletAddress,} from "./WalletUtils.ts";
+import {
+    getBrowserProvider,
+    setBrowserProvider,
+    setProvider,
+    setWalletGate
+} from "./BlockChain/Module/Utils/Storage.ts";
+import {forceSwapChain, getChainId, getLiveChainId, getWalletAddress, withWalletLock,} from "./WalletUtils.ts";
 import {
     ChainId,
     getRpc,
+    getRpcByChainId,
     getSupportedChainId,
     getSupportedNetworkFromChainId,
     SupportedNetwork
@@ -33,6 +39,10 @@ export default class WalletService {
         _logger.log(`${TAG} new WalletService created`);
         this._encryptor = new AesEncryption();
         this._encryptor.importKey(signerSecret());
+        setWalletGate({
+            getAddress: () => this._walletAddress,
+            run: (chainId, fn) => this.withWalletOnChain(chainId, fn),
+        });
 
         setTimeout(() => {
             // this._allowReloadClient = true;
@@ -63,8 +73,6 @@ export default class WalletService {
     private _etherProvider: BrowserProvider | null = null;
     private _isConnected: boolean | null = null;
     private _stopUpdateWalletInfo = false;
-    private _userChangeChainId: ChainId | null = null;
-    private _userChangeWalletAddress: string | null = null;
     // private _allowReloadClient: boolean = false;
     private _isAllowUpdateFooter: boolean = false;
     
@@ -117,7 +125,6 @@ export default class WalletService {
             return;
         }
         const normalized = walletAddress.toLowerCase();
-        this._userChangeWalletAddress = normalized;
 
         if (this._stopUpdateWalletInfo) {
             this._logger.log(`${TAG} updateWalletAddress: ignored`);
@@ -222,10 +229,6 @@ export default class WalletService {
         return this._chainId;
     }
 
-    getUserChangeChainId(): ChainId | null {
-        return this._userChangeChainId;
-    }
-
     setChainId(chainId: ChainId) {
         const network = getSupportedNetworkFromChainId(chainId.dec);
         if (!network) {
@@ -235,28 +238,16 @@ export default class WalletService {
         this._chainId = chainId;
     }
 
-    setUserChangeChainId(chainId: ChainId) {
-        this._userChangeChainId = chainId;
-    }
-
     getCurrentWalletAddress(): string | null {
         return this._walletAddress;
     }
 
-    getUserChangeWalletAddress(): string | null {
-        return this._userChangeWalletAddress;
-    }
-    
     allowUpdateFooterByWallet(allow: boolean) {
         this._isAllowUpdateFooter = allow;
     }
 
     setWalletAddress(walletAddress: string | null) {
         this._walletAddress = walletAddress?.toLowerCase() ?? null;
-    }
-
-    setUserChangeWalletAddress(walletAddress: string | null) {
-        this._userChangeWalletAddress = walletAddress?.toLowerCase() ?? null;
     }
 
     setChain(networkType: SupportedNetwork) {
@@ -368,96 +359,26 @@ export default class WalletService {
         }
     }
 
-    async isReadyToSign(): Promise<ReadyToSign | undefined> {
-        const isProd = this._isProd;
-        const provider = this._etherProvider;
-        const logger = this._logger;
+    // The wallet + network this tab logged in with (not what the wallet shows now)
+    getLoginProfile(): ReadyToSign | undefined {
         const showError = this._notificationService.showError.bind(this._notificationService);
-
-        try {
-            if (!this._walletProvider) {
-                this._logger.error(`${TAG} Wallet provider is not set`);
-                return undefined;
-            }
-            if (!provider) {
-                logger.error(`${TAG} Ether provider is not set`);
-                showError("Wallet provider is not connected. Please check your wallet connection.");
-                return undefined;
-            }
-
-            const walletAddress = await getWalletAddress(logger, provider);
-            if (!walletAddress) {
-                logger.error(`${TAG} Failed to get wallet address from provider`);
-                return undefined;
-            }
-
-            // Kiểm tra chainId có đúng là chain đã dùng để đăng nhập không?
-
-            const walletNetwork = await getChainId(logger, provider);
-            if (!walletNetwork) {
-                logger.error(`${TAG} Failed to get current selected network`);
-                showError("Failed to get current network. Please check your wallet connection.");
-                return undefined;
-            }
-
-            // Kiểm tra network mà user đã đăng nhập rồi so với network hiện tại mà ví đang kết nối
-            const loggedInNetwork = this.getChainId();
-            if (!loggedInNetwork) {
-                logger.error(`${TAG} No chainId found`);
-                showError("No chainId found. Please check your wallet connection.");
-                return undefined;
-            }
-
-            const loggedInNetworkType = this.currentNetworkType;
-            const loggedInRpc = loggedInNetworkType ? getRpc(loggedInNetworkType, isProd) : undefined;
-            if (!loggedInRpc) {
-                logger.error(`${TAG} No RPC config for chainId ${loggedInNetwork.dec}`);
-                showError("Unsupported network. Please check your wallet connection.");
-                return undefined;
-            }
-
-            const network = getSupportedNetworkFromChainId(walletNetwork.dec, isProd);
-            if (!network || (network !== 'ronin' && network !== 'base' && network !== 'vic')) {
-                logger.error(`${TAG} Unsupported network: ${network}. Only 'Ronin', 'Base' and 'Vic' are supported.`);
-
-                const swapped = await forceSwapChain(logger, provider, loggedInRpc);
-                if (!swapped) {
-                    showError(`Failed to switch to Ronin or Base network.`);
-                    return undefined;
-                }
-            } else {
-                if (loggedInNetwork.dec != walletNetwork.dec) {
-                    logger.error(`${TAG} Network mismatch: expected ${loggedInNetwork.dec}, got ${walletNetwork.dec}`);
-                    const swapped = await forceSwapChain(logger, provider, loggedInRpc);
-                    if (!swapped) {
-                        showError(`Failed to switch to previous network.`);
-                        return undefined;
-                    }
-                }
-            }
-
-            // Kiểm tra wallet có đúng là wallet đã dùng để đăng nhập không?
-            const senderAddress = await getWalletAddress(logger, provider);
-            if (!senderAddress) {
-                showError("Error happened. Please check your wallet connection.");
-                return undefined;
-            }
-            if (senderAddress.toLowerCase() !== walletAddress.toLowerCase()) {
-                logger.error(`${TAG} Wallet address mismatch: expected ${walletAddress}, got ${senderAddress}`);
-                showError("Wallet address mismatch. Please connect to your previous wallet.");
-                return undefined;
-            }
-
-            return {
-                walletAddress: walletAddress,
-                chainId: walletNetwork,
-                network: this.currentNetworkType!,
-                isProd: isProd
-            };
-        } catch (e) {
-            this._logger.error(`Error: ${(e as Error).message}`);
+        const network = this.currentNetworkType;
+        if (!this._chainId || !network) {
+            this._logger.error(`${TAG} No chainId found`);
+            showError("No chainId found. Please check your wallet connection.");
             return undefined;
         }
+        if (!this._walletAddress) {
+            this._logger.error(`${TAG} No wallet address found`);
+            showError("Error happened. Please check your wallet connection.");
+            return undefined;
+        }
+        return {
+            walletAddress: this._walletAddress,
+            chainId: this._chainId,
+            network: network,
+            isProd: this._isProd
+        };
     }
 
     /**
@@ -466,6 +387,8 @@ export default class WalletService {
      * nên ta tự reconcile bằng forceSwapChain (có fallback wallet_addEthereumChain).
      */
     async ensureCorrectChain(): Promise<void> {
+        // Logged in: the wallet network may belong to another tab, never pull it back
+        if (this._stopUpdateWalletInfo) return;
         if (!this._etherProvider) return;
         const networkType = this.currentNetworkType;
         if (!networkType) return;
@@ -478,88 +401,66 @@ export default class WalletService {
         await forceSwapChain(this._logger, this._etherProvider, rpc);
     }
 
-    async forceSwapChain() {
-        const provider = this._etherProvider;
-        const logger = this._logger;
-        const showError = this._notificationService.showError.bind(this._notificationService);
-        try {
-            if (!provider) {
-                logger.error(`${TAG} Ether provider is not set`);
-                showError("Wallet provider is not connected. Please check your wallet connection.");
-                return false;
-            }
-
-            const chosenChainId = this.getChainId();
-            if (!chosenChainId) {
-                logger.error(`${TAG} No chainId found`);
-                showError("No chainId found. Please check your wallet connection.");
-                return false;
-            }
-            const chosenNetworkType = this.currentNetworkType;
-            const chosenRpc = chosenNetworkType ? getRpc(chosenNetworkType, this._isProd) : undefined;
-            if (!chosenRpc) {
-                logger.error(`${TAG} No RPC config for chainId ${chosenChainId.dec}`);
-                showError("Unsupported network. Please check your wallet connection.");
-                return false;
-            }
-            const swapped = await forceSwapChain(logger, provider, chosenRpc);
-            if (!swapped) {
-                showError(`Failed to switch to ${chosenRpc.chainName} network.`);
-                return false;
-            }
-            return true;
-
-        } catch (e) {
-            logger.error(`${TAG} Error in forceSwapChain: ${(e as Error).message}`);
-            showError("Failed to swap chain. Please try again.");
-            return false;
-        }
-    }
-
     /**
-     * Switch the wallet to an explicit network (not necessarily the login chain)
-     * and only resolve once MetaMask actually reports it. Used by cross-chain
-     * bridge writes, which must run on the target chain then restore the login
-     * chain. MetaMask emits `chainChanged` asynchronously and ethers'
-     * BrowserProvider caches its network, so a naive switch leaves a stale
-     * BSC-bound provider — the write would then broadcast on the wrong chain.
-     * We poll `eth_chainId` and rebind a fresh provider until it settles.
+     * Runs fn with the wallet on chainId, switching it only when needed. Other
+     * tabs may play another network on the same wallet, so the switch is done
+     * right before signing and held under a cross-tab lock until fn is done.
      */
-    async switchToNetwork(network: SupportedNetwork): Promise<boolean> {
-        const provider = this._etherProvider;
-        if (!provider) {
-            this._logger.error(`${TAG} switchToNetwork: Ether provider is not set`);
-            return false;
-        }
-        const rpc = getRpc(network, this._isProd);
-        if (!rpc) {
-            this._logger.error(`${TAG} switchToNetwork: no RPC config for ${network}`);
-            return false;
-        }
-        const actual = await getChainId(this._logger, provider);
-        if (actual && actual.dec === rpc.chainId) return true;
-
-        const ok = await forceSwapChain(this._logger, provider, rpc);
-        if (!ok) return false;
-        return await this.confirmChain(rpc.chainId);
+    async withWalletOnChain<T>(chainId: number, fn: (provider: BrowserProvider) => Promise<T>): Promise<T> {
+        return withWalletLock(async () => {
+            const provider = await this.switchWalletTo(chainId);
+            return await fn(provider);
+        });
     }
 
-    // Wait until MetaMask reports the target chain, rebinding a fresh
-    // BrowserProvider each poll so a stale cached network can't survive.
-    private async confirmChain(targetChainId: number): Promise<boolean> {
-        for (let i = 0; i < 15; i++) {
-            if (this._walletProvider) {
-                this._etherProvider = new BrowserProvider(this._walletProvider);
-                setBrowserProvider(this._etherProvider);
+    private async switchWalletTo(chainId: number): Promise<BrowserProvider> {
+        const showError = this._notificationService.showError.bind(this._notificationService);
+        const walletProvider = this._walletProvider;
+        if (!walletProvider) {
+            showError("Wallet provider is not connected. Please check your wallet connection.");
+            throw new Error('Wallet provider is not set');
+        }
+        const rpc = getRpcByChainId(chainId);
+        if (!rpc) {
+            showError("Unsupported network. Please check your wallet connection.");
+            throw new Error(`No RPC config for chainId ${chainId}`);
+        }
+
+        if (await getLiveChainId(new BrowserProvider(walletProvider)) !== chainId) {
+            this._logger.log(`${TAG} Wallet is on another network, switching to ${rpc.chainName}`);
+            const swapped = await forceSwapChain(this._logger, new BrowserProvider(walletProvider), rpc);
+            if (!swapped || !await this.waitForWalletChain(walletProvider, chainId)) {
+                showError(`Failed to switch to ${rpc.chainName} network.`);
+                throw new Error(`Wallet did not switch to chainId ${chainId}`);
             }
-            const current = this._etherProvider ? await getChainId(this._logger, this._etherProvider) : null;
-            if (current && current.dec === targetChainId) {
-                this._chainId = { dec: targetChainId, hex: '0x' + targetChainId.toString(16) };
+        }
+
+        // ethers v6 BrowserProvider caches its network, a fresh one can't be stale
+        const provider = new BrowserProvider(walletProvider);
+        this._etherProvider = provider;
+        setBrowserProvider(provider);
+
+        const loginAddress = this._walletAddress;
+        if (loginAddress) {
+            const accounts = await provider.send('eth_accounts', []) as string[];
+            if (!(accounts ?? []).some(a => a.toLowerCase() === loginAddress)) {
+                this._logger.error(`${TAG} ${loginAddress} is not connected in the wallet`);
+                showError("Wallet address mismatch. Please connect to your previous wallet.");
+                throw new Error('Wallet address mismatch');
+            }
+        }
+        return provider;
+    }
+
+    // MetaMask reports the new chain asynchronously after a switch
+    private async waitForWalletChain(walletProvider: Provider, chainId: number): Promise<boolean> {
+        for (let i = 0; i < 15; i++) {
+            if (await getLiveChainId(new BrowserProvider(walletProvider)) === chainId) {
                 return true;
             }
-            await new Promise((r) => setTimeout(r, 300));
+            await sleep(300);
         }
-        this._logger.error(`${TAG} switchToNetwork: chain did not settle to ${targetChainId}`);
+        this._logger.error(`${TAG} Wallet chain did not settle to ${chainId}`);
         return false;
     }
 

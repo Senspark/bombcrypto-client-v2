@@ -12,10 +12,8 @@ import {IAuthService} from "../IAuthService.ts";
 import WalletService from "../WalletService.ts";
 import {appKitButtonAtom} from '../../components/AppKitButtonAtom.ts';
 import {getDefaultStore} from 'jotai';
-import NotificationService from "../NotificationService.ts";
-import {getSupportedNetworkFromChainId, getRpc, SupportedNetwork} from "../RpcNetworkUtils.ts";
+import {getRpc} from "../RpcNetworkUtils.ts";
 import {RpcService} from "../BlockChain/RpcService.ts";
-import BlockChainCommand from "../../consts/BlockChainCommand.ts";
 import {buildLandingUrl, openLandingMode} from "../LandingUtils.ts";
 
 const TAG = '[UC]';
@@ -27,7 +25,6 @@ export default class UnityCommunicator {
         private readonly _authService: IAuthService,
         private readonly _walletService: WalletService,
         private readonly _isProd: boolean,
-        private readonly _notiService: NotificationService,
     ) {
     }
 
@@ -379,8 +376,6 @@ export default class UnityCommunicator {
     }
 
     async callBlockChainMethod(data: string): Promise<string | null> {
-        const showError = this._notiService.showError.bind(this._notiService);
-
         if (!this._blockChainConfig) {
             this._logger.error(`${TAG} Blockchain config is not initialized`);
             return null;
@@ -393,94 +388,12 @@ export default class UnityCommunicator {
             }
             const {name, param} = JSON.parse(decrypted) as BlockChainData;
 
-            // Cross-chain bridge writes run on the target chain (which may differ
-            // from the login chain), then restore the login chain. Reads bypass
-            // this — they use a dedicated per-chain RPC, not the browser provider.
-            if (name === BlockChainCommand.BRIDGE_DEPOSIT || name === BlockChainCommand.BRIDGE_WITHDRAW) {
-                return await this.callBridgeWrite(name, param);
-            }
-
-            const chainId = this._walletService.getChainId();
-            const userChangeChainId = this._walletService.getUserChangeChainId();
-            const walletAddress = this._walletService.getCurrentWalletAddress();
-            const userChangeWalletAddress = this._walletService.getUserChangeWalletAddress();
-
-            //DevHoang: Nếu user đã thay đổi walletAddress
-            if (walletAddress && userChangeWalletAddress && walletAddress !== userChangeWalletAddress) {
-                this._logger.log(`${TAG} User changed wallet address, switching wallet...`);
-                return null;
-            }
-
-            //DevHoang: Nếu user đã thay đổi chainId thì sẽ gọi forceSwapChain để về lại chainId ban đầu
-            if (userChangeChainId && chainId && userChangeChainId.dec !== chainId.dec) {
-                this._logger.log(`${TAG} User changed chain ID, switching chain...`);
-                const network = getSupportedNetworkFromChainId(chainId.dec, this._isProd);
-                showError(`Network Changed! Changing back to ${network}`);
-                const success = await this._walletService.forceSwapChain();
-                if (!success) {
-                    this._logger.error(`${TAG} Failed to switch chain`);
-                    return null;
-                }
-                this._walletService.setUserChangeChainId(chainId);
-            }
+            // Reads use an RPC pinned to this tab's chain. Writes switch the wallet
+            // to the chain they need right before signing (see ContractUtils).
             return await this._blockChainConfig.callAction(name, param);
         } catch (e) {
             this._logger.error(`${TAG} Call blockchain method error: ${e}`);
             return null;
-        }
-    }
-
-    // Runs a bridge deposit/withdraw on its target chain: switch the wallet to
-    // that chain, run the on-chain call, then always restore the login chain
-    // (even on failure/revert).
-    private async callBridgeWrite(name: string, param: string): Promise<string | null> {
-        if (!this._blockChainConfig) {
-            this._logger.error(`${TAG} Blockchain config is not initialized`);
-            return null;
-        }
-        const showError = this._notiService.showError.bind(this._notiService);
-
-        const {chain} = JSON.parse(param) as { chain: string };
-        const targetNetwork = this.bridgeChainToNetwork(chain);
-        if (!targetNetwork) {
-            this._logger.error(`${TAG} Bridge write: unknown chain '${chain}'`);
-            return null;
-        }
-
-        const loginChainId = this._walletService.getChainId();
-        const loginNetwork = this._walletService.currentNetworkType;
-        const targetChainId = getRpc(targetNetwork, this._isProd)?.chainId;
-        const switched = loginChainId?.dec !== targetChainId;
-
-        if (switched) {
-            this._logger.log(`${TAG} Bridge write: switching to ${targetNetwork} for ${name}`);
-            const ok = await this._walletService.switchToNetwork(targetNetwork);
-            if (!ok) {
-                this._logger.error(`${TAG} Bridge write: failed to switch to ${targetNetwork}`);
-                showError(`Failed to switch to ${targetNetwork} network.`);
-                return null;
-            }
-        }
-
-        try {
-            return await this._blockChainConfig.callAction(name, param);
-        } finally {
-            if (switched && loginNetwork) {
-                this._logger.log(`${TAG} Bridge write: restoring login chain ${loginNetwork}`);
-                await this._walletService.switchToNetwork(loginNetwork);
-                if (loginChainId) this._walletService.setUserChangeChainId(loginChainId);
-            }
-        }
-    }
-
-    private bridgeChainToNetwork(chain: string): SupportedNetwork | undefined {
-        switch ((chain ?? "").toUpperCase()) {
-            case "BSC":
-                return "bsc";
-            case "POLYGON":
-                return "polygon";
-            default:
-                return undefined;
         }
     }
 
@@ -541,16 +454,7 @@ export default class UnityCommunicator {
         const depositData = JSON.parse(decrypted) as { invoice: string, amount: string, chainId: string };
         let result = false;
         if (depositData.invoice.startsWith(K_TRANSFER_AIRDROP_PREFIX) && this._walletService.currentNetworkType) {
-            const currentChainId = this._walletService.getChainId()?.dec;
-            const depositChainId = Number(depositData.chainId);
-            if (depositChainId !== currentChainId) {
-                //DevHoang: Force to change metamask
-                const result = await walletService.forceSwapChain()
-                if (!result) {
-                    this._logger.error(`${TAG} Failed to switch chain`);
-                    return JSON.stringify(false);
-                }
-            }
+            // deposit() switches the wallet to this tab's login chain before signing
             result = await depositServiceWithInvoice.deposit(depositData.amount, depositData.invoice);
         }
         return JSON.stringify(result);

@@ -14,7 +14,8 @@ import BHeroStake from "./Module/BHeroStake.ts";
 import DepositBridge from "./Module/DepositBridge.ts";
 import DepositNative from "./Module/DepositNative.ts";
 import {createRpcTokens} from "./Module/Utils/RpcTokens.ts";
-import {setToken} from "./Module/Utils/Storage.ts";
+import {setTabChainId, setToken} from "./Module/Utils/Storage.ts";
+import {setRpcService} from "./Module/Utils/ReadProvider.ts";
 import {getBalance} from "./Module/Utils/RpcTokens.ts";
 import {RpcService} from "./RpcService.ts";
 
@@ -23,6 +24,8 @@ const TAG = "[CTM]";
 export class ContractManager {
     constructor(chainId: string, private readonly _logger: Logger, private readonly _isProd: boolean,
                 private readonly _rpcService: RpcService) {
+        setTabChainId(Number(chainId));
+        setRpcService(this._rpcService);
         const config = new BlockChainData(chainId, this._isProd);
         this._logger.log(`${TAG} BlockChainConfig created: ${config}`);
 

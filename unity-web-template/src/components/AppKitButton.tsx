@@ -31,6 +31,20 @@ const styles = {
         cursor: 'pointer',
         transition: 'background-color 0.2s ease',
     } as React.CSSProperties,
+
+    networkLabel: {
+        display: 'inline-flex',
+        alignItems: 'center',
+        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+        color: '#ffffff',
+        border: '1px solid var(--wui-color-gray-glass-010)',
+        borderRadius: 'var(--wui-border-radius-m)',
+        padding: '0 16px',
+        height: '40px',
+        fontSize: '16px',
+        fontWeight: 500,
+        whiteSpace: 'nowrap',
+    } as React.CSSProperties,
 };
 
 const truncateAddress = (addr: string): string =>
@@ -67,6 +81,25 @@ const AppKitButton: React.FC<AppKitButtonProps> = () => {
     }
 
     const connected = isConnected && !!address;
+
+    // Logged in: show the network/wallet this tab plays with. AppKit's own
+    // buttons follow the live wallet, which another tab may have switched.
+    if (state.showCustomUI && state.isWallet && state.address) {
+        return (
+            <>
+                {state.network && <span style={styles.networkLabel}>{state.network}</span>}
+                <button
+                    style={styles.connectButton}
+                    onMouseOver={(e) => { e.currentTarget.style.backgroundColor = '#3a5dca'; }}
+                    onMouseOut={(e) => { e.currentTarget.style.backgroundColor = '#5773ff'; }}
+                    onClick={() => open(connected ? { view: 'Account' } : undefined)}
+                >
+                    {truncateAddress(state.address)}
+                </button>
+            </>
+        );
+    }
+
     const label = connected ? truncateAddress(address!) : 'Connect Wallet';
 
     return (

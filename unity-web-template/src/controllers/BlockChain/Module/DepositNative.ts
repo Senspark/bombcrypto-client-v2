@@ -10,8 +10,8 @@ import { BridgeTxResult } from "./DepositBridge.ts";
 // in msg.value, no token and no approve. withdraw relays a server signature and the
 // contract self-computes amount = allowedCumulative − withdrawn[user], transferring
 // FROM itself TO msg.sender. Reads go through a per-chain RPC provider (never the browser
-// provider — no wallet switch); writes go through the browser signer, which is already on
-// this chain because native is never cross-chain. Wei crosses in/out as an exact decimal
+// provider — no wallet switch); writes go through the browser signer, which is switched
+// onto this chain for each signature. Wei crosses in/out as an exact decimal
 // string, never a JS number.
 export default class DepositNative {
     private readonly _nativeChains: { [chain: string]: INativeChain };
@@ -41,7 +41,8 @@ export default class DepositNative {
     }
 
     private async writeContract(chain: string): Promise<Contract> {
-        const contract = await ContractUtils.createWriteContract(this.chainCfg(chain).nativeAddress, this._abi);
+        const cfg = this.chainCfg(chain);
+        const contract = await ContractUtils.createWriteContract(cfg.nativeAddress, this._abi, cfg.chainId);
         if (!contract) throw new Error('Can not create native contract');
         return contract;
     }
@@ -77,7 +78,7 @@ export default class DepositNative {
             const value = BigInt(amountWei);
             const contract = await this.writeContract(chain);
             const estimateGas = await contract.deposit.estimateGas({ value });
-            const options = await getDoubleGasFeeOptionV2(estimateGas);
+            const options = await getDoubleGasFeeOptionV2(estimateGas, this.chainCfg(chain).chainId);
             const transaction = await contract.deposit({ ...options, value });
             const txHash = transaction.hash ?? "";
             await waitForReceipt(transaction);
@@ -97,7 +98,7 @@ export default class DepositNative {
             const deadlineSec = BigInt(deadline);
             const contract = await this.writeContract(chain);
             const estimateGas = await contract.withdraw.estimateGas(allowedCumulative, deadlineSec, signature);
-            const options = await getDoubleGasFeeOptionV2(estimateGas);
+            const options = await getDoubleGasFeeOptionV2(estimateGas, this.chainCfg(chain).chainId);
             const transaction = await contract.withdraw(allowedCumulative, deadlineSec, signature, options);
             const txHash = transaction.hash ?? "";
             const receipt = await waitForReceipt(transaction);

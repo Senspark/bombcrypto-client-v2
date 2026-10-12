@@ -8,6 +8,31 @@ let _browserProvider: BrowserProvider;
 let _provider: Provider;
 let _userAddress: string;
 let _windowEthereum: ExternalProvider | undefined;
+let _walletGate: WalletGate | undefined;
+let _tabChainId = 0;
+
+// Signs for this tab: its login wallet, and a wallet switched onto the chain asked for
+export type WalletGate = {
+    getAddress(): string | null;
+    run<T>(chainId: number, fn: (provider: BrowserProvider) => Promise<T>): Promise<T>;
+};
+
+function setWalletGate(gate: WalletGate): void {
+    _walletGate = gate;
+}
+
+function getWalletGate(): WalletGate | undefined {
+    return _walletGate;
+}
+
+// The chain this tab logged in with, whatever chain the shared wallet is on now
+function setTabChainId(chainId: number): void {
+    _tabChainId = chainId;
+}
+
+function getTabChainId(): number {
+    return _tabChainId;
+}
 
 function setProvider(provider: Provider): void {
     _provider = provider;
@@ -58,5 +83,9 @@ export {
     getBrowserProvider,
     getUserAddress,
     setEthereum,
-    getEthereum
+    getEthereum,
+    setWalletGate,
+    getWalletGate,
+    setTabChainId,
+    getTabChainId
 }

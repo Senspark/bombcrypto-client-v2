@@ -220,7 +220,7 @@ export default class AuthService implements IAuthService {
                     const result = await LoginModal.waitForUser();
                     // Show custom AppKitButton UI after user interaction
                     if (result.address && result.network) {
-                        getDefaultStore().set(appKitButtonAtom, { showCustomUI: true, network: result.network, address: result.address, showFakeConnect: false });
+                        getDefaultStore().set(appKitButtonAtom, { showCustomUI: true, network: result.network, address: result.address, showFakeConnect: false, isWallet: true });
                     }
                     if (!result.address || !result.network) {
                         this._logger.error(`${TAG} User cancelled login or missing info`);
@@ -316,7 +316,7 @@ export default class AuthService implements IAuthService {
                     }
 
                     // Show custom AppKitButton UI after user interaction
-                    getDefaultStore().set(appKitButtonAtom, { showCustomUI: true, network: result.network, address: result.address, showFakeConnect: false });
+                    getDefaultStore().set(appKitButtonAtom, { showCustomUI: true, network: result.network, address: result.address, showFakeConnect: false, isWallet: true });
 
                     // user đã xác nhận đổi profile trong modal rồi, cho login luôn, ko hỏi lại
                     if (result.hasChange) {
@@ -464,6 +464,8 @@ export default class AuthService implements IAuthService {
             // assign wallet id
             this._savedWalletId = WalletIdUtils.saveWalletId(walletAddress, chainId, this._isProd);
             await this.setJwtIntoStorage(this._savedWalletId.fullId, jwtRes);
+            // Pin the chain that was signed in with: another tab may have switched the wallet meanwhile
+            this._walletService.setChainId(chainId);
             this._walletService.stopUpdateWalletInfo();
 
             return {

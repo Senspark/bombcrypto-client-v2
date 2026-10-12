@@ -89,6 +89,10 @@ export function getSupportedNetworkFromChainId(chainId: number | undefined | nul
     return undefined;
 }
 
+export function getRpcByChainId(chainId: number): NetworkRpc | undefined {
+    return ALL_RPCS().find(rpc => rpc.chainId === chainId);
+}
+
 export const BNB_MAINNET_RPC: NetworkRpc = {
     chainId: 56,
     chainIdHex: '0x38',
@@ -188,6 +192,14 @@ export const VIC_TESTNET_RPC: NetworkRpc = {
     decimals: 18,
     blockExplorerUrl: 'https://testnet.vicscan.xyz'
 };
+
+function ALL_RPCS(): NetworkRpc[] {
+    return [
+        BNB_MAINNET_RPC, BNB_TESTNET_RPC, POLYGON_MAINNET_RPC, POLYGON_TESTNET_RPC,
+        RONIN_MAINNET_RPC, RONIN_TESTNET_RPC, BASE_MAINNET_RPC, BASE_TESTNET_RPC,
+        VIC_MAINNET_RPC, VIC_TESTNET_RPC,
+    ];
+}
 
 const ChainIdsProd: ChainIdMap = new Map<SupportedNetwork, ChainId>([
     ['bsc', getChainId(BNB_MAINNET_RPC)],

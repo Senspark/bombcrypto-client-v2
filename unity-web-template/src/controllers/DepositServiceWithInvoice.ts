@@ -1,7 +1,6 @@
 import {ReadyToSign} from "./WalletService.ts";
 import NotificationService from "./NotificationService.ts";
 import Logger from "./Logger.ts";
-import {getBalance} from "./WalletUtils.ts";
 import {ethers} from 'ethers'
 import {SupportedNetwork} from "./RpcNetworkUtils.ts";
 import WalletService from "./WalletService.ts";
@@ -46,45 +45,39 @@ export default class DepositServiceWithInvoice {
         const showError = this._notiService.showError.bind(this._notiService);
 
         try {
-            const ready = await this._walletService.isReadyToSign();
+            const ready = this._walletService.getLoginProfile();
             if (!ready) {
                 return false;
             }
-            const provider = this._walletService.getWalletProvider()!;
-
-            // Kiểm tra balance và số dư
-            const balance = await getBalance(logger, provider);
-            if (balance == null) {
-                showError("Error happened! Please check your wallet connection.");
-                return false;
-            }
-
-            const amountInWei = ethers.parseEther(amountToSend);
-
-            if (balance <= amountInWei) { // added gas fee
-                logger.error(`Insufficient balance: ${balance} < ${amountInWei}`);
-                showError("Insufficient balance to transfer.");
-                return false;
-            }
-
             const merchantAddress = this.getMerchantAddress(ready);
             if (!merchantAddress) {
                 logger.error(`Merchant address not found for network: ${ready.network}`);
                 showError("Merchant address not found for this network.");
                 return false;
             }
+            const amountInWei = ethers.parseEther(amountToSend);
 
-            const signer = await provider.getSigner();
-            const contract = new ethers.Contract(merchantAddress, DEPOSIT_ABI, signer);
-            const tx: ContractTransactionResponse = await contract.deposit(invoice, {value: amountInWei})
-            logger.log(`Deposit transaction hash: ${tx.hash}`);
-            showNoti(`Deposit transaction hash send: ${this._walletService.getBlockExplorerUrl(tx.hash)}`);
+            return await this._walletService.withWalletOnChain(ready.chainId.dec, async (provider) => {
+                // Kiểm tra balance và số dư
+                const balance = await provider.getBalance(ready.walletAddress);
+                if (balance <= amountInWei) { // added gas fee
+                    logger.error(`Insufficient balance: ${balance} < ${amountInWei}`);
+                    showError("Insufficient balance to transfer.");
+                    return false;
+                }
 
-            // Wait for transaction confirmation
-            const receipt: ContractTransactionReceipt = await tx.wait();
-            logger.log(`Deposit transaction confirmed: ${receipt.hash}`);
+                const signer = await provider.getSigner(ready.walletAddress);
+                const contract = new ethers.Contract(merchantAddress, DEPOSIT_ABI, signer);
+                const tx: ContractTransactionResponse = await contract.deposit(invoice, {value: amountInWei})
+                logger.log(`Deposit transaction hash: ${tx.hash}`);
+                showNoti(`Deposit transaction hash send: ${this._walletService.getBlockExplorerUrl(tx.hash)}`);
 
-            return receipt.status == 1;
+                // Wait for transaction confirmation
+                const receipt: ContractTransactionReceipt = await tx.wait();
+                logger.log(`Deposit transaction confirmed: ${receipt.hash}`);
+
+                return receipt.status == 1;
+            });
         } catch (ex) {
             logger.error(`Deposit error: ${ex}`)
             return false;

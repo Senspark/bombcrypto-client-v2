@@ -4,6 +4,26 @@ import {ChainId, NetworkRpc} from "./RpcNetworkUtils.ts";
 
 const TAG = '[WS]';
 
+const WALLET_LOCK = 'bombcrypto/wallet-sign';
+
+// Every tab shares one wallet network: sign flows run one at a time across tabs
+// so a tab can't switch the network while another one is signing.
+export function withWalletLock<T>(fn: () => Promise<T>): Promise<T> {
+    if (!navigator.locks) {
+        return fn();
+    }
+    return navigator.locks.request(WALLET_LOCK, fn) as Promise<T>;
+}
+
+// Asks the wallet itself: an ethers provider keeps the network it saw first
+export async function getLiveChainId(provider: BrowserProvider): Promise<number | null> {
+    try {
+        return Number(await provider.send('eth_chainId', []));
+    } catch {
+        return null;
+    }
+}
+
 export async function getWalletAddress(logger: Logger, provider: BrowserProvider): Promise<string | null> {
     try {
         const accounts = await provider.send('eth_accounts', []);

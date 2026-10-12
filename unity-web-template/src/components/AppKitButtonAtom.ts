@@ -5,6 +5,8 @@ export type AppKitButtonState = {
   network?: string;
   address?: string;
   showFakeConnect?: boolean;
+  // Logged in with a wallet: network/address are the ones this tab plays with
+  isWallet?: boolean;
 };
 
 export const appKitButtonAtom = atom<AppKitButtonState>({

@@ -3,6 +3,7 @@ import { ethers } from "ethers";
 import {sleep} from "../../../../utils/Time.ts";
 import {TransactionReceipt, TransactionResponse} from "ethers";
 import CoinToken from "../CoinToken.ts";
+import {getReadProvider} from "./ReadProvider.ts";
 
 const MIN_CONFIRMATIONS = 6;
 const GAS_LIMIT_MULTIPLIER = 2;
@@ -88,7 +89,7 @@ function clampPriority(value: bigint): bigint {
 }
 
 async function resolvePolygonFees(
-    provider: ethers.BrowserProvider,
+    provider: ethers.JsonRpcApiProvider,
     chainId: number
 ): Promise<{ maxFeePerGas: bigint; maxPriorityFeePerGas: bigint }> {
     try {
@@ -118,8 +119,10 @@ async function resolvePolygonFees(
     return POLYGON_STATIC_FEE[chainId] ?? POLYGON_STATIC_FEE[80002];
 }
 
+// chainId defaults to the chain this tab logged in with
 async function getDoubleGasFeeOptionV2(
-    estimateGas: bigint
+    estimateGas: bigint,
+    chainId: number = Storage.getTabChainId()
 ): Promise<{
     gasLimit: bigint;
     maxFeePerGas?: bigint;
@@ -127,23 +130,11 @@ async function getDoubleGasFeeOptionV2(
 }> {
     const gasLimit = estimateGas * ethers.toBigInt(GAS_LIMIT_MULTIPLIER);
 
-    const provider = Storage.getBrowserProvider();
-    if (!provider) {
-        return { gasLimit };
-    }
-
-    let chainId: number;
-    try {
-        chainId = Number((await provider.getNetwork()).chainId);
-    } catch {
-        return { gasLimit };
-    }
-
     if (!POLYGON_CHAIN_IDS.includes(chainId)) {
         return { gasLimit };
     }
 
-    const fees = await resolvePolygonFees(provider, chainId);
+    const fees = await resolvePolygonFees(getReadProvider(chainId), chainId);
     return { gasLimit, ...fees };
 }
 

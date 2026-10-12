@@ -17,8 +17,8 @@ export interface BridgeTxResult {
 // differ from the wallet's login chain, so it is resolved per call:
 //   - reads (deposited/withdrawn/enabled) go through an RPC-per-chain provider
 //     (RpcService.getRpc), never the browser provider — no wallet switch needed.
-//   - writes (deposit/withdraw) go through the browser signer, which the caller
-//     has already switched onto the target chain (see UnityCommunicator).
+//   - writes (deposit/withdraw) go through the browser signer, which is switched
+//     onto the target chain for each signature (see ContractUtils).
 // deposit auto-approves MaxUint256 (one approve per token, ever); withdraw needs
 // NO approve — the contract safeTransfers contract→user, self-computing
 // amount = otherDeposited − withdrawn. Wei crosses in/out as an exact decimal
@@ -60,11 +60,10 @@ export default class DepositBridge {
         return new Contract(cfg.bridgeAddress, JSON.stringify(this._abi), provider);
     }
 
-    // Write contract through the browser signer (wallet must already be on the
-    // target chain — the caller switches it before invoking a write).
+    // Write contract bound to the target chain, not to the login chain.
     private async writeContract(chain: string): Promise<Contract> {
         const cfg = this.chainCfg(chain);
-        const contract = await ContractUtils.createWriteContract(cfg.bridgeAddress, this._abi);
+        const contract = await ContractUtils.createWriteContract(cfg.bridgeAddress, this._abi, cfg.chainId);
         if (!contract) throw new Error('Can not create bridge contract');
         return contract;
     }
@@ -94,11 +93,11 @@ export default class DepositBridge {
             const tokenAddress = this.tokenAddr(chain, symbol);
             const amount = BigInt(amountWei);
 
-            await this.approveMaximum(walletAddress, tokenAddress, cfg.bridgeAddress, amount);
+            await this.approveMaximum(cfg.chainId, walletAddress, tokenAddress, cfg.bridgeAddress, amount);
 
             const contract = await this.writeContract(chain);
             const estimateGas = await contract.deposit.estimateGas(tokenAddress, amount);
-            const options = await getDoubleGasFeeOptionV2(estimateGas);
+            const options = await getDoubleGasFeeOptionV2(estimateGas, cfg.chainId);
             const transaction = await contract.deposit(tokenAddress, amount, options);
             const txHash = transaction.hash ?? "";
             await waitForReceipt(transaction);
@@ -121,7 +120,7 @@ export default class DepositBridge {
             const contract = await this.writeContract(chain);
             const estimateGas = await contract.withdraw.estimateGas(
                 tokenAddress, otherDeposited, deadlineSec, signature);
-            const options = await getDoubleGasFeeOptionV2(estimateGas);
+            const options = await getDoubleGasFeeOptionV2(estimateGas, this.chainCfg(chain).chainId);
             const transaction = await contract.withdraw(
                 tokenAddress, otherDeposited, deadlineSec, signature, options);
             const txHash = transaction.hash ?? "";
@@ -154,9 +153,9 @@ export default class DepositBridge {
 
     // approve MaxUint256 on the target-chain ERC20 (browser signer) when the
     // current allowance is short, so future deposits skip the approve prompt.
-    private async approveMaximum(walletAddress: string, tokenAddress: string,
+    private async approveMaximum(chainId: number, walletAddress: string, tokenAddress: string,
                                  spender: string, amount: bigint): Promise<void> {
-        const token = await ContractUtils.createWriteContract(tokenAddress, this._erc20Abi);
+        const token = await ContractUtils.createWriteContract(tokenAddress, this._erc20Abi, chainId);
         if (!token) throw new Error('Can not create token contract');
         const allowance: bigint = await token.allowance(walletAddress, spender);
         if (allowance >= amount) return;
