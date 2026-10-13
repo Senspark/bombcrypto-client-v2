@@ -335,9 +335,9 @@ namespace Game.UI {
             await _treasurePlayback.Resync("reconnect", true);
         }
 
-        // A restarted server is back on its last save: take its hero stages and energy, then fix the heroes on the map.
+        // Take the server's hero stages and energy, then fix the heroes on the map (after a server restart or a rent expiry).
         // Otherwise a hero it plays but the client holds asleep plants bombs and never moves.
-        private async Task RefreshHeroesFromServer() {
+        public async Task RefreshHeroesFromServer() {
             try {
                 await _serverManager.Pve.GetActiveBomber();
                 if (!this || !_levelView) {
