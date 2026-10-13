@@ -230,8 +230,11 @@ namespace App {
 
         public List<int> CheckHouseRentExpired() {
             var result = new List<int>();
+            if (_houseDatas == null || _heroInHouse == null) {
+                return result;
+            }
             foreach (var houseData in _houseDatas) {
-                if (houseData.EndTimeRent < DateTime.UtcNow.ToEpochMilliseconds() && !houseData.isActive) {
+                if (houseData.EndTimeRent > 0 && houseData.EndTimeRent < DateTime.UtcNow.ToEpochMilliseconds() && !houseData.isActive) {
                     if (_heroInHouse.ContainsKey(houseData.id)) {
                         result.AddRange(_heroInHouse[houseData.id]);
                     }

@@ -20,6 +20,8 @@ namespace Game.UI {
         private ObserverHandle _handle;
         
         private Timer _timer;
+        private bool _releasingRent;
+        private float _nextRentCheckTime;
 
         private void Awake() {
             _storeManager = ServiceLocator.Instance.Resolve<IStorageManager>();
@@ -40,6 +42,7 @@ namespace Game.UI {
         }
         
         private void Update() {
+            CheckHouseRentExpired();
             if (levelScene.PauseStatus.IsPausing) {
                 return;
             }
@@ -56,7 +59,6 @@ namespace Game.UI {
         }
 
         private void AutoWork() {
-            CheckHouseRentExpired();
             if (!_storeManager.EnableAutoMine || levelScene.PauseStatus.IsPausing) {
                 return;
             }
@@ -87,17 +89,30 @@ namespace Game.UI {
             _pveHeroStateManager.ChangeHeroState(goWork, HeroStage.Working);
         }
 
-        private void CheckHouseRentExpired() {
-            // nếu house rent hết hạn thì go work cho tất cả hero ở nhà đó
-            var heroesInHouseExpired = _houseStorageManager.CheckHouseRentExpired();
-            if (heroesInHouseExpired.Count != 0) {
-                var allHeroes = _playerStore.GetActivePlayerData();
-                var filterHeroes = from p in allHeroes
-                    where heroesInHouseExpired.Contains(p.heroId.Id)
-                    select p;
-                var heroesGoWork = filterHeroes.Select(e => e.heroId).ToArray();
-                _pveHeroStateManager.ChangeHeroState(heroesGoWork, HeroStage.Working);
+        // Rent expired: the server puts the heroes to sleep, so fetch their state instead of deciding here
+        private async void CheckHouseRentExpired() {
+            if (_releasingRent || Time.realtimeSinceStartup < _nextRentCheckTime) {
+                return;
             }
+            var heroIds = _houseStorageManager.CheckHouseRentExpired();
+            if (heroIds.Count == 0) {
+                return;
+            }
+            _releasingRent = true;
+            await levelScene.RefreshHeroesFromServer();
+            _releasingRent = false;
+            if (!this) {
+                return;
+            }
+            var heroes = _playerStore.GetActivePlayerData();
+            foreach (var id in heroIds) {
+                var hero = heroes.FirstOrDefault(p => p.heroId.Id == id);
+                if (hero == null || hero.stage != HeroStage.Home) {
+                    _houseStorageManager.HeroLeaveHouse(id);
+                }
+            }
+            // client clock ahead of the server: the server still keeps them home, retry shortly
+            _nextRentCheckTime = Time.realtimeSinceStartup + 3;
         }
 
         private void OnAutoMineChanged(bool _) {
