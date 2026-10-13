@@ -39,6 +39,27 @@ const apiHost = EnvConfig.apiHost();
 const checkIpHost = EnvConfig.apiCheckIpHost();
 const ignoreIpCheck = EnvConfig.ignoreIpCheck();
 
+// MetaMask emits 'disconnect' (code 1013) while it switches network; AppKit would
+// drop the whole connection. Only disconnect when the wallet really has no account.
+class SafeEthersAdapter extends EthersAdapter {
+    protected override onDisconnect(connectorId: string): void {
+        const provider = this.providerHandlers[connectorId]?.provider;
+        if (!provider) {
+            super.onDisconnect(connectorId);
+            return;
+        }
+        (provider.request({method: 'eth_accounts'}) as Promise<string[]>)
+            .then(accounts => {
+                if (accounts?.length) {
+                    logger.log(`[AppKit] ignored wallet disconnect event, ${connectorId} still has accounts`);
+                    return;
+                }
+                super.onDisconnect(connectorId);
+            })
+            .catch(() => super.onDisconnect(connectorId));
+    }
+}
+
 function InitWeb() {
     const projectId = EnvConfig.walletProjectId()
     const iconUrl = `${window.location.origin}/favicon.ico`;
@@ -53,7 +74,7 @@ function InitWeb() {
     const networkForTest: [AppKitNetwork, ...AppKitNetwork[]] = [bscTestnet, polygonAmoy, saigon, baseSepolia];
     const networkForProd: [AppKitNetwork, ...AppKitNetwork[]] = [bsc, polygon, ronin, base];
     createAppKit({
-        adapters: [new EthersAdapter()],
+        adapters: [new SafeEthersAdapter()],
         networks: isProd ? networkForProd : networkForTest,
         metadata,
         projectId,

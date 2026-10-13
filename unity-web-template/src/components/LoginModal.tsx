@@ -4,6 +4,8 @@ import {getRpc} from "../controllers/RpcNetworkUtils.ts";
 import {walletService} from "../hooks/GlobalServices.ts";
 import {WalletIdUtils} from "../controllers/WalletIdUtils.ts";
 import {useAppKit} from "@reown/appkit/react";
+import {getDefaultStore} from "jotai";
+import {appKitButtonAtom} from "./AppKitButtonAtom.ts";
 
 // Singleton state for modal control
 const modalState: {
@@ -29,6 +31,31 @@ let rerender: (() => void) | null = null;
 
 function triggerRerender() {
     if (rerender) rerender();
+}
+
+// Keeps the wallet button in sync with the saved profile shown in this popup
+function setSavedProfile(saved?: { network: string; address: string }) {
+    const store = getDefaultStore();
+    if (!saved && !store.get(appKitButtonAtom).saved) return;
+    store.set(appKitButtonAtom, prev => ({...prev, saved}));
+}
+
+// Drops the saved profile: the popup now asks about the wallet/network the wallet is really on
+async function syncToLiveWallet() {
+    const chainId = await walletService.getCurrentNetworkFromMetaMask();
+    if (chainId) {
+        const network = getRpc(walletService.currentNetworkTypeFromChainId(chainId)!, modalState.isProd ?? true);
+        modalState.network = network?.chainName || '';
+    } else {
+        modalState.network = INVALID_NETWORK_MESSAGE;
+    }
+
+    const walletAddress = await walletService.getWalletAddress();
+    modalState.address = walletAddress || '';
+
+    modalState.hasChange = true;
+    setSavedProfile(undefined);
+    triggerRerender();
 }
 
 const LoginModal: React.FC = () => {
@@ -92,24 +119,14 @@ const LoginModal: React.FC = () => {
         }
         modalState.resetClicked = false;
         modalState.hasChange = false;
+        setSavedProfile(undefined);
         close();
     };
 
 
     const handleReset = async () => {
-        const chainId = await walletService.getCurrentNetworkFromMetaMask();
-        if (chainId) {
-            const network = getRpc(walletService.currentNetworkTypeFromChainId(chainId)!, modalState.isProd ?? true);
-            modalState.network = network?.chainName || '';
-        } else {
-            modalState.network = INVALID_NETWORK_MESSAGE;
-        }
-
-        const walletAddress = await walletService.getWalletAddress();
-        modalState.address = walletAddress || '';
-
+        await syncToLiveWallet();
         modalState.resetClicked = true;
-        modalState.hasChange = true;
         WalletIdUtils.removeWalletId();
         triggerRerender();
         setShowResetSuccess(true); // Show success text
@@ -185,6 +202,7 @@ interface LoginModalStatics {
     setNetwork: (network: string | undefined) => void;
     setStatus: (isProd: boolean) => void;
     resetSkipModal: () => void;
+    syncToLiveWallet: () => Promise<void>;
 }
 
 // Đảm bảo user chỉ confirm 1 lần thôi trừ khi nào user logout thì mới đc show dialog confirm này lại
@@ -199,6 +217,7 @@ const LoginModalStaticsImpl: LoginModalStatics = {
         modalState.hasOldData = hasOldData;
         modalState.resetClicked = false;
         modalState.hasChange = false;
+        setSavedProfile(hasOldData ? {network, address} : undefined);
         triggerRerender();
     },
     waitForUser: () => {
@@ -219,11 +238,13 @@ const LoginModalStaticsImpl: LoginModalStatics = {
     setAddress: (address) => {
         modalState.address = address || '';
         modalState.hasChange = true;
+        setSavedProfile(undefined);
         triggerRerender();
     },
     setNetwork: (network) => {
         modalState.network = network || '';
         modalState.hasChange = true;
+        setSavedProfile(undefined);
         triggerRerender();
     },
     setStatus: (isProd) => {
@@ -232,7 +253,8 @@ const LoginModalStaticsImpl: LoginModalStatics = {
     },
     resetSkipModal: () => {
         _skipModal = false;
-    }
+    },
+    syncToLiveWallet
 };
 
 // Attach static methods to the component

@@ -28,7 +28,7 @@ namespace Game.UI {
         private IReconnectStrategy _reconnectStrategy;
         private ILogManager _logManager;
         private IReconnectBackend _backend;
-        private IReconnectView _reconnectView;
+        private ReconnectThModeView _reconnectView;
         private IMasterUnityCommunication _unityCommunication;
 
         private bool _isReconnecting;
@@ -106,18 +106,20 @@ namespace Game.UI {
                 reconnect = !UnityEditor.EditorPrefs.GetBool("SimulateNoAutoMine");
                 #endif
 
-                if (!reconnect && !_freeReconnectUsed) {
-                    // Lần đầu mất kết nối trong session: cho reconnect miễn phí
-                    _freeReconnectUsed = true;
-                    reconnect = true;
-                }
-
                 if (reconnect) {
                     await Reconnect();
-                } else {
-                    _isWaitingManual = true;
-                    ShowManualReconnect();
+                    return;
                 }
+                if (!_freeReconnectUsed) {
+                    // Lần đầu mất kết nối trong session: thử reconnect đúng 1 lần
+                    _freeReconnectUsed = true;
+                    if (await Reconnect(1, false) || _isBeingKicked) {
+                        return;
+                    }
+                }
+                _isReconnecting = true;
+                _isWaitingManual = true;
+                ShowManualReconnect();
             } catch (Exception e) {
                 _logManager.Log($"Reconnect fail {e}");
             } finally {
@@ -127,7 +129,8 @@ namespace Game.UI {
             }
         }
 
-        public async Task Reconnect() {
+        // kickOnFail = false: chỉ tắt waiting khi fail, để caller tự hiện dialog
+        public async Task<bool> Reconnect(int maxRetryCount = MaxRetryCount, bool kickOnFail = true) {
             while (true) {
                 _logManager.Log("[ReconnectStrategy] WaitForConnectionLost");
                 try {
@@ -135,20 +138,20 @@ namespace Game.UI {
                 } catch (Exception ex) {
                     _logManager.Log($"[ReconnectStrategy] ex={ex.Message}");
                     Debug.LogException(ex);
-                    return;
+                    return false;
                 }
                 var successful = false;
                 try {
                     if (_isBeingKicked) {
-                        return;
+                        return false;
                     }
                     _logManager.Log("[ReconnectStrategy] StartReconnection");
                     await _reconnectView.StartReconnection();
 
-                    for (var i = 0; i < MaxRetryCount; ++i) {
+                    for (var i = 0; i < maxRetryCount; ++i) {
                         try {
                             if (_isBeingKicked) {
-                                return;
+                                return false;
                             }
                             _logManager.Log($"[ReconnectStrategy] Reconnect attempt={i + 1}");
                             _reconnectView.UpdateProgress(i);
@@ -159,22 +162,28 @@ namespace Game.UI {
                             break;
                         } catch (ObjectDisposedException ex) {
                             _logManager.Log($"[ReconnectStrategy] ex={ex.Message}");
-                            return;
+                            return false;
                         } catch (Exception ex) {
                             _logManager.Log($"[ReconnectStrategy] ex={ex.Message}");
                             Debug.LogException(ex);
                         }
-                        await WebGLTaskDelay.Instance.Delay(3000);
+                        if (i < maxRetryCount - 1) {
+                            await WebGLTaskDelay.Instance.Delay(3000);
+                        }
                     }
                 } finally {
                     _logManager.Log($"[ReconnectStrategy] FinishReconnection result = {successful}");
                     if (!_isBeingKicked) {
-                        await _reconnectView.FinishReconnection(successful);
+                        if (successful || kickOnFail) {
+                            await _reconnectView.FinishReconnection(successful);
+                        } else {
+                            _reconnectView.CancelReconnection();
+                        }
                         _isReconnecting = false;
                     }
                 }
 
-                break;
+                return successful;
             }
         }
 

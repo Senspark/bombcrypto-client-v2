@@ -63,6 +63,13 @@ public class ReconnectThModeView : IReconnectView {
         }
     }
 
+    // Tắt waiting mà không kick về connect scene
+    public void CancelReconnection() {
+        _isFinishing = true;
+        _waiting?.End();
+        _waiting = null;
+    }
+
     public void KickByOtherDevice() {
         _waiting?.End();
         _waiting = null;
