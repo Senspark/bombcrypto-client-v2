@@ -191,8 +191,9 @@ namespace App {
         }
 
         public async Task ReLogin(ILoginData loginData) {
+            // Force: the server may still hold our old half-open session and would reject us as AlREADY_LOGIN.
             _loginHandler = new SvGameLoginHandler(_logManager, _hasher, _serverConfig, _taskDelay, loginData, _encoder,
-                false);
+                true);
 
             ILoginResponse result;
 

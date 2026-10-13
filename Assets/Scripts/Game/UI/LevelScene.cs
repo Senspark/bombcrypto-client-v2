@@ -202,7 +202,9 @@ namespace Game.UI {
             try {
                 snapshot = await StartTreasureMode();
             } catch (Exception e) {
-                DialogOK.ShowErrorAndKickToConnectScene(canvasDialog, e);
+                if (this) {
+                    DialogOK.ShowErrorAndKickToConnectScene(canvasDialog, e);
+                }
                 return;
             }
             if (!this) {
@@ -273,6 +275,16 @@ namespace Game.UI {
             for (var attempt = 1;; attempt++) {
                 try {
                     return await StartTreasureModeOnce();
+                } catch (Exception) when (this && _serverManager.CurrentState != ServerConnectionState.LoggedIn) {
+                    // Dropped while loading: wait for the player to reconnect, not a failed attempt.
+                    attempt--;
+                    while (this && _serverManager.CurrentState != ServerConnectionState.LoggedIn) {
+                        await UniTask.Delay(500);
+                    }
+                    if (!this) {
+                        throw new OperationCanceledException();
+                    }
+                    await _serverManager.WaitForUserInitialized();
                 } catch (Exception) when (attempt < maxAttempts) {
                     await UniTask.Delay(1000 * attempt);
                 }
@@ -971,13 +983,30 @@ namespace Game.UI {
                 return;
             }
             _reloading = true;
+            DialogWaiting waiting = null;
             try {
                 _treasurePlayback.Stop();
                 PauseStatus.SetValue(this, true);
-                var waiting = await DialogWaiting.Create();
+                // Lost connection: AutoReconnectServer shows its dialog; wait for the player to reconnect.
+                while (this && _serverManager.CurrentState != ServerConnectionState.LoggedIn) {
+                    await UniTask.Delay(500);
+                }
+                if (!this) {
+                    return;
+                }
+                await _serverManager.WaitForUserInitialized();
+                waiting = await DialogWaiting.Create();
                 waiting.Show(canvasDialog);
                 await ReloadScene(Mode, _showBanners, level => { waiting.HideImmediately(); });
             } catch (Exception e) {
+                if (this && _serverManager.CurrentState != ServerConnectionState.LoggedIn) {
+                    // Dropped mid-reload: the reconnect flow reloads the scene after it succeeds.
+                    if (waiting) {
+                        waiting.HideImmediately();
+                    }
+                    _reloading = false;
+                    return;
+                }
                 if (!_storeManager.EnableAutoMine) {
                     DialogOK.ShowErrorAndKickToConnectScene(canvasDialog, e);
                 }

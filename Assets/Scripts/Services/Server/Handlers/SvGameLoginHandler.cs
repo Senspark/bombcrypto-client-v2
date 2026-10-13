@@ -259,6 +259,10 @@ namespace Services.Server.Handlers {
             data.PutUtfString(SFSDefine.SFSField.LoginTokenData, jwt);
             data.PutUtfString("device_type", dv);
 
+            if (_isForceLogin) {
+                parameters.PutBool("force_login", true);
+            }
+
             parameters.PutSFSObject("data", data);
             parameters.PutUtfString("hash", hash);
             parameters.PutLong("timestamp", timestamp);
