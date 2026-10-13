@@ -38,6 +38,12 @@ namespace Scenes.FarmingScene.Scripts {
         [SerializeField]
         private Button fusionBtn;
 
+        [SerializeField]
+        private Image resultImg;
+
+        [SerializeField]
+        private SkinTypeResource skinTypeResource;
+
         private const int MaxLstMainHeroId = 4;
         private int _targetUpgradeRarity = 0; //default common (result rarity = source + 1 → "Common > Rare")
         private PlayerData[] _mainLstHeroId;
@@ -49,6 +55,7 @@ namespace Scenes.FarmingScene.Scripts {
         private IServerManager _serverManager;
         private IStorageManager _storageManager;
         private DialogFusionControllerPolygon _dialogFusionController;
+        private Sprite _defaultResultSprite;
 
         public static UniTask<DialogFusionPolygon> Create() {
             return ServiceLocator.Instance.Resolve<IPrefabLoaderManager>().Instantiate<DialogFusionPolygon>();
@@ -65,6 +72,7 @@ namespace Scenes.FarmingScene.Scripts {
         }
 
         private void Init() {
+            _defaultResultSprite = resultImg.sprite;
             _mainLstHeroId = new PlayerData[MaxLstMainHeroId];
             _secondLstHeroId = new List<PlayerData>();
 
@@ -95,8 +103,7 @@ namespace Scenes.FarmingScene.Scripts {
         }
 
         private async void ChooseMainIdHero(int itemIndex) {
-            var countSelectHero = _mainLstHeroId.Where(e => e != null).ToList().Count;
-            DialogInventory.MaxSelectChooseHero = Mathf.Min(4 - countSelectHero, 4);
+            DialogInventory.MaxSelectChooseHero = MaxLstMainHeroId;
             var inventory = await DialogInventoryCreator.Create();
             inventory.Init(DialogInventory.SortRarity.BelowOneLevel, _targetUpgradeRarity, false);
             var exclude = _playerStoreManager.GetPlayerDataList(HeroAccountType.Nft)
@@ -139,6 +146,16 @@ namespace Scenes.FarmingScene.Scripts {
 
             fusionBtn.interactable = DialogFusionControllerPolygon.CanFusion(_mainLstHeroId.Where(e => e != null).ToList());
             ShowUIPercentFusion();
+            UpdateResultImg();
+        }
+
+        // Contract keeps the skin (special color) only when all 4 main heroes share it
+        private void UpdateResultImg() {
+            Sprite skinImg = null;
+            if (_mainLstHeroId.All(e => e != null && e.playerType == _mainLstHeroId[0].playerType)) {
+                skinImg = skinTypeResource.GetSkinImgByRarity((HeroRarity)(_targetUpgradeRarity + 1), _mainLstHeroId[0].playerType);
+            }
+            resultImg.sprite = skinImg ? skinImg : _defaultResultSprite;
         }
 
         private void DisplaySecondHeroWithId(PlayerData[] playersData) {
@@ -221,6 +238,7 @@ namespace Scenes.FarmingScene.Scripts {
                 _mainLstHeroId[i] = null;
             }
             ShowUIPercentFusion();
+            UpdateResultImg();
         }
         
         //Reset ui fusion sau khi unstake 1 hero ko còn là S
@@ -314,6 +332,18 @@ namespace Scenes.FarmingScene.Scripts {
                     waiting.Hide();
                 }
             });
+        }
+
+        public async void OnRecipeBtnClicked() {
+            _soundManager.PlaySound(Audio.Tap);
+            var dialog = await DialogFusionSkin.Create();
+            dialog.SetDefaultRarity((HeroRarity)Mathf.Max(_targetUpgradeRarity + 1, (int)HeroRarity.Rare));
+            dialog.SetSelectSkin((materials, rarity) => {
+                // DialogFusionSkin works on the result rarity, this dialog on the material rarity
+                fusionItemDisplayPolygon.OnSelectBtnClicked((int)rarity - 1);
+                DisplayMainHeroWithId(materials);
+            });
+            dialog.Show(DialogCanvas);
         }
 
         private static bool CanProcessThisHero(PlayerData hero) {
