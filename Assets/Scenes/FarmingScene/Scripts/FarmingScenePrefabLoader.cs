@@ -14,6 +14,7 @@ namespace Scenes.FarmingScene.Scripts {
         public AssetReference dialogWin;
         public AssetReference dialogSetting;
         public AssetReference dialogFusionPolygon;
+        public AssetReference dialogFusionSkin;
         public AssetReference dialogInventory;
         public AssetReference dialogInventoryV2;
         public AssetReference dialogInventoryPad;
@@ -67,6 +68,7 @@ namespace Scenes.FarmingScene.Scripts {
                 {typeof(DialogWin), dialogWin },
                 {typeof(DialogSetting), dialogSetting},
                 {typeof(DialogFusionPolygon), dialogFusionPolygon},
+                {typeof(DialogFusionSkin), dialogFusionSkin},
                 {typeof(DialogInventory), dialogInventory},
                 {typeof(DialogInventoryV2), dialogInventoryV2},
                 {typeof(DialogInventoryPad), dialogInventoryPad},

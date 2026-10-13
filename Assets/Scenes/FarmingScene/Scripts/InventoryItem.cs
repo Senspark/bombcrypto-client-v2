@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using Animation;
 using PvpMode.Component;
@@ -330,7 +331,8 @@ namespace Scenes.FarmingScene.Scripts {
             if (_chooseMode != DialogInventory.ChooseMode.InventoryFusion) {
                 return true;
             }
-            if (DialogInventory.MaxSelectChooseHero > 0) {
+            // MaxSelectChooseHero is the total cap; count live so a deselected slot can be refilled
+            if (_heroesIdBurn.Count(e => e != null) < DialogInventory.MaxSelectChooseHero) {
                 return true;
             }
             if (_heroesIdBurn.Contains(playerData)) {
