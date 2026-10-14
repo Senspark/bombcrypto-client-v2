@@ -51,6 +51,9 @@ namespace App {
         public Action<int[], bool> OnNewHeroFi;
         public Action<int[], bool> OnNewHeroServer;
         public Action<ISyncHouseResponse> OnSyncHouse;
+
+        /// P2P rental: event ("RENTED", "CHARGED", "ENDED_*") and house id
+        public Action<string, int> OnHouseRentalUpdate;
         public Action<IPveHeroDangerous> OnHeroChangeState;
         public Action<IInvestedDetail> OnInvestedDetail;
         public Action<IChestReward> OnChestReward;
