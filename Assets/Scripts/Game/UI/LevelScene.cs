@@ -349,6 +349,8 @@ namespace Game.UI {
 
         // Take the server's hero stages and energy, then fix the heroes on the map (after a server restart or a rent expiry).
         // Otherwise a hero it plays but the client holds asleep plants bombs and never moves.
+        public long ServerNowMs => _treasurePlayback?.ServerNowMs ?? DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+
         public async Task RefreshHeroesFromServer() {
             try {
                 await _serverManager.Pve.GetActiveBomber();

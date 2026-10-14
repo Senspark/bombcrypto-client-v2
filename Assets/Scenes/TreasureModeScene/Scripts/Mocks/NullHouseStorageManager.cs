@@ -55,7 +55,7 @@ namespace Scenes.TreasureModeScene.Scripts.Mocks {
             return 0f;
         }
 
-        public List<int> CheckHouseRentExpired() {
+        public List<int> CheckHouseRentExpired(long nowMs) {
             return new List<int>();
         }
 

@@ -103,6 +103,8 @@ namespace Game.Treasure {
 
         private double NowMs => _realtime() * 1000;
         private long PlayTime => (long) (NowMs + _offset) - JitterMs;
+        // Server epoch ms from the last snapshot; device clock until one arrives
+        public long ServerNowMs => _offset == 0 ? DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() : (long) (NowMs + _offset);
 
         #region INTAKE
 
