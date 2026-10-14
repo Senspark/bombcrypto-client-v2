@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using App;
 using Senspark;
@@ -22,6 +23,7 @@ namespace Game.UI {
         private Timer _timer;
         private bool _releasingRent;
         private float _nextRentCheckTime;
+        private readonly HashSet<int> _expiredRentHeroIds = new();
 
         private void Awake() {
             _storeManager = ServiceLocator.Instance.Resolve<IStorageManager>();
@@ -94,8 +96,9 @@ namespace Game.UI {
             if (_releasingRent || Time.realtimeSinceStartup < _nextRentCheckTime) {
                 return;
             }
-            var heroIds = _houseStorageManager.CheckHouseRentExpired();
-            if (heroIds.Count == 0) {
+            // Kept here: a Home answer makes HeroRestInHouse move them out of the expired house
+            _expiredRentHeroIds.UnionWith(_houseStorageManager.CheckHouseRentExpired(levelScene.ServerNowMs));
+            if (_expiredRentHeroIds.Count == 0) {
                 return;
             }
             _releasingRent = true;
@@ -104,14 +107,11 @@ namespace Game.UI {
             if (!this) {
                 return;
             }
-            var heroes = _playerStore.GetActivePlayerData();
-            foreach (var id in heroIds) {
-                var hero = heroes.FirstOrDefault(p => p.heroId.Id == id);
-                if (hero == null || hero.stage != HeroStage.Home) {
-                    _houseStorageManager.HeroLeaveHouse(id);
-                }
-            }
-            // client clock ahead of the server: the server still keeps them home, retry shortly
+            var homeIds = _playerStore.GetActivePlayerData()
+                .Where(p => p.stage == HeroStage.Home)
+                .Select(p => p.heroId.Id);
+            _expiredRentHeroIds.IntersectWith(homeIds);
+            // still home: the server has not reached the expiry yet, retry shortly
             _nextRentCheckTime = Time.realtimeSinceStartup + 3;
         }
 

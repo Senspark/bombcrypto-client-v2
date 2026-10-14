@@ -17,7 +17,7 @@ namespace App {
         HouseData GetLockedHouseData(int index);
         HouseData GetHouseDataFromId(int id);
         float GetHouseChargeFromId(int id);
-        List<int> CheckHouseRentExpired();
+        List<int> CheckHouseRentExpired(long nowMs);
         int GetIndexFromId(int id);
         HouseData GetActiveHouseData();
         int GetActiveIndex();

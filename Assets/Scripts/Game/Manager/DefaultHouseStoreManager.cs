@@ -228,13 +228,13 @@ namespace App {
             return GetActiveHouseData().Charge;
         }
 
-        public List<int> CheckHouseRentExpired() {
+        public List<int> CheckHouseRentExpired(long nowMs) {
             var result = new List<int>();
             if (_houseDatas == null || _heroInHouse == null) {
                 return result;
             }
             foreach (var houseData in _houseDatas) {
-                if (houseData.EndTimeRent > 0 && houseData.EndTimeRent < DateTime.UtcNow.ToEpochMilliseconds() && !houseData.isActive) {
+                if (houseData.EndTimeRent > 0 && houseData.EndTimeRent < nowMs && !houseData.isActive) {
                     if (_heroInHouse.ContainsKey(houseData.id)) {
                         result.AddRange(_heroInHouse[houseData.id]);
                     }
